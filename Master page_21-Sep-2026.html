@@ -3366,10 +3366,27 @@
                             case "UrgentFlag":
                                 masterRecord.UrgentFlag = item.admin_flagged || String(item.admin_yx0020x002fx0020n).toUpperCase() === "Y";
                                 break;
-                            case "BTBType":
-                                // TODO: handle validation fallback for unknown BTB types
-                                masterRecord[masterKey] = item[dvColumnKey] in ["BTB", "NON-BTB"] ? item[dvColumnKey] : undefined;
+                            case "BTBType": {
+                                const rawBtb = item[dvColumnKey] !== undefined 
+                                    ? item[dvColumnKey] 
+                                    : (item["admin_btbtype"] !== undefined 
+                                        ? item["admin_btbtype"] 
+                                        : (item["BTB_Type"] || item["BTBType"] || item["new_btb_type"]));
+                                if (rawBtb === null || rawBtb === undefined) {
+                                    masterRecord[masterKey] = "";
+                                } else {
+                                    const strBtb = String(rawBtb).trim();
+                                    const upperBtb = strBtb.toUpperCase();
+                                    if (upperBtb === "BTB" || upperBtb === "Y") {
+                                        masterRecord[masterKey] = "BTB";
+                                    } else if (upperBtb === "NON-BTB" || upperBtb === "NON BTB" || upperBtb === "N" || upperBtb === "NBTB") {
+                                        masterRecord[masterKey] = "NON-BTB";
+                                    } else {
+                                        masterRecord[masterKey] = strBtb;
+                                    }
+                                }
                                 break;
+                            }
                             default: 
                                 masterRecord[masterKey] = item[dvColumnKey];
                                 break;
@@ -3666,9 +3683,11 @@
         }
 
         function getBtbTag(type) {
-            if (!type) return `<span class="text-[12px] text-[#8E8E93] italic">Unset</span>`;
-            const cls = type === 'NON-BTB' ? "bg-[#FFF3D6] text-[var(--orange-dark)]" : "bg-[var(--charcoal)] text-[var(--graphite)]";
-            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${cls}">${escapeHtml(type)}</span>`;
+            if (!type || String(type).trim() === '') return `<span class="text-[12px] text-[#8E8E93] italic">Unset</span>`;
+            const upper = String(type).trim().toUpperCase();
+            const isNonBtb = upper === 'NON-BTB' || upper === 'NON BTB' || upper === 'N' || upper === 'NBTB';
+            const cls = isNonBtb ? "bg-[#FFF3D6] text-[var(--orange-dark)]" : "bg-[var(--charcoal)] text-[var(--graphite)]";
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${cls}">${escapeHtml(String(type))}</span>`;
         }
 
         function updateQuotationExpiryDisplay() {
@@ -4128,6 +4147,7 @@
         }
 
         function handleFormInputChange() {
+            handlePRAmount();
             updateTrackerVisual();
         }
 
@@ -4313,7 +4333,14 @@
                 if (CHECKBOX_FIELD_IDS.has(fieldId)) {
                     el.checked = Boolean(item[recordKey]);
                 } else {
-                    el.value = item[recordKey] || '';
+                    const val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    if (el.tagName === 'SELECT' && val && el.options && ![...el.options].some(o => o.value === val)) {
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        el.appendChild(opt);
+                    }
+                    el.value = val;
                 }
             });
 
@@ -4411,6 +4438,7 @@
             state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
 
             processData();
+            persistRecordToDataverse(item);
 
             if (closeAfter) {
                 showToast('Record updated successfully.', 'success');
@@ -4418,6 +4446,48 @@
             }
 
             return true;
+        }
+
+        async function persistRecordToDataverse(record) {
+            const api = getDataverseWebApi();
+            if (!api || !record) return;
+
+            const entityName = record._entityName || currentDataverseEntityName || "admin_btb_lis_excel_datas";
+            const title = record.Title || record.Id || '';
+
+            try {
+                let existingId = record.dataverseId;
+                if (!existingId && title) {
+                    const escaped = String(title).replace(/'/g, "''");
+                    const query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
+                    const res = await api.retrieveMultipleRecords(entityName, query);
+                    const existing = res.entities && res.entities[0];
+                    if (existing) {
+                        existingId = existing.admin_btb_lis_excel_datasid || existing.admin_btb_lis_excel_dataid || existing[entityName + "id"] || existing.id;
+                        if (existingId) record.dataverseId = existingId;
+                    }
+                }
+
+                if (existingId) {
+                    const payload = {};
+                    if (record.BTBType !== undefined) {
+                        payload.admin_btbtype = record.BTBType || null;
+                    }
+                    if (record.CustomerName !== undefined) payload.admin_customerx0020name = record.CustomerName || null;
+                    if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
+                    if (record.PRNo !== undefined) payload.admin_prx0020nox002e = record.PRNo || null;
+                    if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
+                    if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? Number(record.PRAmount) : null;
+                    if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? Number(record.POAmount) : null;
+                    if (record.ProcessStatus !== undefined) payload.admin_processstatus = record.ProcessStatus || null;
+
+                    if (Object.keys(payload).length > 0) {
+                        await api.updateRecord(entityName, existingId, payload);
+                    }
+                }
+            } catch (err) {
+                console.warn(`[MasterRecords] Failed to save record ${title} to Dataverse:`, err);
+            }
         }
 
         function saveRecord() {

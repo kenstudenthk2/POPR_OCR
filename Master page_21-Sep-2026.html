@@ -416,17 +416,39 @@
     </div>                             
     <!-- Manage Columns Modal -->
     <div id="columnModal" data-z-layer="1" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
-        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
             <div class="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
-                <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                <div>
+                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                    <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible in the main records table.</p>
+                </div>
                 <button type="button" onclick="closeColumnModal()" class="ui-transition pressable text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">Close ✕</button>
             </div>
-            <div class="p-6 overflow-y-auto max-h-[60vh] flex flex-col gap-2.5" id="columnCheckboxContainer">
+            <!-- Selection Toolbar -->
+            <div class="px-6 py-3 bg-[#FBF6EF] border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div class="text-[13px] text-[var(--muted)]">
+                    <span class="font-bold text-[var(--ink)]" id="columnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)]" id="columnTotalCount">0</span> columns visible
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleAllColumns(true)"
+                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        Select All
+                    </button>
+                    <button type="button" onclick="toggleAllColumns(false)"
+                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5" id="columnCheckboxContainer">
                 <!-- Checkboxes populated dynamically -->
             </div>
-            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-end gap-2 shrink-0">
-                <button type="button" onclick="closeColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
-                <button type="button" onclick="saveColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-between items-center shrink-0">
+                <span class="text-[12px] text-[var(--muted)]">Locked columns are always visible</span>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
+                    <button type="button" onclick="saveColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+                </div>
             </div>
         </div>
     </div>
@@ -434,17 +456,39 @@
     <!-- TODO: see if we can reuse the main Manage Columns Modal for Excel view -->
     <!-- Manage Excel Columns Modal -->
     <div id="excelColumnModal" data-z-layer="2" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
-        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
             <div class="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
-                <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                <div>
+                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                    <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible in the Excel full-data view.</p>
+                </div>
                 <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">Close ✕</button>
             </div>
-            <div id="excelColumnCheckboxContainer" class="p-6 overflow-y-auto max-h-[60vh] flex flex-col gap-2.5">
+            <!-- Selection Toolbar -->
+            <div class="px-6 py-3 bg-[#FBF6EF] border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div class="text-[13px] text-[var(--muted)]">
+                    <span class="font-bold text-[var(--ink)]" id="excelColumnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)]" id="excelColumnTotalCount">0</span> columns visible
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="toggleAllExcelColumns(true)"
+                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        Select All
+                    </button>
+                    <button type="button" onclick="toggleAllExcelColumns(false)"
+                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        Deselect All
+                    </button>
+                </div>
+            </div>
+            <div id="excelColumnCheckboxContainer" class="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                 <!-- Checkboxes populated dynamically -->
             </div>
-            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-end gap-2 shrink-0">
-                <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
-                <button type="button" onclick="saveExcelColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-between items-center shrink-0">
+                <span class="text-[12px] text-[var(--muted)]">Locked columns are always visible</span>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
+                    <button type="button" onclick="saveExcelColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1866,6 +1910,32 @@
             }
         }
 
+        function updateColumnModalCounts() {
+            const container = document.getElementById('columnCheckboxContainer');
+            if (!container) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            let visibleCount = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) visibleCount++;
+            });
+            const visEl = document.getElementById('columnVisibleCount');
+            const totEl = document.getElementById('columnTotalCount');
+            if (visEl) visEl.innerText = String(visibleCount);
+            if (totEl) totEl.innerText = String(checkboxes.length);
+        }
+
+        function toggleAllColumns(selectAll) {
+            const container = document.getElementById('columnCheckboxContainer');
+            if (!container) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = Boolean(selectAll);
+                }
+            });
+            updateColumnModalCounts();
+        }
+
         function openColumnModal() {
             const container = document.getElementById('columnCheckboxContainer');
             container.innerHTML = COLUMN_CONFIG.map(col => {
@@ -1874,13 +1944,16 @@
                 const lockedTag = col.locked ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
 
                 return `
-                    <label class="flex items-center gap-3 p-3 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${col.locked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
+                    <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${col.locked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
                         <input type="checkbox" data-key="${col.key}" ${isChecked} ${isDisabled}
-                            class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer disabled:cursor-not-allowed">
-                        <span class="text-[14px] font-semibold text-[var(--ink)]">${escapeHtml(col.label)}${lockedTag}</span>
+                            onchange="updateColumnModalCounts()"
+                            class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer disabled:cursor-not-allowed shrink-0">
+                        <span class="text-[13px] font-semibold text-[var(--ink)] truncate" title="${escapeHtml(col.label)}">${escapeHtml(col.label)}${lockedTag}</span>
                     </label>
                 `;
             }).join('');
+
+            updateColumnModalCounts();
 
             const modal = document.getElementById('columnModal');
             modal.classList.remove('hidden');
@@ -3085,24 +3158,51 @@
             closeExcelColumnModal();
         }
 
+        function updateExcelColumnModalCounts() {
+            const container = document.getElementById('excelColumnCheckboxContainer');
+            if (!container) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            let visibleCount = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) visibleCount++;
+            });
+            const visEl = document.getElementById('excelColumnVisibleCount');
+            const totEl = document.getElementById('excelColumnTotalCount');
+            if (visEl) visEl.innerText = String(visibleCount);
+            if (totEl) totEl.innerText = String(checkboxes.length);
+        }
+
+        function toggleAllExcelColumns(selectAll) {
+            const container = document.getElementById('excelColumnCheckboxContainer');
+            if (!container) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = Boolean(selectAll);
+                }
+            });
+            updateExcelColumnModalCounts();
+        }
+
         function openExcelColumnModal() {
             const container = document.getElementById('excelColumnCheckboxContainer');
             container.innerHTML = COLUMN_CONFIG.map(col => {
-                //const isDisabled = col.locked ? 'disabled' : '';
-                const isDisabled = (col.locked || excelVisbleColumns[col.key]?.locked) ? 'disabled' : '';
-                const isChecked = excelVisbleColumns[col.key].visible ? 'checked' : '';
-                //const lockedTag = col.locked ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
                 const isLocked = col.locked || excelVisbleColumns[col.key]?.locked;
+                const isDisabled = isLocked ? 'disabled' : '';
+                const isChecked = excelVisbleColumns[col.key]?.visible ? 'checked' : '';
                 const lockedTag = isLocked ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
 
                 return `
-                    <label class="flex items-center gap-3 p-3 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${col.locked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
+                    <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${isLocked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
                         <input type="checkbox" data-key="${col.key}" ${isChecked} ${isDisabled}
-                            class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer disabled:cursor-not-allowed">
-                        <span class="text-[14px] font-semibold text-[var(--ink)]">${escapeHtml(col.label)}${lockedTag}</span>
+                            onchange="updateExcelColumnModalCounts()"
+                            class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer disabled:cursor-not-allowed shrink-0">
+                        <span class="text-[13px] font-semibold text-[var(--ink)] truncate" title="${escapeHtml(col.label)}">${escapeHtml(col.label)}${lockedTag}</span>
                     </label>
                 `;
             }).join('');
+
+            updateExcelColumnModalCounts();
 
             const modal = document.getElementById('excelColumnModal');
             modal.classList.remove('hidden');

@@ -1,8 +1,8 @@
 /* master-page-btbtype.test.js -- Verification for BTB / Non-BTB column showing admin_btbtype
    -----------------------------------------------------------------------------------------
    Verifies that Master page_21-Sep-2026.html correctly maps table "admin_btb_lis_excel_datas"
-   column "admin_btbtype" to the table column "BTB / NON-BTB" (BTBType) and that the Manage
-   modal opens cleanly.
+   column "admin_btbtype" to the table column "BTB / NON-BTB" (BTBType), that the Manage
+   modal opens cleanly, and that Manage Columns modal is widened with Select All support.
 */
 const fs = require("fs");
 const path = require("path");
@@ -33,6 +33,18 @@ ok("FIELD_ID_TO_RECORD_KEY maps edit-btb to BTBType",
 
 ok("Actions column has Manage button calling openEditModal",
   HTML.includes("openEditModal") && HTML.includes(">Manage</button>"));
+
+ok("Manage Columns modal has widened max-w-4xl container",
+  HTML.includes('id="columnModal"') && HTML.includes('max-w-4xl'));
+
+ok("Manage Columns modal has Select All and Deselect All buttons",
+  HTML.includes('toggleAllColumns(true)') && HTML.includes('toggleAllColumns(false)'));
+
+ok("Manage Columns modal has multi-column responsive grid",
+  HTML.includes('id="columnCheckboxContainer"') && HTML.includes('md:grid-cols-3'));
+
+ok("Excel Manage Columns modal has widened container and Select All",
+  HTML.includes('id="excelColumnModal"') && HTML.includes('toggleAllExcelColumns(true)'));
 
 // 2. Logic execution in sandbox
 const scriptMatch = HTML.match(/<script>([\s\S]*?)<\/script>[\s\S]*?<\/body>/);
@@ -80,6 +92,7 @@ function getMockElement(id) {
       appendChild() {},
       removeChild() {},
       querySelector: () => null,
+      querySelectorAll: () => [],
       closest: () => ({ querySelector: () => ({ appendChild: () => {}, querySelector: () => null }) })
     });
   }
@@ -123,6 +136,9 @@ EXPORTS.loadData = loadData;
 EXPORTS.getBtbTag = getBtbTag;
 EXPORTS.FIELD_ID_TO_RECORD_KEY = FIELD_ID_TO_RECORD_KEY;
 EXPORTS.openEditModal = openEditModal;
+EXPORTS.toggleAllColumns = toggleAllColumns;
+EXPORTS.toggleAllExcelColumns = toggleAllExcelColumns;
+EXPORTS.openColumnModal = openColumnModal;
 EXPORTS.persistRecordToDataverse = typeof persistRecordToDataverse === 'function' ? persistRecordToDataverse : null;
 `;
 
@@ -159,7 +175,25 @@ ok("getBtbTag(null) returns Unset", unsetTagNull.includes("Unset"));
 const unsetTagEmpty = X.getBtbTag("");
 ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
 
-// 5. Test loadData mappings from Dataverse
+// 5. Test Manage Columns Select All / Deselect All
+const mockCheckboxes = [
+  { disabled: true, checked: true },  // locked column
+  { disabled: false, checked: true },
+  { disabled: false, checked: false },
+  { disabled: false, checked: false },
+];
+const columnContainer = getMockElement("columnCheckboxContainer");
+columnContainer.querySelectorAll = () => mockCheckboxes;
+
+X.toggleAllColumns(true);
+ok("toggleAllColumns(true) leaves locked disabled checked", mockCheckboxes[0].checked === true);
+ok("toggleAllColumns(true) checks all non-disabled checkboxes", mockCheckboxes[1].checked && mockCheckboxes[2].checked && mockCheckboxes[3].checked);
+
+X.toggleAllColumns(false);
+ok("toggleAllColumns(false) leaves locked disabled checked", mockCheckboxes[0].checked === true);
+ok("toggleAllColumns(false) unchecks non-disabled checkboxes", !mockCheckboxes[1].checked && !mockCheckboxes[2].checked && !mockCheckboxes[3].checked);
+
+// 6. Test loadData mappings from Dataverse
 (async () => {
   await X.loadData();
   const records = X.state.allData;
@@ -174,7 +208,7 @@ ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
   eq("Record 6 with admin_btbtype=null maps to BTBType=''", records[5].BTBType, "");
   eq("Record 7 with admin_btbtype='' maps to BTBType=''", records[6].BTBType, "");
 
-  // 6. Test openEditModal execution (Manage button click)
+  // 7. Test openEditModal execution (Manage button click)
   let modalOpenError = null;
   try {
     X.openEditModal("REC-BTB-1");
@@ -185,7 +219,7 @@ ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
   const editModalEl = getMockElement("editModal");
   ok("openEditModal unhid editModal element", !editModalEl.classList.contains("hidden") && editModalEl.classList.contains("flex"));
 
-  // 7. Test Dataverse persistence if persistRecordToDataverse exists
+  // 8. Test Dataverse persistence if persistRecordToDataverse exists
   if (X.persistRecordToDataverse) {
     await X.persistRecordToDataverse({
       Id: "REC-BTB-1",
@@ -198,7 +232,7 @@ ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
   }
 
   if (failures === 0) {
-    console.log("\nALL CHECKS PASSED: BTB / Non-BTB column correctly shows admin_btbtype and Manage button works.");
+    console.log("\nALL CHECKS PASSED: BTB / Non-BTB column, Manage button, and widened Manage Columns modal verified.");
     process.exit(0);
   } else {
     console.error(`\n${failures} check(s) failed.`);

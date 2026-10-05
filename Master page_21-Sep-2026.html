@@ -4547,6 +4547,16 @@
             return true;
         }
 
+const PROCESS_STATUS_MAP = {
+    "Complete": 0,
+    "Cancelled": 1,
+    "PR No. Ready": 2,
+    "UM Verified": 3,
+    "LIS System Approved": 4,
+    "PO No. Ready": 5
+};
+
+
         async function persistRecordToDataverse(record) {
             const api = getDataverseWebApi();
             if (!api || !record) return;
@@ -4578,7 +4588,175 @@
                     if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
                     if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? Number(record.PRAmount) : null;
                     if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? Number(record.POAmount) : null;
-                    if (record.ProcessStatus !== undefined) payload.admin_processstatus = record.ProcessStatus || null;
+if (record.ProcessStatus !== undefined)
+    payload.admin_processstatus =
+        PROCESS_STATUS_MAP[
+            record.ProcessStatus
+        ];
+        
+if (record.Status !== undefined)
+    payload.admin_prstatus =
+        record.Status;
+
+if (record.RecordDate !== undefined)
+    payload.admin_recx0027dx0020datex0020 =
+        record.RecordDate;
+
+if (record.IssueBy !== undefined)
+    payload.admin_issuex0020by =
+        record.IssueBy;
+
+if (record.Brand !== undefined)
+    payload.admin_brand =
+        record.Brand;
+
+if (record.Model !== undefined)
+    payload.admin_model =
+        record.Model;
+
+if (record.ProductType !== undefined)
+    payload.admin_producttype =
+        record.ProductType;
+
+if (record.HandledBy !== undefined)
+    payload.admin_handledx0020byx0020 =
+        record.HandledBy;
+
+if (record.IPTUnitMgr !== undefined)
+    payload.admin_iptx0020unitx0020mgr =
+        record.IPTUnitMgr;
+
+if (record.UID !== undefined)
+    payload.admin_uidx0020x0023 =
+        record.UID;
+
+if (record.Remarks !== undefined)
+    payload.admin_remarks =
+        record.Remarks;
+
+if (record.QuotationStartDate !== undefined)
+    payload.admin_quotationstartdates =
+        record.QuotationStartDate;
+
+if (record.QuotationEndDate !== undefined)
+    payload.admin_quotationenddates =
+        record.QuotationEndDate;
+
+if (record.QuotationExpiryDate !== undefined)
+    payload.admin_quotationexpirydate =
+        record.QuotationExpiryDate;
+
+if (record.PRReference !== undefined)
+    payload.admin_prx0020reference =
+        record.PRReference;
+
+if (record.PRDescription !== undefined)
+    payload.admin_prx0020description =
+        record.PRDescription;
+
+if (record.ContractNo !== undefined)
+    payload.admin_contractx0020nox002e =
+        record.ContractNo;
+
+if (record.StartDate !== undefined)
+    payload.admin_contractstartdate =
+        record.StartDate;
+
+if (record.EndDate !== undefined)
+    payload.admin_contractenddate =
+        record.EndDate;
+
+if (record.TotalRevenue !== undefined)
+    payload.admin_totalrevenue =
+        record.TotalRevenue;
+
+if (record.UMMgr !== undefined)
+    payload.admin_umx002fmgr =
+        record.UMMgr;
+
+if (record.LicenseReceiveDate !== undefined)
+    payload.admin_licensereceivedate =
+        record.LicenseReceiveDate;
+
+if (record.ChargeCCC !== undefined)
+    payload.admin_chargex0020ccc =
+        record.ChargeCCC;
+
+if (record.WorksOrderCode !== undefined)
+    payload.admin_worksx0020orderx0020code =
+        record.WorksOrderCode;
+
+if (record.AccountCode !== undefined)
+    payload.admin_accountx0020code =
+        record.AccountCode;
+
+if (record.PRIssuedOn !== undefined)
+    payload.admin_prx0020issuedx0020on =
+        record.PRIssuedOn;
+
+if (record.PRIssuedMonth !== undefined)
+    payload.admin_prx0020issuedx0020month =
+        record.PRIssuedMonth;
+
+if (record.Currency !== undefined)
+    payload.admin_hkdusd =
+        record.Currency;
+
+if (record.No !== undefined)
+    payload.admin_nox002e =
+        record.No;
+
+if (record.InvoiceDNNo !== undefined)
+    payload.admin_invoicex0020x0023x0020x00 =
+        record.InvoiceDNNo;
+
+if (record.InvoiceDNDate !== undefined)
+    payload.admin_invoicex0020x002fx0020dnx =
+        record.InvoiceDNDate;
+
+if (record.SBMTCEOrder !== undefined)
+    payload.admin_sbmtceorder =
+        record.SBMTCEOrder;
+
+if (record.ItemNo !== undefined)
+    payload.admin_itemno =
+        record.ItemNo;
+
+if (record.SellingAmountHKD !== undefined)
+    payload.admin_sellingamounthkd =
+        record.SellingAmountHKD;
+
+if (record.CostRevenueRatio !== undefined)
+    payload.admin_ratioofoverallcostx002dreve =
+        record.CostRevenueRatio;
+
+if (record.SwappingRevenueRatio !== undefined)
+    payload.admin_ratioofoverallswappingx002d =
+        record.SwappingRevenueRatio;
+
+if (record.PODate !== undefined)
+    payload.admin_pox0020date =
+        record.PODate;
+
+if (record.POReceiptDate !== undefined)
+    payload.admin_receiptx0020date =
+        record.POReceiptDate;
+
+if (record.DeliveryNote !== undefined)
+    payload.admin_deliverynote =
+        record.DeliveryNote;
+
+if (record.ReceiptNum !== undefined)
+    payload.admin_receiptnum =
+        record.ReceiptNum;
+
+if (record.UrgentFlag !== undefined)
+    payload.admin_flagged =
+        !!record.UrgentFlag;
+
+if (record.UrgentFlag !== undefined)
+    payload.admin_yx0020x002fx0020n =
+        record.UrgentFlag ? "Y" : "N";
 
                     if (Object.keys(payload).length > 0) {
                         await api.updateRecord(entityName, existingId, payload);

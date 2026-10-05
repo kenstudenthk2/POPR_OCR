@@ -11636,10 +11636,69 @@ function ProcessingPage({ status, pct, error, retry, goVerify }) {
   );
 }
 
+/**
+ * @param {Blob} blob 
+ * @returns {Promise<string>} - base64 string representation of the blob
+ */
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (!result || typeof result !== "string") {
+        reject(new Error("Failed to convert blob to base64"));
+        return;
+      }
+      const base64 = result.substring(result.indexOf(",") + 1); // Remove the data URL prefix
+      resolve(base64)
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
+
+/**
+ * Send Email and attachments to PowerFlow (through n8n flow)
+ * @param {string} recordId 
+ * @param {import("./types/AttachmentRecord").IAttachments} attachments 
+ */
+async function saveAttachmentToPowerFlow(recordId, attachments){
+  if (!recordId || recordId.length === 0) {
+    throw new Error("recordId is required to save attachments to PowerFlow");
+  }
+  /** @type {{recordId: string, attachments: {filename: string; base64: string}[]}} */
+  const postObj = {
+    recordId,
+    attachments: []
+  }
+  const emailFile = attachments["Vendor Quotation"].fileObj
+
+  const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {
+      if (!doc.fileName) throw new Error("Invalid filename") ;
+      return ({
+        filename: doc.fileName,
+        base64: await blobToBase64(doc.blob)
+      })
+    }
+  )
+  promises.push(blobToBase64(emailFile).then((base64)=>({
+    filename: emailFile.name,
+    base64
+  })))
+  const base64Files = (await Promise.allSettled(promises)).filter(res=> res.status === 'fulfilled')
+  postObj.attachments = base64Files.map((res) => res.value)
+  const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+    method: "POST",
+    body: JSON.stringify(postObj), 
+  })
+  return response
+}
+
 // No `census` prop: every role this page names travels inside the crosscheck
 // already, so taking the census too would be a second way to answer the same
 // question and a second way to be out of date.
-function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectItem, itemRecordIds, savedRecordIds, processAnotherItem, goUpload, goSave, saving, savedRecordId, setField, adminMode = false, records = [], lisStartWritten = {}, processedItems = {} }) {
+function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectItem, itemRecordIds, savedRecordIds, processAnotherItem, goUpload, goSave, saving, recordId, savedRecordId, setField, adminMode = false, records = [], lisStartWritten = {}, processedItems = {} }) {
   // The sales contact the reviewer picked HERE. `null` means they have not
   // touched the picker -- distinct from `""`, which is them CLEARING it, and
   // the picker really does offer a blank row. That is why this is a sentinel
@@ -11877,7 +11936,15 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
           options={items.map((_, i) => ({ value: i, label: `Item ${i + 1}` }))}
           triggerClassName="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border-[1.5px] border-[var(--line)] bg-white text-[13px] font-semibold text-[var(--ink)]" />}
         <GhostButton onClick={goUpload}><span className="inline-flex items-center gap-1.5"><Icon name="chevronLeft" className="w-4 h-4" />Upload</span></GhostButton>
-        <PrimaryButton disabled={saving || !!savedRecordId} onClick={goSave}>{saving ? "Saving..." : savedRecordId ? "Saved" : "Save to master"}</PrimaryButton>
+        <PrimaryButton 
+          disabled={saving || !!savedRecordId} 
+          onClick={async (e)=>{
+            await goSave(e);
+            saveAttachmentToPowerFlow(recordId, attachments)
+          }}
+        >
+          {saving ? "Saving..." : savedRecordId ? "Saved" : "Save to master"}
+        </PrimaryButton>
       </React.Fragment>} />
     <div className="px-5 md:px-8 pb-8 flex flex-col gap-5">
       {/* Dev side only (FEATURES.processAnotherItem), and only when this ATQ
@@ -15521,11 +15588,27 @@ function App() {
           uid={uidFromEmail(attachments, fields, emailSubject)} recordId={recordIdForItem(savePlans, itemIndex)}
           emailSubject={emailSubject} dataverseVerify={dataverseVerify} refreshDataverse={openVerifyAfterN8n}
           dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff} adminMode={adminMode} />}
-        {page === "lis" && <LisRemarkPage fields={fields} lisRowValues={lisRowValues} attachments={attachments} itemIndex={itemIndex} selectItem={selectItem}
-          itemRecordIds={itemRecordIds} savedRecordIds={savedRecordIds} processAnotherItem={processAnotherItem}
-          goUpload={goUpload} goSave={goSave} saving={saving} savedRecordId={savedRecordId} setField={setField} adminMode={adminMode}
-          records={records} lisStartWritten={lisStartWritten}
-          processedItems={processedItems} />}
+        {page === "lis" && (
+          <LisRemarkPage 
+            fields={fields} 
+            lisRowValues={lisRowValues} 
+            attachments={attachments} 
+            itemIndex={itemIndex} 
+            selectItem={selectItem}
+            itemRecordIds={itemRecordIds} 
+            savedRecordIds={savedRecordIds} 
+            processAnotherItem={processAnotherItem}
+            goUpload={goUpload} 
+            goSave={goSave} 
+            saving={saving} 
+            recordId={recordIdForItem(savePlans, itemIndex)} 
+            savedRecordId={savedRecordId} 
+            setField={setField} 
+            adminMode={adminMode}
+            records={records} 
+            lisStartWritten={lisStartWritten}
+            processedItems={processedItems} 
+          />)}
         {page === "verify" && <VerifyPage attachments={attachments} fields={fields} manualChecks={manualChecks} toggleManualCheck={toggleManualCheck}
           goUpload={goUpload} goSave={goSave} demoMode={demoMode} adminMode={adminMode} itemRecordIds={itemRecordIds} saveStatus={saveStatus} saving={saving} savedRecordId={savedRecordId}
           crosschecks={crosschecks} dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff} openViewer={openViewer}

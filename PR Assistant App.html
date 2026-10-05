@@ -3257,7 +3257,8 @@ function seedFieldsFromLisRows(fields, values) {
 
 function buildLisExcelPayload(values, recordId, remark) {
   const v = key => ((values && values[key]) || "").trim();
-  const prAmountNum = parseDecimal(v("prAmount"));
+  // const prAmountNum = parseDecimal(v("prAmount"));
+  const prAmountNum = ]v("prAmount");
   const rawCurrency = v("currency") || v("prCurrency");
   const prCurrency = rawCurrency
     ? (rawCurrency.toUpperCase() === "USD" ? "USD" : "HKD")
@@ -15303,11 +15304,28 @@ function App() {
         let id = recordId;
         const saveApi = writeApi();
         if (saveApi) {
-          const result = await saveApi.createRecord(SCHEMA.saveEntity, payload);
-          console.log("Dataverse record successfully created with ID:", result.id);
-          id = result.id;
+          const existing = await findExistingLisRecordId(id, saveApi);
+          if (existing) {
+            
+            const result = await saveApi.updateRecord(SCHEMA.saveEntity, existing, payload);
+            console.log(
+              "Dataverse record successfully updated with ID:",
+              result.id,
+            );
+            id = result.id;
+          }
+          else {
+            const result = await saveApi.createRecord(SCHEMA.saveEntity, payload);
+            console.log(
+              "Dataverse record successfully created with ID:",
+              result.id,
+            );
+            id = result.id;
+          }
         } else {
-          console.warn("parent.Xrm.WebApi not detected. Saving locally (Demo / Standalone mode).");
+          console.warn(
+            "parent.Xrm.WebApi not detected. Saving locally (Demo / Standalone mode).",
+          );
         }
         markProcessStage(recordId, "finished");
         // Same shape RecordsPage's admin_btb_lis_excel_datas columns read --

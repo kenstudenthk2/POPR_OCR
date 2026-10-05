@@ -1,0 +1,27 @@
+name = "docparse-ai"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# After `npx wrangler deploy`, the worker is available at
+#   https://docparse-ai.<your-subdomain>.workers.dev
+# You can also add a custom route on kkhome.uk in the Cloudflare dashboard,
+# e.g. ai.kkhome.uk -> this worker.
+
+# Set the secret (never put the key in this file):
+#   npx wrangler secret put GEMINI_API_KEY
+
+# Per-IP rate limit. The Worker URL ships inside a distributed zip, so it
+# must survive being called by anyone who reads index.html. WAF rate
+# limiting rules don't apply to *.workers.dev (not in our zone), so this
+# uses the Workers-native rate limiting binding instead.
+# Current binding syntax per Cloudflare docs (developers.cloudflare.com/
+# workers/runtime-apis/bindings/rate-limit/) — the older `[[unsafe.bindings]]`
+# / `type = "ratelimit"` form is superseded by the dedicated `[[ratelimits]]`
+# array below. `period` must be 10 or 60.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 20
+  period = 60

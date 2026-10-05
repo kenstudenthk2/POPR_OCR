@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Records — PR Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Funnel+Sans:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ---------- Design tokens ported from "PR Assistant App_Admin.html" ----------
+           Same variable names/values as the app's own :root, so this file (and its
+           class names) can be pasted into the app's JSX later with no colour/spacing
+           translation step. */
+        :root {
+            --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+            --focus-ring: 0 0 0 4px rgba(255, 153, 0, 0.28);
+            --ink: #1D1D1F;
+            --muted: #515154;
+            --line: #D2D2D7;
+            --surface: #FFFFFF;
+            --surface-soft: #F5F5F7;
+            --charcoal: #EDE9E1;
+            --graphite: #424242;
+            --orange: #FF9900;
+            --orange-dark: #B35F00;
+            --green: #15803D;
+            --amber: #B45309;
+            --red: #DC2626;
+        }
+        html { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 100% 0%, rgba(255, 153, 0, 0.10), transparent 31rem),
+                linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        button, input, select, textarea { font: inherit; }
+        button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: none;
+            box-shadow: var(--focus-ring);
+        }
+        .ui-transition {
+            transition-property: transform, background-color, border-color, color, opacity, box-shadow, filter;
+            transition-duration: 180ms;
+            transition-timing-function: var(--ease-out-ui);
+        }
+        /* Same restrained "resting lift" every pill/tab/icon-button gets in the app --
+           subtle, not the pronounced/neumorphic kind. */
+        .pressable:not(:disabled) { box-shadow: 0 1px 2px rgba(29, 29, 31, 0.05); }
+        @media (hover: hover) and (pointer: fine) {
+            .pressable:hover:not(:disabled) { box-shadow: 0 4px 10px rgba(29, 29, 31, 0.10); }
+        }
+        .pressable:active:not(:disabled) {
+            transform: scale(0.97);
+            box-shadow: 0 1px 1px rgba(29, 29, 31, 0.06);
+        }
+        .field-control {
+            transition: border-color 160ms var(--ease-out-ui), box-shadow 160ms var(--ease-out-ui);
+        }
+        .field-control:focus {
+            border-color: var(--orange);
+            box-shadow: var(--focus-ring);
+            outline: none;
+        }
+        @keyframes panel-rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .panel-rise { animation: panel-rise 260ms var(--ease-out-ui) both; }
+        @keyframes modal-backdrop-fade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-backdrop { animation: modal-backdrop-fade 200ms ease both; }
+        @keyframes modal-pop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-pop { animation: modal-pop 200ms var(--ease-out-ui) both; transform-origin: center; }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-item { animation: toast-in 200ms var(--ease-out-ui) both; }
+        .loader {
+            border: 3px solid var(--line);
+            border-top: 3px solid var(--orange);
+            border-radius: 50%;
+            width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        table { border-collapse: collapse; }
+        th { position: sticky; top: 0; z-index: 10; background-color: #F3EBE2; }
+    </style>
+</head>
+<body>
+
+    <!-- Header: same hero-title + subtitle + right-side controls shape as the app's own TopBar -->
+    <div class="w-full flex flex-col xl:flex-row xl:justify-between xl:items-center gap-5 px-5 md:px-8 py-6">
+        <div>
+            <div class="text-[clamp(28px,3vw,44px)] leading-[1.05] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Master List Management System</div>
+            <div class="mt-2 max-w-2xl text-[15px] leading-6 text-[var(--muted)]">Browse, filter and update every saved PR / PO record.</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-[1.5px] border-[#C5BEB6] rounded-full w-[260px]">
+                <span class="text-[#6B6B6B] text-[13px]">🔍</span>
+                <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search by ID, Vendor, Customer…"
+                    aria-label="Search records"
+                    class="flex-1 text-[14px] outline-none bg-transparent placeholder:text-[#6B6B6B]">
+            </div>
+            <button type="button" onclick="toggleFilters()"
+                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
+                Filter Data
+            </button>
+            <div id="main-loader" class="loader hidden"></div>
+            <button type="button" onclick="initApp()"
+                class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[1.5px] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">
+                Refresh Data
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto px-5 md:px-8 pb-10 flex flex-col gap-6">
+
+        <!-- Dashboard KPIs: plain Card look (soft shadow, thin border, no accent
+             bar) -- a coloured dot beside the label carries the category instead
+             of a thick side border, which reads as an AI-template tell. -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--orange)] shrink-0"></span>Total Records</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-total">0</div>
+            </div>
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shrink-0"></span>Data Verifying</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-verifying">0</div>
+            </div>
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0"></span>Completed Tasks</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-finished">0</div>
+            </div>
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shrink-0"></span>Pending Tasks</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-pending">0</div>
+            </div>
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--red)] shrink-0"></span>Expired Contracts</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-expired">0</div>
+            </div>
+            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--muted)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shrink-0"></span>Upcoming Expiry (30d)</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-upcoming">0</div>
+            </div>
+        </div>
+
+        <!-- Filter panel: a Card, hidden by default. Only the free-text filters live
+             here now -- Process Status moved to the tab row below, mirroring how
+             "Master Records" filters by status via tabs, not a select. -->
+        <div id="filterPanel" class="hidden panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1">
+                <label class="text-[12px] font-semibold text-[var(--muted)]">Handled By</label>
+                <input type="text" id="flt-handledBy" oninput="applyFilters()" placeholder="Name…"
+                    class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[12px] font-semibold text-[var(--muted)]">Vendor</label>
+                <input type="text" id="flt-vendor" oninput="applyFilters()" placeholder="Vendor…"
+                    class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Name</label>
+                <input type="text" id="flt-customer" oninput="applyFilters()" placeholder="Customer…"
+                    class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+            </div>
+        </div>
+
+        <!-- Status tabs, same shape as the "Master Records" page: underline on the
+             active tab, a count pill beside each label. -->
+        <div class="flex flex-wrap border-b border-[#C5BEB6] -mb-6" id="tabBar"></div>
+
+        <!-- Data Grid -->
+        <div class="panel-rise bg-white/95 rounded-b-xl rounded-t-none border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] overflow-hidden mt-6">
+            <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr>
+                            <th onclick="handleSort('Title')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">Record ID ↕</th>
+                            <th onclick="handleSort('CustomerName')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">Customer ↕</th>
+                            <th onclick="handleSort('Vendor')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">Vendor ↕</th>
+                            <th onclick="handleSort('BTBType')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">BTB / NON-BTB ↕</th>
+                            <th onclick="handleSort('ProcessStatus')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">Process Status ↕</th>
+                            <th onclick="handleSort('EndDate')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">End Date ↕</th>
+                            <th onclick="handleSort('HandledBy')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap">Handled By ↕</th>
+                            <th class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] whitespace-nowrap">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-between items-center px-4 py-3 border-t border-[var(--line)]">
+                <span id="pageInfo" class="text-[12px] text-[var(--muted)]">Page 1 of 1</span>
+                <div class="flex gap-1.5">
+                    <button type="button" onclick="prevPage()" class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">Previous</button>
+                    <button type="button" onclick="nextPage()" class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="hidden fixed inset-0 z-50 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-8 modal-backdrop" id="editModal">
+        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+                <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Edit Record</h2>
+                <button type="button" onclick="closeModal()" class="ui-transition pressable text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">Close ✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- Status Tracker Visual -->
+                <div class="col-span-1 md:col-span-2 flex justify-between relative px-2 py-4" id="statusTracker"></div>
+
+                <input type="hidden" id="edit-id">
+
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Record ID</label>
+                    <input type="text" id="edit-title" disabled class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[12px] font-semibold text-[var(--muted)]">BTB / NON-BTB</label>
+                    <select id="edit-btb" onchange="updateTrackerVisual()" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                        <option value="BTB">BTB</option>
+                        <option value="NON-BTB">NON-BTB</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Customer Name</label>
+                    <input type="text" id="edit-customer" required class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Vendor</label>
+                    <input type="text" id="edit-vendor" required class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Contract No.</label>
+                    <input type="text" id="edit-contract" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Start Date</label>
+                    <input type="date" id="edit-startdate" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">End Date</label>
+                    <input type="date" id="edit-enddate" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PO Amount</label>
+                    <input type="number" id="edit-poamount" step="0.01" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PR Reference</label>
+                    <input type="text" id="edit-prref" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PR No.</label>
+                    <input type="text" id="edit-prno" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PO No.</label>
+                    <input type="text" id="edit-pono" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PO Date</label>
+                    <input type="date" id="edit-podate" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-[12px] font-semibold text-[var(--muted)]">Process Status</label>
+                    <select id="edit-processstatus" onchange="updateTrackerVisual()" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Waiting Approve">Waiting Approve</option>
+                        <option value="Pending PR">Pending PR</option>
+                        <option value="Pending PO">Pending PO</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">PR Status</label>
+                    <input type="text" id="edit-prstatus" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Handled By</label>
+                    <input type="text" id="edit-handledby" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Data Verifying Status</label>
+                    <select id="edit-verifying" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                        <option value="Pending">Pending</option>
+                        <option value="Verified">Verified</option>
+                    </select>
+                </div>
+
+                <div class="col-span-1 md:col-span-2 flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Status Remark</label>
+                    <input type="text" id="edit-statusremark" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]"></div>
+                <div class="col-span-1 md:col-span-2 flex flex-col gap-1"><label class="text-[12px] font-semibold text-[var(--muted)]">Remarks</label>
+                    <textarea id="edit-remarks" rows="3" class="field-control w-full px-3 py-2.5 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y"></textarea></div>
+            </div>
+            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-end gap-2 shrink-0">
+                <button type="button" onclick="closeModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">Cancel</button>
+                <button type="button" onclick="saveRecord()" id="btn-save" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[1.5px] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end" id="toastContainer"></div>
+
+    <script>
+        /** CONFIGURATION */
+        const CONFIG = {
+            siteUrl: typeof _spPageContextInfo !== 'undefined' ? _spPageContextInfo.webAbsoluteUrl : "",
+            listName: "MasterList", // Update to your SharePoint List Name
+            itemsPerPage: 15
+        };
+
+        // The 6 Process Status values, in tab order -- "All" is not a real status,
+        // it just means "no status filter applied".
+        const STATUS_TABS = ["All", "Pending", "In Progress", "Waiting Approve", "Pending PR", "Pending PO", "Completed"];
+
+        // Same colour family as the app's own STATUS_STYLES (Pending -> amber,
+        // Completed -> green, etc.), extended to this file's 6 process statuses.
+        const STATUS_BADGE_CLASS = {
+            "Pending": "bg-[#FEF3C7] text-[var(--amber)]",
+            "In Progress": "bg-[#DBEAFE] text-[#1D4ED8]",
+            "Waiting Approve": "bg-[#EDE9FE] text-[#6D28D9]",
+            "Pending PR": "bg-[#FFE8CC] text-[var(--orange-dark)]",
+            "Pending PO": "bg-[#FEE2E2] text-[var(--red)]",
+            "Completed": "bg-[#DCFCE7] text-[var(--green)]"
+        };
+
+        let state = {
+            allData: [],
+            filteredData: [],
+            currentPage: 1,
+            sortCol: 'Id',
+            sortAsc: false,
+            formDigest: '',
+            activeTab: 'All'
+        };
+
+        document.addEventListener("DOMContentLoaded", () => { renderTabBar(); initApp(); });
+
+        async function initApp() {
+            showLoader(true);
+            try {
+                if (CONFIG.siteUrl) {
+                    await getFormDigest();
+                    await fetchSharePointData();
+                } else {
+                    showToast("Not in SharePoint. Loading mock data...", "warning");
+                    loadMockData();
+                }
+                processData();
+            } catch (error) {
+                console.error(error);
+                showToast("Failed to connect.", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function getFormDigest() {
+            try {
+                const res = await fetch(`${CONFIG.siteUrl}/_api/contextinfo`, { method: 'POST', headers: { 'Accept': 'application/json; odata=nometadata' }});
+                const data = await res.json();
+                state.formDigest = data.FormDigestValue;
+            } catch (e) { }
+        }
+
+        async function fetchSharePointData() {
+            const endpoint = `${CONFIG.siteUrl}/_api/web/lists/getbytitle('${CONFIG.listName}')/items?$top=5000`;
+            const response = await fetch(endpoint, { headers: { 'Accept': 'application/json;odata=nometadata' }});
+            if (!response.ok) throw new Error("Network error");
+            const data = await response.json();
+
+            state.allData = data.value.map(item => ({
+                Id: item.Id,
+                Title: item.Title || '',
+                BTBType: item.BTBType || 'BTB',
+                ProcessStatus: item.ProcessStatus || 'Pending',
+                PRStatus: item.PRStatus || '',
+                StatusRemark: item.StatusRemark || '',
+                CustomerName: item.CustomerName || '',
+                Vendor: item.Vendor || '',
+                ContractNo: item.ContractNo || '',
+                StartDate: item.StartDate ? item.StartDate.split('T')[0] : '',
+                EndDate: item.EndDate ? item.EndDate.split('T')[0] : '',
+                PRReference: item.PRReference || '',
+                PRNo: item.PRNo || '',
+                PONo: item.PONo || '',
+                PODate: item.PODate ? item.PODate.split('T')[0] : '',
+                POAmount: item.POAmount || 0,
+                HandledBy: item.HandledBy || '',
+                UIDNumber: item.UIDNumber || '',
+                Remarks: item.Remarks || '',
+                DataVerifyingStatus: item.DataVerifyingStatus || 'Pending'
+            }));
+        }
+
+        function processData() {
+            renderTabBar();
+            applyFilters();
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const today = new Date();
+            const next30 = new Date();
+            next30.setDate(today.getDate() + 30);
+
+            let kpi = { total: state.allData.length, verifying: 0, finished: 0, pending: 0, expired: 0, upcoming: 0 };
+            state.allData.forEach(i => {
+                if (i.DataVerifyingStatus === 'Pending') kpi.verifying++;
+                if (i.ProcessStatus === 'Completed') kpi.finished++;
+                if (i.ProcessStatus === 'Pending') kpi.pending++;
+                if (i.EndDate) {
+                    const ed = new Date(i.EndDate);
+                    if (ed < today) kpi.expired++;
+                    else if (ed <= next30) kpi.upcoming++;
+                }
+            });
+
+            document.getElementById('kpi-total').innerText = kpi.total;
+            document.getElementById('kpi-verifying').innerText = kpi.verifying;
+            document.getElementById('kpi-finished').innerText = kpi.finished;
+            document.getElementById('kpi-pending').innerText = kpi.pending;
+            document.getElementById('kpi-expired').innerText = kpi.expired;
+            document.getElementById('kpi-upcoming').innerText = kpi.upcoming;
+        }
+
+        function handleSearch() { state.currentPage = 1; applyFilters(); }
+        function toggleFilters() { document.getElementById('filterPanel').classList.toggle('hidden'); }
+
+        /* ---------- Status tabs (replaces the old Process Status <select>) ---------- */
+        function renderTabBar() {
+            const bar = document.getElementById('tabBar');
+            bar.innerHTML = STATUS_TABS.map(t => {
+                const count = t === 'All' ? state.allData.length : state.allData.filter(i => i.ProcessStatus === t).length;
+                const active = state.activeTab === t;
+                return `<button type="button" onclick="setTab('${t}')"
+                    class="ui-transition pressable px-4 py-2.5 border-b-2 -mb-px flex items-center gap-1.5 ${active ? 'border-[#D4916E]' : 'border-transparent'}">
+                    <span class="text-[13px] whitespace-nowrap ${active ? 'text-[#D4916E] font-semibold' : 'text-[#6B6B6B]'}">${t}</span>
+                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-[#FBF0E8] text-[#D4916E]' : 'bg-[#F3EBE2] text-[#6B6B6B]'}">${count}</span>
+                </button>`;
+            }).join('');
+        }
+
+        function setTab(tab) {
+            state.activeTab = tab;
+            state.currentPage = 1;
+            renderTabBar();
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('globalSearch').value.toLowerCase();
+            const fHandled = document.getElementById('flt-handledBy').value.toLowerCase();
+            const fVendor = document.getElementById('flt-vendor').value.toLowerCase();
+            const fCustomer = document.getElementById('flt-customer').value.toLowerCase();
+
+            state.filteredData = state.allData.filter(item => {
+                const mSearch = Object.values(item).some(val => String(val).toLowerCase().includes(search));
+                const mTab = state.activeTab === "All" || item.ProcessStatus === state.activeTab;
+                return mSearch && mTab &&
+                       (fHandled === "" || item.HandledBy.toLowerCase().includes(fHandled)) &&
+                       (fVendor === "" || item.Vendor.toLowerCase().includes(fVendor)) &&
+                       (fCustomer === "" || item.CustomerName.toLowerCase().includes(fCustomer));
+            });
+            applySort(); renderTable();
+        }
+
+        function handleSort(col) {
+            state.sortAsc = (state.sortCol === col) ? !state.sortAsc : true;
+            state.sortCol = col;
+            applySort(); renderTable();
+        }
+
+        function applySort() {
+            state.filteredData.sort((a, b) => {
+                let vA = (a[state.sortCol] || '').toString().toLowerCase();
+                let vB = (b[state.sortCol] || '').toString().toLowerCase();
+                if (vA < vB) return state.sortAsc ? -1 : 1;
+                if (vA > vB) return state.sortAsc ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            const pageData = state.filteredData.slice((state.currentPage - 1) * CONFIG.itemsPerPage, state.currentPage * CONFIG.itemsPerPage);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-[13px] text-[#6B6B6B]">No records match.</td></tr>';
+            }
+
+            pageData.forEach(item => {
+                tbody.innerHTML += `<tr class="ui-transition hover:bg-[#FBF6EF]">
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] text-[14px] font-medium text-[#1A1A1A] whitespace-nowrap">${escapeHtml(item.Title)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] text-[14px] text-[#3D3D3D] whitespace-nowrap">${escapeHtml(item.CustomerName)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] text-[14px] text-[#3D3D3D] whitespace-nowrap">${escapeHtml(item.Vendor)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] whitespace-nowrap">${getBtbTag(item.BTBType)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] whitespace-nowrap">${getStatusBadge(item.ProcessStatus)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] text-[13px] text-[#6B6B6B] tabular-nums whitespace-nowrap">${escapeHtml(item.EndDate)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] text-[14px] text-[#3D3D3D] whitespace-nowrap">${escapeHtml(item.HandledBy)}</td>
+                    <td class="px-4 py-3.5 border-b border-[#C5BEB6] whitespace-nowrap">
+                        <button type="button" onclick="openEditModal(${item.Id})"
+                            class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[1.5px] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">Edit</button>
+                    </td>
+                </tr>`;
+            });
+            const totalPages = Math.ceil(state.filteredData.length / CONFIG.itemsPerPage) || 1;
+            document.getElementById('pageInfo').innerText = `Page ${state.currentPage} of ${totalPages} (${state.filteredData.length} total)`;
+        }
+
+        function prevPage() { if (state.currentPage > 1) { state.currentPage--; renderTable(); } }
+        function nextPage() { if (state.currentPage < Math.ceil(state.filteredData.length / CONFIG.itemsPerPage)) { state.currentPage++; renderTable(); } }
+
+        function getStatusBadge(status) {
+            const cls = STATUS_BADGE_CLASS[status] || "bg-[#F3EBE2] text-[#6B6B6B]";
+            return `<span class="inline-flex items-center px-3 py-1 rounded-full text-[12px] leading-4 font-bold ${cls}">${escapeHtml(status)}</span>`;
+        }
+
+        // BTB is the neutral case; NON-BTB gets the orange tint since it is the
+        // one the reviewer needs to notice.
+        function getBtbTag(type) {
+            const cls = type === 'NON-BTB' ? "bg-[#FFF3D6] text-[var(--orange-dark)]" : "bg-[var(--charcoal)] text-[var(--graphite)]";
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${cls}">${escapeHtml(type)}</span>`;
+        }
+
+        /* MODAL & TRACKER LOGIC */
+        function updateTrackerVisual() {
+            const btbType = document.getElementById('edit-btb').value;
+            const currentStatus = document.getElementById('edit-processstatus').value;
+            const tracker = document.getElementById('statusTracker');
+
+            const steps = btbType === 'NON-BTB'
+                ? ['Pending', 'In Progress', 'Waiting Approve', 'Pending PR', 'Pending PO', 'Completed']
+                : ['Pending', 'In Progress', 'Pending PR', 'Pending PO', 'Completed'];
+
+            let currentIndex = steps.indexOf(currentStatus);
+            if (currentIndex === -1) currentIndex = 0;
+
+            let html = '';
+            steps.forEach((step, index) => {
+                const completed = index < currentIndex || currentStatus === 'Completed';
+                const active = index === currentIndex && !completed;
+                const circleCls = completed
+                    ? "bg-[var(--green)] border-[var(--green)] text-white"
+                    : active
+                        ? "bg-[#FFF3D6] border-[var(--orange-dark)] text-[var(--orange-dark)]"
+                        : "bg-white border-[var(--line)] text-[#8E8E93]";
+                const labelCls = completed || active ? "text-[var(--ink)] font-bold" : "text-[#8E8E93]";
+                const lineCls = index < currentIndex || currentStatus === 'Completed' ? "bg-[var(--green)]" : "bg-[var(--line)]";
+                const icon = completed ? '✓' : (index + 1);
+
+                html += `
+                    <div class="flex flex-col items-center gap-2 relative flex-1 z-[1]">
+                        <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center text-[12px] font-bold ui-transition ${circleCls}">${icon}</div>
+                        <div class="text-[11px] text-center ui-transition ${labelCls}">${step}</div>
+                        ${index < steps.length - 1 ? `<div class="absolute top-[14px] left-1/2 w-full h-[2px] -z-[1] ui-transition ${lineCls}"></div>` : ''}
+                    </div>
+                `;
+            });
+
+            tracker.innerHTML = html;
+        }
+
+        function openEditModal(id) {
+            const item = state.allData.find(i => i.Id === id);
+            if (!item) return;
+
+            document.getElementById('edit-id').value = item.Id;
+            document.getElementById('edit-title').value = item.Title;
+            document.getElementById('edit-btb').value = item.BTBType || 'BTB';
+            document.getElementById('edit-customer').value = item.CustomerName;
+            document.getElementById('edit-vendor').value = item.Vendor;
+            document.getElementById('edit-contract').value = item.ContractNo;
+            document.getElementById('edit-startdate').value = item.StartDate;
+            document.getElementById('edit-enddate').value = item.EndDate;
+            document.getElementById('edit-poamount').value = item.POAmount;
+            document.getElementById('edit-prref').value = item.PRReference;
+            document.getElementById('edit-prno').value = item.PRNo;
+            document.getElementById('edit-pono').value = item.PONo;
+            document.getElementById('edit-podate').value = item.PODate;
+            document.getElementById('edit-processstatus').value = item.ProcessStatus || 'Pending';
+            document.getElementById('edit-prstatus').value = item.PRStatus;
+            document.getElementById('edit-handledby').value = item.HandledBy;
+            document.getElementById('edit-verifying').value = item.DataVerifyingStatus || 'Pending';
+            document.getElementById('edit-statusremark').value = item.StatusRemark;
+            document.getElementById('edit-remarks').value = item.Remarks;
+
+            updateTrackerVisual();
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('editModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function saveRecord() {
+            const customer = document.getElementById('edit-customer').value;
+            const vendor = document.getElementById('edit-vendor').value;
+            if (!customer || !vendor) return showToast("Customer Name and Vendor are required.", "error");
+
+            const id = parseInt(document.getElementById('edit-id').value);
+            const updatePayload = {
+                "__metadata": { "type": `SP.Data.${CONFIG.listName}ListItem` },
+                BTBType: document.getElementById('edit-btb').value,
+                CustomerName: customer, Vendor: vendor,
+                ContractNo: document.getElementById('edit-contract').value,
+                StartDate: document.getElementById('edit-startdate').value ? new Date(document.getElementById('edit-startdate').value).toISOString() : null,
+                EndDate: document.getElementById('edit-enddate').value ? new Date(document.getElementById('edit-enddate').value).toISOString() : null,
+                POAmount: parseFloat(document.getElementById('edit-poamount').value) || 0,
+                PRReference: document.getElementById('edit-prref').value, PRNo: document.getElementById('edit-prno').value,
+                PONo: document.getElementById('edit-pono').value,
+                PODate: document.getElementById('edit-podate').value ? new Date(document.getElementById('edit-podate').value).toISOString() : null,
+                ProcessStatus: document.getElementById('edit-processstatus').value,
+                PRStatus: document.getElementById('edit-prstatus').value,
+                HandledBy: document.getElementById('edit-handledby').value,
+                DataVerifyingStatus: document.getElementById('edit-verifying').value,
+                StatusRemark: document.getElementById('edit-statusremark').value,
+                Remarks: document.getElementById('edit-remarks').value
+            };
+
+            const btn = document.getElementById('btn-save');
+            btn.disabled = true; btn.innerText = "Saving...";
+
+            try {
+                if (CONFIG.siteUrl) {
+                    await fetch(`${CONFIG.siteUrl}/_api/web/lists/getbytitle('${CONFIG.listName}')/items(${id})`, {
+                        method: 'POST', body: JSON.stringify(updatePayload),
+                        headers: { 'Accept': 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=verbose', 'X-RequestDigest': state.formDigest, 'X-HTTP-Method': 'MERGE', 'IF-MATCH': '*' }
+                    });
+                }
+                const idx = state.allData.findIndex(i => i.Id === id);
+                if (idx > -1) {
+                    state.allData[idx] = { ...state.allData[idx], ...updatePayload };
+                    if(updatePayload.EndDate) state.allData[idx].EndDate = updatePayload.EndDate.split('T')[0];
+                    if(updatePayload.StartDate) state.allData[idx].StartDate = updatePayload.StartDate.split('T')[0];
+                    if(updatePayload.PODate) state.allData[idx].PODate = updatePayload.PODate.split('T')[0];
+                }
+                showToast("Record updated successfully", "success");
+                closeModal(); processData();
+            } catch (err) {
+                showToast("Error saving record.", "error");
+            } finally {
+                btn.disabled = false; btn.innerText = "Save Changes";
+            }
+        }
+
+        /* UTILS */
+        function showToast(msg, type = "success") {
+            const styles = {
+                success: "bg-[#EAF7EE] border-l-[var(--green)] text-[#14532D]",
+                error: "bg-[#FDECEC] border-l-[var(--red)] text-[#7A1F1F]",
+                warning: "bg-[#FFF3D6] border-l-[var(--orange-dark)] text-[var(--orange-dark)]"
+            };
+            const toast = document.createElement('div');
+            toast.className = `toast-item px-4 py-3 rounded-lg border-l-4 shadow-[0_12px_28px_rgba(29,29,31,0.14)] text-[13px] font-semibold max-w-[320px] ${styles[type] || styles.success}`;
+            toast.innerText = msg;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 300ms'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+        function showLoader(show) { document.getElementById('main-loader').classList.toggle('hidden', !show); }
+        function escapeHtml(str) { return (str == null) ? '' : String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); }
+        function loadMockData() {
+            state.allData = Array.from({length: 45}, (_, i) => ({
+                Id: i + 1, Title: `REC-2026-${(i+100)}`, BTBType: i % 3 === 0 ? 'NON-BTB' : 'BTB',
+                CustomerName: `Customer Corp ${i%5}`, Vendor: `Vendor Services ${(i%3)+1}`,
+                ProcessStatus: i % 4 === 0 ? 'Completed' : (i % 7 === 0 ? 'Waiting Approve' : 'Pending PR'),
+                EndDate: new Date(new Date().setDate(new Date().getDate() + (i * 5) - 30)).toISOString().split('T')[0],
+                HandledBy: i % 2 === 0 ? 'Alice Smith' : 'Bob Jones', DataVerifyingStatus: 'Verified'
+            }));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,2704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[COMPARE] BTB Procurement Report Dashboard</title>
+<style>
+/* ============================================================================
+   DESIGN TOKENS
+   Palette validated with the dataviz six-checks validator:
+     categorical light  -> PASS all 5 (adjacent CVD dE 9.2, normal dE 18.8)
+     categorical dark   -> PASS all 5 (adjacent CVD dE 11.0, normal dE 23.8)
+     sequential (ochre) -> PASS ordinal checks (monotone L, light end 2.07:1)
+   Warm-earth on parchment. Deliberately NOT the stock indigo/emerald set.
+   ============================================================================ */
+:root{
+  color-scheme: light;
+  /* surfaces */
+  --bg-canvas:#F2EDE4;
+  --bg-surface:#FAF7F2;
+  --bg-raised:#FFFFFF;
+  --bg-sunken:#EDE6DA;
+  --bg-inset:#E6DECF;
+  /* ink */
+  --ink-primary:#1F1C17;   /* 15.6:1 on --bg-surface */
+  --ink-secondary:#554E43;
+  --ink-muted:#857C6E;
+  --ink-inverse:#FAF7F2;
+  /* rules */
+  --rule:#E0D7C7;
+  --rule-strong:#C8BCA6;
+  --rule-hair:#EAE3D6;
+  /* accent (ochre family, shared with the sequential ramp) */
+  --accent:#8E6A12;
+  --accent-hover:#6B4D07;
+  --accent-soft:#F3E6C9;
+  --accent-ink:#5A3F06;
+  --focus:#B8432A;
+  /* status - reserved, never used as a series colour */
+  --pos:#3F6B33;      --pos-soft:#E3EBDC;  --pos-ink:#2C4B22;
+  --caution:#9A6B05;  --caution-soft:#F7E9C8; --caution-ink:#6B4A02;
+  --neg:#A8351C;      --neg-soft:#F6E0D9;  --neg-ink:#7A2512;
+  --neutral:#6B6257;  --neutral-soft:#EBE4D8; --neutral-ink:#443E36;
+  --info:#2B4E8C;     --info-soft:#DEE5F2;  --info-ink:#1E3763;
+  /* categorical series - FIXED ORDER, assigned in sequence, never cycled */
+  --s1:#00806A; --s2:#B8432A; --s3:#2B4E8C; --s4:#7C6B00;
+  --s5:#C2546B; --s6:#4C7A17; --s7:#8C2F63; --s8:#A8730B;
+  /* sequential (magnitude) */
+  --q1:#CFA95F; --q2:#B08833; --q3:#8E6A12; --q4:#6B4D07; --q5:#452F02;
+  /* diverging (polarity: loss <-> profit), neutral warm-grey midpoint */
+  --d-neg2:#8E2F18; --d-neg1:#C9714F; --d-mid:#D6D1C7; --d-pos1:#4E9E85; --d-pos2:#00604F;
+  /* elevation - restrained by house rule, never neumorphic */
+  --lift-1:0 1px 2px rgba(53,44,30,.06), 0 0 0 1px rgba(53,44,30,.05);
+  --lift-2:0 4px 12px rgba(53,44,30,.09), 0 0 0 1px rgba(53,44,30,.06);
+  /* geometry */
+  --r-sm:4px; --r-md:8px; --r-lg:12px; --r-pill:999px;
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px; --sp7:48px;
+  --font:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){}
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg-canvas:#121110; --bg-surface:#1C1A18; --bg-raised:#252220; --bg-sunken:#171513; --bg-inset:#2E2A26;
+    --ink-primary:#F2ECE1; --ink-secondary:#BCB2A3; --ink-muted:#8A8175; --ink-inverse:#1C1A18;
+    --rule:#332F2A; --rule-strong:#4A443C; --rule-hair:#2A2724;
+    --accent:#C9A052; --accent-hover:#DFBC74; --accent-soft:#3A3021; --accent-ink:#E8D3A2;
+    --focus:#E9754F;
+    --pos:#7FA85E; --pos-soft:#26301C; --pos-ink:#B4CE97;
+    --caution:#C79A2E; --caution-soft:#33290F; --caution-ink:#E3C471;
+    --neg:#DC6A4C; --neg-soft:#37201A; --neg-ink:#F0A48B;
+    --neutral:#9A9084; --neutral-soft:#2B2823; --neutral-ink:#C6BDB0;
+    --info:#6D93D8; --info-soft:#1E2739; --info-ink:#A8C0EA;
+    --s1:#009076; --s2:#C73B1C; --s3:#3A67B8; --s4:#826C00;
+    --s5:#E95578; --s6:#4D7E0F; --s7:#B6307E; --s8:#C08723;
+    --q1:#F0D9A8; --q2:#D8B265; --q3:#B08833; --q4:#8A6714; --q5:#5E4608;
+    --d-neg2:#E9835F; --d-neg1:#B4553C; --d-mid:#4A443C; --d-pos1:#3E8770; --d-pos2:#6FC0A5;
+    --lift-1:0 1px 2px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05);
+    --lift-2:0 4px 14px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg-canvas:#121110; --bg-surface:#1C1A18; --bg-raised:#252220; --bg-sunken:#171513; --bg-inset:#2E2A26;
+  --ink-primary:#F2ECE1; --ink-secondary:#BCB2A3; --ink-muted:#8A8175; --ink-inverse:#1C1A18;
+  --rule:#332F2A; --rule-strong:#4A443C; --rule-hair:#2A2724;
+  --accent:#C9A052; --accent-hover:#DFBC74; --accent-soft:#3A3021; --accent-ink:#E8D3A2;
+  --focus:#E9754F;
+  --pos:#7FA85E; --pos-soft:#26301C; --pos-ink:#B4CE97;
+  --caution:#C79A2E; --caution-soft:#33290F; --caution-ink:#E3C471;
+  --neg:#DC6A4C; --neg-soft:#37201A; --neg-ink:#F0A48B;
+  --neutral:#9A9084; --neutral-soft:#2B2823; --neutral-ink:#C6BDB0;
+  --info:#6D93D8; --info-soft:#1E2739; --info-ink:#A8C0EA;
+  --s1:#009076; --s2:#C73B1C; --s3:#3A67B8; --s4:#826C00;
+  --s5:#E95578; --s6:#4D7E0F; --s7:#B6307E; --s8:#C08723;
+  --q1:#F0D9A8; --q2:#D8B265; --q3:#B08833; --q4:#8A6714; --q5:#5E4608;
+  --d-neg2:#E9835F; --d-neg1:#B4553C; --d-mid:#4A443C; --d-pos1:#3E8770; --d-pos2:#6FC0A5;
+  --lift-1:0 1px 2px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05);
+  --lift-2:0 4px 14px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+}
+
+*{box-sizing:border-box}
+/* Always reserve the vertical scrollbar. Charts are measured in pixels, so a
+   re-render changes page height; if that toggles the scrollbar the viewport
+   WIDTH changes, which fires resize, which re-renders — an oscillation between
+   W and W-15 that never settles. Reserving the gutter removes the feedback
+   loop at its source (and kills the horizontal jump when a tab is shorter). */
+html{overflow-y:scroll}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg-canvas); color:var(--ink-primary);
+  font-family:var(--font); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+/* ---- type scale ---- */
+.t-page{font-size:21px;font-weight:650;letter-spacing:-.018em;line-height:1.2}
+.t-tab{font-size:13.5px;font-weight:600;letter-spacing:-.002em}
+.t-card{font-size:13px;font-weight:650;letter-spacing:.005em}
+.t-kpi{font-size:30px;font-weight:600;letter-spacing:-.025em;line-height:1.05;font-variant-numeric:proportional-nums}
+.t-body{font-size:14px;font-weight:400}
+.t-micro{font-size:11px;font-weight:550;letter-spacing:.045em;text-transform:uppercase;color:var(--ink-muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- app shell ---- */
+.app{max-width:1560px;margin:0 auto;padding-block:var(--sp5);padding-left:var(--sp5);padding-right:var(--sp5)}
+@media(max-width:640px){.app{padding-left:var(--sp4);padding-right:var(--sp4)}}
+
+.topbar{display:flex;align-items:flex-start;gap:var(--sp4);flex-wrap:wrap;margin-bottom:var(--sp4)}
+.topbar .grow{flex:1 1 260px;min-width:0}
+.sub{color:var(--ink-secondary);font-size:13px;margin-top:3px}
+.toolbtns{display:flex;gap:var(--sp2);flex-wrap:wrap}
+
+.btn{
+  font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-secondary);
+  background:var(--bg-raised);border:1px solid var(--rule);border-radius:var(--r-md);
+  padding:7px 12px;cursor:pointer;transition:background .13s,border-color .13s,color .13s;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn:hover{background:var(--bg-sunken);border-color:var(--rule-strong);color:var(--ink-primary)}
+.btn[aria-pressed="true"],.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---- tabs ---- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin-bottom:var(--sp4);overflow-x:auto;scrollbar-width:thin}
+.tab{
+  font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-muted);background:none;border:0;
+  border-bottom:2px solid transparent;padding:10px 14px;cursor:pointer;white-space:nowrap;
+  transition:color .13s,border-color .13s;
+}
+.tab:hover{color:var(--ink-primary)}
+.tab[aria-selected="true"]{color:var(--accent-ink);border-bottom-color:var(--accent)}
+
+/* ---- filter bar ---- */
+.filters{
+  background:var(--bg-surface);border:1px solid var(--rule);border-radius:var(--r-lg);
+  padding:var(--sp3) var(--sp4);margin-bottom:var(--sp4);box-shadow:var(--lift-1);
+}
+.filters .row{display:flex;gap:var(--sp3);align-items:flex-end;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted)}
+select,input[type=date],input[type=search]{
+  font:inherit;font-size:13px;color:var(--ink-primary);background:var(--bg-raised);
+  border:1px solid var(--rule);border-radius:var(--r-sm);padding:6px 8px;min-width:120px;max-width:100%;
+}
+select[multiple]{padding:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--sp3);align-items:center}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  background:var(--accent-soft);color:var(--accent-ink);border:1px solid var(--accent);
+  border-radius:var(--r-pill);padding:3px 6px 3px 10px;
+}
+.chip button{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 3px;border-radius:var(--r-pill)}
+.chip button:hover{background:rgba(0,0,0,.09)}
+.chips .none{font-size:12px;color:var(--ink-muted);font-style:italic}
+
+/* ---- grid + cards ---- */
+.grid{display:grid;gap:var(--sp4);grid-template-columns:repeat(12,minmax(0,1fr));margin-bottom:var(--sp4)}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}
+.c7{grid-column:span 7}.c8{grid-column:span 8}.c9{grid-column:span 9}.c12{grid-column:span 12}
+@media(max-width:1100px){.c3,.c4{grid-column:span 6}
+  .c5,.c6,.c7,.c8,.c9{grid-column:span 12}}
+@media(max-width:620px){.c3,.c4{grid-column:span 12}}
+
+.card{
+  background:var(--bg-surface);border:1px solid var(--rule);border-radius:var(--r-lg);
+  padding:var(--sp4);box-shadow:var(--lift-1);min-width:0;display:flex;flex-direction:column;
+}
+.card>header{display:flex;align-items:baseline;gap:var(--sp2);margin-bottom:var(--sp1);flex-wrap:wrap}
+.card>header .t-card{flex:1 1 auto;min-width:0}
+.card .q{font-size:12px;color:var(--ink-muted);margin:0 0 var(--sp3);line-height:1.35}
+.card .ctl{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--sp3)}
+.card .ctl select{font-size:12px;padding:4px 6px;min-width:0}
+
+/* ---- kpi tile ---- */
+.kpi{background:var(--bg-surface);border:1px solid var(--rule);border-radius:var(--r-lg);padding:var(--sp4);box-shadow:var(--lift-1)}
+.kpi .lab{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.045em;text-transform:uppercase;color:var(--ink-muted)}
+.kpi .val{margin:6px 0 4px}
+.kpi .foot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-secondary);flex-wrap:wrap}
+.delta{display:inline-flex;align-items:center;gap:3px;font-weight:650;font-size:12px;border-radius:var(--r-sm);padding:1px 5px;font-variant-numeric:tabular-nums}
+.delta.up{background:var(--pos-soft);color:var(--pos-ink)}
+.delta.down{background:var(--neg-soft);color:var(--neg-ink)}
+.delta.flat{background:var(--neutral-soft);color:var(--neutral-ink)}
+
+/* ---- pill / badge ---- */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:650;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap}
+.pill.pos{background:var(--pos-soft);color:var(--pos-ink)}
+.pill.cau{background:var(--caution-soft);color:var(--caution-ink)}
+.pill.neg{background:var(--neg-soft);color:var(--neg-ink)}
+.pill.neu{background:var(--neutral-soft);color:var(--neutral-ink)}
+.pill.inf{background:var(--info-soft);color:var(--info-ink)}
+
+/* ---- chart chrome ---- */
+.plot{width:100%;display:block;overflow:visible}
+.plot .grid-line{stroke:var(--rule-hair);stroke-width:1;shape-rendering:crispEdges}
+.plot .axis-line{stroke:var(--rule-strong);stroke-width:1;shape-rendering:crispEdges}
+.plot .zero-line{stroke:var(--ink-muted);stroke-width:1;shape-rendering:crispEdges}
+.plot text{fill:var(--ink-muted);font-size:10.5px;font-family:var(--font);font-variant-numeric:tabular-nums}
+.plot text.val-label{fill:var(--ink-secondary);font-size:10.5px;font-weight:600}
+.plot .mark{transition:opacity .12s}
+.plot .hit{fill:transparent;cursor:pointer}
+.plot:hover .mark{opacity:.62}
+.plot .mark.hot,.plot:hover .mark.hot{opacity:1}
+.plot .sel-ring{fill:none;stroke:var(--ink-primary);stroke-width:2}
+
+.legend{display:flex;gap:var(--sp3);flex-wrap:wrap;margin-top:var(--sp2);font-size:11.5px;color:var(--ink-secondary)}
+.legend button{display:inline-flex;align-items:center;gap:6px;background:none;border:0;font:inherit;color:inherit;cursor:pointer;padding:2px 4px;border-radius:var(--r-sm)}
+.legend button:hover{background:var(--bg-sunken)}
+.legend button[aria-pressed="false"]{opacity:.42}
+.legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
+.legend .sw.line{height:3px;width:15px;border-radius:2px}
+
+/* ---- tooltip ---- */
+#tip{
+  position:fixed;z-index:90;pointer-events:none;opacity:0;transform:translateY(-3px);
+  transition:opacity .1s;background:var(--bg-raised);color:var(--ink-primary);
+  border:1px solid var(--rule-strong);border-radius:var(--r-md);box-shadow:var(--lift-2);
+  padding:9px 11px;min-width:150px;max-width:300px;font-size:12px;
+}
+#tip.on{opacity:1;transform:none}
+#tip .tt-h{font-weight:650;font-size:12.5px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid var(--rule)}
+#tip .tt-r{display:flex;align-items:baseline;gap:8px;margin-top:3px}
+#tip .tt-k{width:13px;height:3px;border-radius:2px;flex:none;position:relative;top:-3px}
+#tip .tt-n{color:var(--ink-secondary);flex:1 1 auto;min-width:0}
+#tip .tt-v{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+#tip .tt-f{margin-top:6px;padding-top:5px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink-muted)}
+
+/* ---- table ---- */
+.tbl-wrap{overflow-x:auto;margin:0 -4px}
+table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.dt th{
+  text-align:left;font-size:10.5px;font-weight:650;letter-spacing:.045em;text-transform:uppercase;
+  color:var(--ink-muted);padding:6px 8px;border-bottom:1px solid var(--rule-strong);white-space:nowrap;
+}
+table.dt th.n,table.dt td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.dt td{padding:6px 8px;border-bottom:1px solid var(--rule-hair);vertical-align:middle}
+table.dt tbody tr:hover{background:var(--bg-sunken)}
+.inbar{position:relative;display:block;height:14px;border-radius:2px;background:var(--bg-inset);min-width:34px}
+.inbar i{position:absolute;inset:0 auto 0 0;border-radius:2px;display:block}
+
+
+
+/* ---- SLICE BAND: the page's single focal point.
+   The failure it fixes: every card had the same visual weight, so a reader
+   could not tell at a glance WHICH slice of the book the numbers described.
+   The filtered value is therefore set at display size - it is the largest
+   type on the page, larger than any KPI - and everything else stays quiet.
+   Unfiltered it collapses to one muted line, so it only shouts when there is
+   actually something to shout about. ---- */
+.slice{display:flex;align-items:center;gap:var(--sp5);flex-wrap:wrap;
+  background:var(--bg-surface);border:1px solid var(--rule);border-radius:var(--r-lg);
+  padding:var(--sp3) var(--sp5);margin-bottom:var(--sp4);box-shadow:var(--lift-1)}
+.slice.on{border-left:5px solid var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+.slice-main{flex:1 1 300px;min-width:0}
+.slice-cap{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-muted)}
+.slice.on .slice-cap{color:var(--accent-ink);opacity:.8}
+.slice-val{font-size:27px;font-weight:650;letter-spacing:-.022em;line-height:1.15;margin-top:2px;
+  color:var(--ink-primary);overflow-wrap:anywhere}
+.slice.on .slice-val{color:var(--accent-ink)}
+.slice-val .sep{color:var(--ink-muted);font-weight:400;padding:0 6px}
+.slice.on .slice-val .sep{color:var(--accent-ink);opacity:.45}
+.slice-meta{display:flex;align-items:baseline;gap:var(--sp2);flex-wrap:wrap;margin-top:5px;
+  font-size:13px;color:var(--ink-secondary)}
+.slice.on .slice-meta{color:var(--accent-ink);opacity:.9}
+.slice-meta b{font-weight:700;font-variant-numeric:tabular-nums}
+.slice-side{display:flex;align-items:center;gap:var(--sp3);flex:0 0 auto}
+.slice-bar{width:132px;height:7px;border-radius:var(--r-pill);background:var(--bg-inset);overflow:hidden}
+.slice.on .slice-bar{background:rgba(0,0,0,.12)}
+.slice-bar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--accent)}
+.slice.on .slice-bar i{background:var(--accent-ink)}
+.slice-clear{font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;white-space:nowrap;
+  border-radius:var(--r-sm);padding:6px 12px;border:1px solid var(--accent-ink);
+  background:transparent;color:var(--accent-ink)}
+.slice-clear:hover{background:var(--accent-ink);color:var(--accent-soft)}
+.slice-quiet{font-size:13px;color:var(--ink-muted);font-style:italic}
+@media(max-width:620px){.slice-val{font-size:22px}.slice-bar{display:none}}
+
+/* A mark the current filter did NOT select recedes; the selected one keeps its
+   full weight and gains a ring. Same idea as the band above, applied inside
+   every chart, so the eye lands on the filtered value there too. */
+.plot .mark.faded{opacity:.2}
+.plot:hover .mark.faded{opacity:.16}
+.plot .mark.picked{opacity:1}
+.plot:hover .mark.picked{opacity:1}
+
+
+/* ---- narrow screens: the filter bar collapses behind one button.
+   At 390px the expanded bar is ten stacked dropdowns, so the first screen
+   contains no data at all. The slice band already says what is filtered, so
+   the controls can hide until they are wanted. ---- */
+.filter-toggle{display:none;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;
+  align-items:center;gap:7px;border:1px solid var(--rule-strong);border-radius:var(--r-sm);
+  background:var(--bg-raised);color:var(--ink-secondary);padding:7px 12px;width:100%}
+.filter-toggle:hover{background:var(--bg-sunken);color:var(--ink-primary)}
+.filter-toggle .fc{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;
+  background:var(--accent-soft);color:var(--accent-ink);border-radius:var(--r-pill);padding:1px 8px}
+.filter-toggle .fc.zero{background:var(--bg-inset);color:var(--ink-muted)}
+@media(max-width:760px){
+  .filter-toggle{display:flex}
+  .filters:not(.open) .row{display:none}
+  .filters.open .row{margin-top:var(--sp3)}
+  .filters .field{width:100%}
+  .filters select,.filters input{width:100%;min-width:0}
+}
+
+
+/* ---- the renderer switch: only on the Overview tab, only in this file ---- */
+.engsw{display:inline-flex;gap:0;margin-right:var(--sp3)}
+.engsw .eng{border-radius:0;margin:0}
+.engsw .eng:first-child{border-radius:var(--r-sm) 0 0 var(--r-sm)}
+.engsw .eng:last-child{border-radius:0 var(--r-sm) var(--r-sm) 0;margin-left:-1px}
+.engsw .eng.on{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent);
+  font-weight:700;position:relative;z-index:1}
+.eng-note{margin:0 0 var(--sp4);padding:10px 14px;border-radius:var(--r-sm);
+  background:var(--bg-sunken);border:1px solid var(--rule);
+  font-size:12.5px;line-height:1.55;color:var(--ink-secondary)}
+.eng-note b{color:var(--ink-primary)}
+.eng-note code{font-size:11.5px}
+.ec-host{width:100%}
+.ec-fail{padding:var(--sp5);text-align:center;color:var(--ink-muted);font-size:13px}
+
+/* ---- misc ---- */
+.note{
+  border-left:3px solid var(--caution);background:var(--caution-soft);color:var(--caution-ink);
+  border-radius:0 var(--r-sm) var(--r-sm) 0;padding:9px 12px;font-size:12.5px;margin-bottom:var(--sp3);
+}
+.note.inf{border-left-color:var(--info);background:var(--info-soft);color:var(--info-ink)}
+.callout{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-md);
+  background:var(--bg-sunken);border:1px solid var(--rule);font-size:12.5px;line-height:1.45}
+.callout .mk{font-size:14px;line-height:1.2;flex:none}
+.empty{color:var(--ink-muted);font-size:12.5px;font-style:italic;padding:var(--sp5) 0;text-align:center}
+.srcbadge{font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:var(--r-pill)}
+.hr{height:1px;background:var(--rule);border:0;margin:var(--sp5) 0}
+.readonly-hint{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink-muted)}
+.clickable-hint{color:var(--accent-ink);font-weight:600}
+[hidden]{display:none!important}
+</style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<body>
+<div id="tip" role="status" aria-live="polite"></div>
+<div class="app">
+
+  <div class="topbar">
+    <div class="grow">
+      <div class="t-page">BTB Procurement Report Dashboard <span style="font-weight:600;opacity:.6">· renderer comparison</span></div>
+      <div class="sub">
+        <span id="srcBadge" class="srcbadge pill neu">DEMO DATA</span>
+        <span id="srcLine">loading…</span>
+      </div>
+    </div>
+    <div class="toolbtns">
+      <span class="engsw" role="group" aria-label="Chart renderer">
+        <button class="btn eng on" id="engSvg" type="button" aria-pressed="true">SVG (hand-rolled)</button>
+        <button class="btn eng" id="engEc" type="button" aria-pressed="false">ECharts 5.5.1</button>
+      </span>
+      <button class="btn" id="btnTheme" type="button" title="Switch light / dark">◐ Theme</button>
+      <button class="btn" id="btnTable" type="button" aria-pressed="false" title="Show the numbers behind every chart">▦ Table view</button>
+      <button class="btn" id="btnReset" type="button" title="Clear every filter">↺ Reset filters</button>
+      <button class="btn" id="btnCsv" type="button" title="Download the current slice">↓ CSV</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <div class="filters" id="filterBar">
+    <button class="filter-toggle" id="filterToggle" type="button"
+            aria-expanded="false" aria-controls="filterRow">
+      <span>Filters</span><span class="fc zero" id="filterCount">0</span>
+    </button>
+    <div class="row" id="filterRow"></div>
+    <div class="chips" id="chipRow"></div>
+  </div>
+
+  <div id="sliceBand"></div>
+
+  <main id="view"></main>
+
+  <p class="readonly-hint" style="margin-top:var(--sp5)">
+    ⓘ This is a read-only report. Every figure comes from <code>admin_btb_lis_excel_datas</code>.
+    Dropdowns re-pivot the view; clicking a bar filters everything below and the band above names what you picked. Nothing here writes back to Dataverse.
+  </p>
+</div>
+<script>
+/* ============================================================================
+   1. SCHEMA REGISTRY — the ONE place this dashboard learns the table.
+   `optional:true` = a planned column that may not exist in Dataverse yet.
+   A widget whose measure/dimension is optional-and-absent hides itself and
+   says why, rather than rendering a chart full of zeroes.
+   ========================================================================== */
+var FIELDS = [
+  // identity
+  {k:"recordId", l:"admin_title",                         label:"Record ID",        type:"id"},
+  {k:"prNo",     l:"admin_prx0020nox002e2",               label:"PR No.",           type:"id"},
+  {k:"poNo",     l:"admin_pox0020nox002e2",               label:"PO No.",           type:"id"},
+  {k:"uid",      l:"admin_uidx0020x00232",                label:"UID #",            type:"id"},
+  {k:"contractNo",l:"admin_contractx0020nox002e2",        label:"Contract No.",     type:"id"},
+  {k:"desc",     l:"admin_prx0020description2",           label:"PR Description",   type:"id"},
+  // dimensions
+  {k:"customer", l:"admin_customerx0020name2",            label:"Customer",         type:"dim"},
+  {k:"vendor",   l:"admin_vendor2",                       label:"Vendor",           type:"dim"},
+  {k:"chargeCcc",l:"admin_chargex0020ccc2",               label:"Charge CCC",       type:"dim"},
+  {k:"acctCode", l:"admin_accountx0020code2",             label:"Account Code",     type:"dim"},
+  {k:"woCode",   l:"admin_worksx0020orderx0020code2",     label:"Works Order",      type:"dim"},
+  {k:"handledBy",l:"admin_handledx0020byx00202",          label:"Handled By",       type:"dim"},
+  {k:"issueBy",  l:"admin_issuex0020by2",                 label:"Issued By",        type:"dim"},
+  {k:"iptMgr",   l:"admin_iptx0020unitx0020mgr2",         label:"IPT Unit Mgr",     type:"dim"},
+  {k:"urgency",  l:"admin_yx0020x002fx0020n2",            label:"Urgency",          type:"dim"},
+  {k:"btbType",  l:"new_btb_type",                        label:"BTB / NON-BTB",    type:"dim"},
+  {k:"procStatus",l:"new_process_status",                 label:"Process Status",   type:"dim", choice:"PROC"},
+  {k:"prStatus", l:"new_prstatus",                        label:"PR Status",        type:"dim", choice:"PRST"},
+  {k:"brand",    l:"new_brand",                           label:"Brand",            type:"dim", optional:true},
+  {k:"endCustomer",l:"new_end_customer",                  label:"End Customer",     type:"dim", optional:true},
+  {k:"sourceBook",l:"new_source_book",                    label:"Source Book",      type:"dim", optional:true},
+  {k:"buyer",    l:"new_buyer",                           label:"Buyer",            type:"dim", optional:true},
+  {k:"ao",       l:"new_ao",                              label:"AO",               type:"dim", optional:true},
+  {k:"sbContact",l:"new_sb_contact",                      label:"SB / SO Contact",  type:"dim", optional:true},
+  {k:"model",    l:"new_model",                           label:"Model",            type:"dim", optional:true},
+  {k:"itemNo",   l:"new_item_no",                         label:"Item #",           type:"dim", optional:true},
+  // measures
+  {k:"prHkd",    l:"admin_hkd2",                          label:"PR Amount (HKD)",  type:"measure", fmt:"hkd"},
+  {k:"poHkd",    l:"admin_pox0020amountx0020hkx00242",    label:"PO Amount (HKD)",  type:"measure", fmt:"hkd"},
+  {k:"prUsd",    l:"admin_usdx0020x002fx0020others2",     label:"PR Amount (USD)",  type:"measure", fmt:"usd"},
+  {k:"revenue",  l:"new_revenue_hkd",                     label:"Revenue (HKD)",    type:"measure", fmt:"hkd", optional:true},
+  {k:"cost",     l:"new_direct_cost_hkd",                 label:"Direct Cost (HKD)",type:"measure", fmt:"hkd", optional:true},
+  {k:"poUsd",    l:"new_po_amount_usd",                   label:"PO Amount (USD)",  type:"measure", fmt:"usd", optional:true},
+  // dates
+  {k:"recdDate", l:"admin_recx0027dx0020datex00202",      label:"Rec'd Date",       type:"date"},
+  {k:"prIssued", l:"admin_prx0020issuedx0020on2",         label:"PR Issued On",     type:"date"},
+  {k:"poDate",   l:"admin_pox0020date2",                  label:"PO Date",          type:"date"},
+  {k:"receiptDate",l:"admin_receiptx0020date2",           label:"Receipt Date",     type:"date"},
+  {k:"invDate",  l:"admin_invoicex0020x002fx0020dnx2",    label:"Invoice / DN Date",type:"date"},
+  {k:"ctrStart", l:"admin_startx0020date",                label:"Contract Start",   type:"date"},
+  {k:"ctrEnd",   l:"admin_odatax0020endx0020date2",       label:"Contract End",     type:"date"},
+  {k:"dnDate",   l:"new_dn_date",                         label:"DN Date",          type:"date", optional:true},
+  {k:"licDate",  l:"new_licence_receive_date",            label:"Licence Rec'd",    type:"date", optional:true},
+  // flags
+  {k:"flagged",  l:"new_flagged",                         label:"Flagged",          type:"flag"},
+  {k:"cancelled",l:"new_cancelled",                       label:"Cancelled",        type:"flag", optional:true}
+];
+var F = {}; FIELDS.forEach(function(f){ F[f.k] = f; });
+var CHOICES = {
+  PROC:{1:"PR No. Ready",2:"UM Verified",3:"LIS system Approved",4:"PO No. Ready",5:"Completed",
+        6:"Waiting approval",7:"Waiting book-in",8:"Waiting licence delivery"},
+  PRST:{1:"Pending",2:"In Progress",3:"Approved",4:"Rejected",5:"Closed"}
+};
+/* Ordered because the funnel and the cycle-time chart read position, not identity. */
+var STAGE_ORDER = ["PR No. Ready","UM Verified","LIS system Approved","PO No. Ready","Completed"];
+
+/* Which optional columns actually came back. Everything reads this, never a
+   hard-coded assumption. Absent -> the widget explains itself instead of lying. */
+var PRESENT = {};
+FIELDS.forEach(function(f){ PRESENT[f.k] = !f.optional; });
+function has(k){ return PRESENT[k] === true; }
+
+/* ============================================================================
+   2. FORMATTERS
+   ========================================================================== */
+function nf(n,d){ return (n==null||isNaN(n))?"—":n.toLocaleString("en-HK",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+function fmtHkd(n){
+  if(n==null||isNaN(n)) return "—";
+  var a=Math.abs(n);
+  if(a>=1e9) return (n<0?"-":"")+"HK$"+(a/1e9).toFixed(2)+"B";
+  if(a>=1e6) return (n<0?"-":"")+"HK$"+(a/1e6).toFixed(2)+"M";
+  if(a>=1e3) return (n<0?"-":"")+"HK$"+(a/1e3).toFixed(0)+"K";
+  return (n<0?"-":"")+"HK$"+a.toFixed(0);
+}
+function fmtHkdFull(n){ return (n==null||isNaN(n))?"—":"HK$"+nf(Math.round(n)); }
+function fmtUsd(n){ if(n==null||isNaN(n))return "—"; var a=Math.abs(n);
+  return (n<0?"-":"")+"US$"+(a>=1e6?(a/1e6).toFixed(2)+"M":a>=1e3?(a/1e3).toFixed(0)+"K":a.toFixed(0)); }
+function fmtPct(n,d){ return (n==null||isNaN(n))?"—":(n>=0?"":"")+n.toFixed(d==null?1:d)+"%"; }
+function fmtDays(n){ return (n==null||isNaN(n))?"—":nf(n,1)+"d"; }
+function fmtInt(n){ return (n==null||isNaN(n))?"—":nf(n); }
+var FMT = {hkd:fmtHkd, usd:fmtUsd, pct:fmtPct, days:fmtDays, int:fmtInt, count:fmtInt};
+function fmtOf(key){ var m=MEASURES_BY_KEY[key]; return (m&&FMT[m.fmt])||fmtInt; }
+function fmtDate(d){ return d?d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—"; }
+
+/* ============================================================================
+   3. NORMALISE — raw Dataverse entity -> flat analysis row.
+   null stays null. NEVER an em dash: a placeholder string poisons every
+   sum, every average and every distinct count downstream.
+   ========================================================================== */
+function num(v){ if(v==null||v==="")return null; var n=typeof v==="number"?v:parseFloat(String(v).replace(/[, ]/g,"")); return isNaN(n)?null:n; }
+function dte(v){ if(!v)return null; var d=new Date(v); return isNaN(d.getTime())?null:d; }
+function txt(v){ if(v==null)return null; var s=String(v).trim(); return s===""?null:s; }
+
+function normalizeRow(it){
+  var r={};
+  FIELDS.forEach(function(f){
+    if(f.optional && !PRESENT[f.k]){ r[f.k]=null; return; }
+    var raw=it[f.l];
+    if(f.choice)            r[f.k]= raw==null?null:(CHOICES[f.choice][String(raw)]||null);
+    else if(f.type==="measure") r[f.k]=num(raw);
+    else if(f.type==="date")    r[f.k]=dte(raw);
+    else if(f.type==="flag")    r[f.k]= raw===true;
+    else                        r[f.k]=txt(raw);
+  });
+  return r;
+}
+
+/* ============================================================================
+   4. DERIVED MEASURES — pure. Null propagates: a margin needs BOTH sides, and
+   a row missing one of them must drop out of the average rather than count
+   as zero (that is the difference between "we made nothing" and "we don't know").
+   ========================================================================== */
+function dayspan(a,b){ return (a&&b)?Math.round((b-a)/864e5):null; }
+var DERIVED = [
+  {k:"margin",    label:"Margin (HKD)",      fmt:"hkd", needs:["revenue","cost"],
+   fn:function(r){ return (r.revenue==null||r.cost==null)?null:r.revenue-r.cost; }},
+  {k:"marginPct", label:"Margin %",          fmt:"pct", needs:["revenue","cost"],
+   fn:function(r){ return (r.revenue==null||r.cost==null||!r.revenue)?null:(r.revenue-r.cost)/r.revenue*100; }},
+  {k:"costRatio", label:"Cost / Revenue %",  fmt:"pct", needs:["revenue","cost"],
+   fn:function(r){ return (r.revenue==null||r.cost==null||!r.revenue)?null:r.cost/r.revenue*100; }},
+  {k:"dPrPo",     label:"PR → PO (days)",    fmt:"days", needs:["prIssued","poDate"],
+   fn:function(r){ return dayspan(r.prIssued,r.poDate); }},
+  {k:"dPoRcpt",   label:"PO → Receipt (days)",fmt:"days", needs:["poDate","receiptDate"],
+   fn:function(r){ return dayspan(r.poDate,r.receiptDate); }},
+  {k:"dRcptDn",   label:"Receipt → DN (days)",fmt:"days", needs:["receiptDate","dnDate"],
+   fn:function(r){ return dayspan(r.receiptDate,r.dnDate); }},
+  {k:"dDnInv",    label:"DN → Invoice (days)",fmt:"days", needs:["dnDate","invDate"],
+   fn:function(r){ return dayspan(r.dnDate,r.invDate); }},
+  {k:"dTotal",    label:"PR → Invoice (days)",fmt:"days", needs:["prIssued","invDate"],
+   fn:function(r){ return dayspan(r.prIssued,r.invDate); }},
+  {k:"daysToExpiry",label:"Days to Expiry",  fmt:"days", needs:["ctrEnd"],
+   fn:function(r){ return r.ctrEnd?Math.round((r.ctrEnd-NOW)/864e5):null; }}
+];
+function decorate(rows){
+  for(var i=0;i<rows.length;i++){ var r=rows[i];
+    for(var j=0;j<DERIVED.length;j++){ r[DERIVED[j].k]=DERIVED[j].fn(r); } }
+  return rows;
+}
+
+/* Measure catalogue the UI offers. A measure whose source column is absent is
+   filtered out of every dropdown, so a manager is never offered an empty angle. */
+var MEASURES = [
+  {k:"prHkd",    label:"PR Amount (HKD)",   fmt:"hkd",  needs:["prHkd"]},
+  {k:"poHkd",    label:"PO Amount (HKD)",   fmt:"hkd",  needs:["poHkd"]},
+  {k:"revenue",  label:"Revenue (HKD)",     fmt:"hkd",  needs:["revenue"]},
+  {k:"cost",     label:"Direct Cost (HKD)", fmt:"hkd",  needs:["cost"]},
+  {k:"margin",   label:"Margin (HKD)",      fmt:"hkd",  needs:["revenue","cost"]},
+  {k:"marginPct",label:"Margin %",          fmt:"pct",  needs:["revenue","cost"]},
+  {k:"dTotal",   label:"PR → Invoice (days)",fmt:"days", needs:["prIssued","invDate"]},
+  {k:"dPrPo",    label:"PR → PO (days)",    fmt:"days", needs:["prIssued","poDate"]},
+  {k:"__count",  label:"Deal count",        fmt:"count",needs:[]}
+];
+var MEASURES_BY_KEY={}; MEASURES.forEach(function(m){MEASURES_BY_KEY[m.k]=m;});
+DERIVED.forEach(function(d){ if(!MEASURES_BY_KEY[d.k]) MEASURES_BY_KEY[d.k]={k:d.k,label:d.label,fmt:d.fmt}; });
+FIELDS.forEach(function(f){ if(f.type==="measure"&&!MEASURES_BY_KEY[f.k]) MEASURES_BY_KEY[f.k]={k:f.k,label:f.label,fmt:f.fmt}; });
+function availMeasures(){ return MEASURES.filter(function(m){ return m.needs.every(has); }); }
+
+var DIMS = ["brand","vendor","customer","endCustomer","sourceBook","btbType","chargeCcc",
+            "procStatus","urgency","handledBy","buyer","ao","sbContact","iptMgr","acctCode"];
+function availDims(){ return DIMS.filter(has); }
+function dimLabel(k){ return (F[k]&&F[k].label)||k; }
+
+/* ============================================================================
+   5. FILTER MODEL
+   "No filter" is the ABSENCE of the key — never an empty array, never "All".
+   One representation means one code path, and a chip row that can't lie.
+   ========================================================================== */
+var STATE = {
+  tab:"overview",
+  filters:{},            // {dimKey:[v1,v2], __date:{field,from,to}, __flag:{cancelled:false}}
+  dateField:"prIssued",
+  from:null, to:null,
+  pivot:{},              // per-card {groupBy, measure, agg, grain}
+  tableView:false,
+  engine:"svg",          // "svg" | "echarts" - Overview only, this file only
+  showCancelled:false,
+  hiddenSeries:{}
+};
+function applyFilters(rows, st){
+  var dimKeys = Object.keys(st.filters);
+  // Cancelled lines are out of the slice by DEFAULT, not filtered out later by
+  // each widget. A cancelled PR left in a total is how a dashboard quietly
+  // overstates the book, and "some charts exclude it, some don't" is worse
+  // than either rule applied consistently.
+  var df = st.dateField, from = st.from, to = st.to;
+  return rows.filter(function(r){
+    if(!st.showCancelled && r.cancelled) return false;
+    for(var i=0;i<dimKeys.length;i++){
+      var k=dimKeys[i], want=st.filters[k];
+      if(!want||!want.length) continue;
+      if(want.indexOf(r[k]==null?"(blank)":r[k])<0) return false;
+    }
+    if(from||to){ var d=r[df]; if(!d) return false;
+      if(from&&d<from) return false; if(to&&d>to) return false; }
+    return true;
+  });
+}
+function toggleFilter(dim,val){
+  var cur=STATE.filters[dim]||[], i=cur.indexOf(val);
+  if(i<0) cur=cur.concat([val]); else cur=cur.slice(0,i).concat(cur.slice(i+1));
+  if(cur.length) STATE.filters[dim]=cur; else delete STATE.filters[dim];
+  render();
+}
+function clearFilters(){ STATE.filters={}; STATE.from=null; STATE.to=null; render(); }
+
+/* ============================================================================
+   6. AGGREGATE — the pivot engine. Everything "flexible" funnels through here.
+   Pure; returns a stable, sorted, chart-ready shape.
+   ========================================================================== */
+function bucketDate(d,grain){
+  if(!d) return null;
+  var y=d.getFullYear(), m=d.getMonth();
+  if(grain==="year")    return y+"";
+  if(grain==="quarter") return y+" Q"+(Math.floor(m/3)+1);
+  return y+"-"+String(m+1).padStart(2,"0");
+}
+function reduceVals(vals,agg){
+  if(agg==="count")         return vals.length;
+  var nn=vals.filter(function(v){return v!=null&&!isNaN(v);});
+  if(!nn.length)            return null;
+  if(agg==="sum")           return nn.reduce(function(a,b){return a+b;},0);
+  if(agg==="avg")           return nn.reduce(function(a,b){return a+b;},0)/nn.length;
+  if(agg==="median"){ var s=nn.slice().sort(function(a,b){return a-b;}); var h=s.length>>1;
+                      return s.length%2?s[h]:(s[h-1]+s[h])/2; }
+  if(agg==="min")           return Math.min.apply(null,nn);
+  if(agg==="max")           return Math.max.apply(null,nn);
+  return null;
+}
+/* opts: {groupBy, series, measure, agg, dateGrain, dateField, topN, sort} */
+function aggregate(rows, o){
+  o=o||{};
+  var agg=o.agg||"sum", measure=o.measure||"__count";
+  var byG={}, order=[], seriesSet={};
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i], g;
+    if(o.dateGrain) g=bucketDate(r[o.dateField||STATE.dateField],o.dateGrain);
+    else            g = r[o.groupBy]==null ? "(blank)" : r[o.groupBy];
+    if(g==null) continue;
+    var s = o.series ? (r[o.series]==null?"(blank)":r[o.series]) : "__all";
+    seriesSet[s]=1;
+    if(!byG[g]){ byG[g]={key:g, cells:{}, n:0}; order.push(g); }
+    var cell = byG[g].cells[s] || (byG[g].cells[s]={vals:[],n:0});
+    cell.vals.push(measure==="__count"?1:r[measure]);
+    cell.n++; byG[g].n++;
+  }
+  var series=Object.keys(seriesSet);
+  var out=order.map(function(g){
+    var b=byG[g], row={key:g, n:b.n, values:{}, counts:{}};
+    series.forEach(function(s){
+      var c=b.cells[s];
+      row.values[s]= c ? reduceVals(c.vals, measure==="__count"?"count":agg) : null;
+      row.counts[s]= c ? c.n : 0;
+    });
+    row.total = series.reduce(function(a,s){ var v=row.values[s]; return a+(v==null?0:v); },0);
+    return row;
+  });
+  if(o.dateGrain) out.sort(function(a,b){ return a.key<b.key?-1:a.key>b.key?1:0; });
+  else if(o.sort!=="none") out.sort(function(a,b){ return (b.total||0)-(a.total||0); });
+  if(o.topN && out.length>o.topN && !o.dateGrain){
+    var head=out.slice(0,o.topN), tail=out.slice(o.topN);
+    var other={key:"Other ("+tail.length+")", n:0, values:{}, counts:{}, isOther:true};
+    series.forEach(function(s){
+      var vals=tail.map(function(t){return t.values[s];});
+      other.values[s]= (agg==="sum"||measure==="__count") ? reduceVals(vals,"sum") : reduceVals(vals,"avg");
+      other.counts[s]= tail.reduce(function(a,t){return a+(t.counts[s]||0);},0);
+    });
+    other.n=tail.reduce(function(a,t){return a+t.n;},0);
+    other.total=series.reduce(function(a,s){var v=other.values[s];return a+(v==null?0:v);},0);
+    out=head.concat([other]);
+  }
+  return {rows:out, series:series, measure:measure, agg:agg};
+}
+</script>
+<script>
+/* ============================================================================
+   CHART PRIMITIVES — hand-rolled inline SVG.
+   Deliberately NOT a CDN chart library. Three reasons, in order of weight:
+     1. Every mark rule below (2px surface gap between stacked segments, 4px
+        rounded data-end only at the bar's free end, hairline horizontal-only
+        grid, selective direct labels, one tooltip listing every series) is a
+        fight against a chart library's defaults. Re-skinning is more work
+        than drawing.
+     2. Heatmap, funnel, waterfall and box-plot need plugins, and only
+        cdnjs/jsdelivr are reachable from here — a plugin that isn't there
+        fails silently inside an iframe.
+     3. Zero network dependency: this page renders identically offline and
+        inside the Model-Driven App frame, where a blocked CDN would leave
+        empty cards with no error.
+   ========================================================================== */
+var SVGNS="http://www.w3.org/2000/svg";
+function el(n,a){var e=document.createElementNS(SVGNS,n);if(a)for(var k in a)e.setAttribute(k,a[k]);return e;}
+function SERIES(i){ return "var(--s"+((i%8)+1)+")"; }      // fixed order, never cycled past 8 — 9th folds to "Other"
+function SEQ(i){ return "var(--q"+Math.min(5,Math.max(1,i+1))+")"; }
+/* A label drawn on top of a filled mark must pick its ink from that fill's
+   actual luminance, not from the mark's index. The sequential ramp inverts
+   between light and dark themes, so an index rule puts light text on the light
+   end in one theme and dark text on the dark end in the other — which is how
+   two funnel labels came out invisible. */
+var _probe=null;
+function resolveColor(c){
+  if(!_probe){ _probe=document.createElement("span"); _probe.style.display="none"; document.body.appendChild(_probe); }
+  _probe.style.color=""; _probe.style.color=c;
+  var v=getComputedStyle(_probe).color, m=/rgba?\(([^)]+)\)/.exec(v);
+  return m?m[1].split(",").slice(0,3).map(function(x){return parseFloat(x);}):[128,128,128];
+}
+function inkOn(fill){
+  var rgb=resolveColor(fill);
+  var lin=rgb.map(function(v){ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); });
+  var L=0.2126*lin[0]+0.7152*lin[1]+0.0722*lin[2];
+  return L>0.42 ? "#1F1C17" : "#FAF7F2";
+}
+function txtEl(x,y,s,cls,anchor){var t=el("text",{x:x,y:y,"text-anchor":anchor||"middle"});if(cls)t.setAttribute("class",cls);t.textContent=s;return t;}
+
+/* ---- tooltip: ONE instance, textContent only (labels are untrusted data) ---- */
+var TIP=document.getElementById("tip");
+function tipShow(ev,head,rows,foot){
+  TIP.textContent="";
+  var h=document.createElement("div");h.className="tt-h";h.textContent=head;TIP.appendChild(h);
+  rows.forEach(function(r){
+    var d=document.createElement("div");d.className="tt-r";
+    if(r.color){var k=document.createElement("span");k.className="tt-k";k.style.background=r.color;d.appendChild(k);}
+    var n=document.createElement("span");n.className="tt-n";n.textContent=r.name;d.appendChild(n);
+    var v=document.createElement("span");v.className="tt-v";v.textContent=r.value;d.appendChild(v);
+    TIP.appendChild(d);
+  });
+  if(foot){var f=document.createElement("div");f.className="tt-f";f.textContent=foot;TIP.appendChild(f);}
+  TIP.classList.add("on");
+  var w=TIP.offsetWidth,ht=TIP.offsetHeight;
+  var x=ev.clientX+14, y=ev.clientY-10;
+  if(x+w>innerWidth-8) x=ev.clientX-w-14;
+  if(y+ht>innerHeight-8) y=innerHeight-ht-8;
+  if(y<8) y=8;
+  TIP.style.left=x+"px"; TIP.style.top=y+"px";
+}
+function tipHide(){ TIP.classList.remove("on"); }
+document.addEventListener("scroll",tipHide,true);
+
+/* Every tooltip obeys one rule (UX spec §6): dimension value, the measure
+   formatted WITH its unit, and the record count behind it. A bare number with
+   no label and no count is never shown. */
+function bindTip(node,head,rows,foot,onClick){
+  node.addEventListener("pointermove",function(e){ tipShow(e,head,rows,foot); });
+  node.addEventListener("pointerleave",tipHide);
+  node.addEventListener("focus",function(e){
+    var r=node.getBoundingClientRect();
+    tipShow({clientX:r.left+r.width/2,clientY:r.top},head,rows,foot);
+  });
+  node.addEventListener("blur",tipHide);
+  if(onClick){
+    node.setAttribute("tabindex","0"); node.style.cursor="pointer";
+    node.addEventListener("click",function(){tipHide();onClick();});
+    node.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault();tipHide();onClick();} });
+  }
+}
+
+
+/* Which state a mark is in with respect to the CURRENT filter on its own
+   dimension. A chart that does not represent a dimension passes no `dim` and
+   every mark stays neutral - the emphasis only appears where it means
+   something. */
+function selClass(dim,key){
+  if(!dim) return "";
+  var f=STATE.filters[dim];
+  if(!f||!f.length) return "";
+  return f.indexOf(key)>=0 ? " picked" : " faded";
+}
+
+/* ---- scales / ticks ---- */
+function niceTicks(min,max,n){
+  if(!isFinite(min)||!isFinite(max)) return [0,1];
+  if(min===max){ if(min===0) return [0,1]; min=Math.min(0,min); max=Math.max(0,max); }
+  var span=max-min||1, raw=span/(n||5), mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  var norm=raw/mag, step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  // A step of 0 (or a non-finite one) turns the loop below into an infinite
+  // one that freezes the whole renderer, not just this chart. It happens when
+  // the span underflows — two values that differ only in the last few bits.
+  if(!isFinite(step)||step<=0){ console.warn("[dashboard] degenerate tick step",{min:min,max:max,step:step}); return [min,max]; }
+  var lo=Math.floor(min/step)*step, hi=Math.ceil(max/step)*step, out=[];
+  for(var v=lo;v<=hi+step/2 && out.length<200;v+=step) out.push(+v.toFixed(10));
+  return out;
+}
+function axisFmt(v,fmtKey){
+  var f=FMT[fmtKey];
+  if(fmtKey==="hkd"||fmtKey==="usd") return f(v);
+  if(fmtKey==="pct") return v.toFixed(0)+"%";
+  return nf(v, Math.abs(v)<10&&v%1!==0?1:0);
+}
+
+/* ---- shared frame: returns {svg,g,W,H,iw,ih,pad} ---- */
+function frame(host,h,pad){
+  host.textContent="";
+  var W=Math.max(260,host.clientWidth||host.parentNode.clientWidth||600), H=h;
+  var p=Object.assign({t:14,r:16,b:30,l:54},pad||{});
+  var svg=el("svg",{class:"plot",viewBox:"0 0 "+W+" "+H,width:"100%",height:H,role:"img"});
+  host.appendChild(svg);
+  return {svg:svg,W:W,H:H,p:p,iw:W-p.l-p.r,ih:H-p.t-p.b};
+}
+function yAxis(f,ticks,fmtKey,y){
+  ticks.forEach(function(t){
+    var yy=y(t);
+    f.svg.appendChild(el("line",{class:t===0?"zero-line":"grid-line",x1:f.p.l,x2:f.p.l+f.iw,y1:yy,y2:yy}));
+    f.svg.appendChild(txtEl(f.p.l-8,yy+3.5,axisFmt(t,fmtKey),null,"end"));
+  });
+}
+
+/* Rounded only at the data end (4px), square at the baseline. */
+function barPath(x,y,w,h,r,dir){
+  r=Math.min(r,w/2,h);
+  if(h<=0.6) return "M"+x+","+y+"h"+w;
+  if(dir==="up")   return "M"+x+","+(y+h)+"V"+(y+r)+"a"+r+","+r+" 0 0 1 "+r+",-"+r+"h"+(w-2*r)+"a"+r+","+r+" 0 0 1 "+r+","+r+"V"+(y+h)+"Z";
+  if(dir==="down") return "M"+x+","+y+"V"+(y+h-r)+"a"+r+","+r+" 0 0 0 "+r+","+r+"h"+(w-2*r)+"a"+r+","+r+" 0 0 0 "+r+",-"+r+"V"+y+"Z";
+  if(dir==="right")return "M"+x+","+y+"H"+(x+w-r)+"a"+r+","+r+" 0 0 1 "+r+","+r+"v"+(h-2*r)+"a"+r+","+r+" 0 0 1 -"+r+","+r+"H"+x+"Z";
+  return "M"+(x+w)+","+y+"H"+(x+r)+"a"+r+","+r+" 0 0 0 -"+r+","+r+"v"+(h-2*r)+"a"+r+","+r+" 0 0 0 "+r+","+r+"H"+(x+w)+"Z";
+}
+
+/* ---- legend (always present for >=2 series) ---- */
+function legend(host,items,shape,onToggle){
+  var w=document.createElement("div"); w.className="legend";
+  items.forEach(function(it){
+    var b=document.createElement("button");
+    b.type="button";
+    b.setAttribute("aria-pressed", it.on===false?"false":"true");
+    var s=document.createElement("span"); s.className="sw"+(shape==="line"?" line":""); s.style.background=it.color;
+    b.appendChild(s);
+    var t=document.createElement("span"); t.textContent=it.name; b.appendChild(t);
+    if(onToggle) b.addEventListener("click",function(){ onToggle(it.name); });
+    else b.style.cursor="default";
+    w.appendChild(b);
+  });
+  host.appendChild(w);
+}
+
+/* ============================================================================
+   BAR — vertical. mode: "stack" | "group" | "single"
+   ========================================================================== */
+function chartBar(host,data,opt){
+  opt=opt||{};
+  var rows=data.rows, series=data.series, fmtKey=opt.fmt||"int";
+  if(!rows.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var stack=opt.mode!=="group"&&series.length>1;
+  var tops=rows.map(function(r){
+    if(series.length===1) return r.values[series[0]]||0;
+    return stack ? series.reduce(function(a,s){return a+(r.values[s]||0);},0)
+                 : Math.max.apply(null,series.map(function(s){return r.values[s]||0;}));
+  });
+  var bots=rows.map(function(r){ return Math.min(0, series.reduce(function(a,s){var v=r.values[s]||0;return Math.min(a,v);},0)); });
+  var ticks=niceTicks(Math.min(0,Math.min.apply(null,bots)),Math.max.apply(null,tops),5);
+  var f=frame(host,opt.h||230,{b:opt.rotate?58:30});
+  var y0=ticks[0], y1=ticks[ticks.length-1];
+  var y=function(v){ return f.p.t+f.ih-(v-y0)/(y1-y0||1)*f.ih; };
+  yAxis(f,ticks,fmtKey,y);
+  var bw=f.iw/rows.length, GAP=2;                       // 2px surface gap, not a stroke
+  var inner=Math.min(opt.maxBar||46, bw-8);
+  rows.forEach(function(r,i){
+    var cx=f.p.l+bw*i+bw/2;
+    if(stack||series.length===1){
+      var acc=0;
+      series.forEach(function(s,si){
+        var v=r.values[s]; if(v==null||v===0) return;
+        var yTop=y(acc+v), yBot=y(acc), h=Math.abs(yBot-yTop)-(si?GAP:0);
+        if(h<0.6) h=0.6;
+        var isTop = si===series.length-1;
+        var col = opt.colorBySign ? (v<0?"var(--neg)":"var(--pos)") : (opt.color||SERIES(si));
+        var pth=el("path",{class:"mark"+selClass(opt.dim,r.key),d:barPath(cx-inner/2,Math.min(yTop,yBot),inner,h,isTop?4:0,"up"),fill:col});
+        f.svg.appendChild(pth);
+        bindTip(pth, String(r.key),
+          series.map(function(ss,sj){ return {color:opt.colorBySign?null:(opt.color||SERIES(sj)), name:ss==="__all"?(opt.measureLabel||"Value"):ss,
+            value:FMT[fmtKey](r.values[ss])}; }),
+          r.n+" PR line"+(r.n===1?"":"s"),
+          opt.onPick&&function(){opt.onPick(r.key);});
+        acc+=v;
+      });
+    } else {
+      var sw=(inner-GAP*(series.length-1))/series.length;
+      series.forEach(function(s,si){
+        var v=r.values[s]; if(v==null) return;
+        var yy=y(v), zy=y(0), h=Math.abs(zy-yy); if(h<0.6)h=0.6;
+        var x=cx-inner/2+si*(sw+GAP);
+        var pth=el("path",{class:"mark"+selClass(opt.dim,r.key),d:barPath(x,Math.min(yy,zy),sw,h,4,v<0?"down":"up"),fill:SERIES(si)});
+        f.svg.appendChild(pth);
+        bindTip(pth,String(r.key),
+          series.map(function(ss,sj){return {color:SERIES(sj),name:ss,value:FMT[fmtKey](r.values[ss])};}),
+          r.n+" PR line"+(r.n===1?"":"s"), opt.onPick&&function(){opt.onPick(r.key);});
+      });
+    }
+    // x label: every bar when they fit, otherwise every Nth
+    var step=Math.ceil(rows.length/Math.floor(f.iw/54));
+    if(i%step===0){
+      var lbl=String(r.key), short=lbl.length>14&&!opt.rotate?lbl.slice(0,13)+"…":lbl;
+      if(opt.rotate){
+        var t=txtEl(0,0,short,null,"end");
+        t.setAttribute("transform","translate("+cx+","+(f.p.t+f.ih+12)+") rotate(-38)");
+        f.svg.appendChild(t);
+      } else f.svg.appendChild(txtEl(cx,f.p.t+f.ih+15,short));
+    }
+  });
+  f.svg.appendChild(el("line",{class:"axis-line",x1:f.p.l,x2:f.p.l+f.iw,y1:y(Math.max(y0,Math.min(0,y1))),y2:y(Math.max(y0,Math.min(0,y1)))}));
+  if(series.length>1&&series[0]!=="__all")
+    legend(host,series.map(function(s,i){return {name:s,color:SERIES(i)};}),"rect");
+}
+
+/* ============================================================================
+   BAR — horizontal ranked. The management question is "who is best / worst",
+   so this form appears often on purpose: it carries ranking semantics a plain
+   column chart does not.
+   ========================================================================== */
+function chartBarH(host,data,opt){
+  opt=opt||{};
+  var rows=data.rows.slice(0,opt.topN||12), fmtKey=opt.fmt||"int", s0=data.series[0];
+  if(!rows.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var vals=rows.map(function(r){return r.values[s0]||0;});
+  var lo=Math.min(0,Math.min.apply(null,vals)), hi=Math.max.apply(null,vals);
+  var rowH=opt.rowH||26, f=frame(host,rows.length*rowH+30,{l:opt.labW||144,b:22,t:6,r:58});
+  var x=function(v){ return f.p.l+(v-lo)/((hi-lo)||1)*f.iw; }, zx=x(0);
+  f.svg.appendChild(el("line",{class:"zero-line",x1:zx,x2:zx,y1:f.p.t,y2:f.p.t+rows.length*rowH}));
+  rows.forEach(function(r,i){
+    var v=r.values[s0]||0, yy=f.p.t+i*rowH+3, h=rowH-8;
+    var xv=x(v), bx=Math.min(zx,xv), bw=Math.abs(xv-zx);
+    var col = opt.colorBySign ? (v<0?"var(--neg)":"var(--pos)") : (opt.color||SERIES(0));
+    var sc=selClass(opt.dim,r.key);
+    var pth=el("path",{class:"mark"+sc,d:barPath(bx,yy,Math.max(bw,1.2),h,4,v<0?"left":"right"),fill:col});
+    f.svg.appendChild(pth);
+    var lbl=String(r.key), short=lbl.length>20?lbl.slice(0,19)+"…":lbl;
+    f.svg.appendChild(txtEl(f.p.l-8,yy+h/2+3.5,short,null,"end"));
+    // direct-label the value at the bar end — the reader never needs the tooltip
+    var vt=txtEl(v<0?bx-5:bx+bw+5, yy+h/2+3.5, FMT[fmtKey](v), "val-label", v<0?"end":"start");
+    if(sc===" faded") vt.style.opacity=".35";
+    f.svg.appendChild(vt);
+    var hit=el("rect",{class:"hit",x:f.p.l-f.p.l,y:yy-3,width:f.W,height:rowH});
+    f.svg.appendChild(hit);
+    bindTip(hit,String(r.key),
+      [{color:col,name:opt.measureLabel||"Value",value:FMT[fmtKey](v)}],
+      r.n+" PR line"+(r.n===1?"":"s"), opt.onPick&&function(){opt.onPick(r.key);});
+  });
+}
+
+/* ============================================================================
+   LINE / AREA — multi-series with a snapping crosshair.
+   NEVER dual-axis: two measures of different scale get two charts or an
+   index-to-100. That is the single most common way a dashboard invents a
+   correlation that isn't in the data.
+   ========================================================================== */
+function chartLine(host,data,opt){
+  opt=opt||{};
+  var rows=data.rows, series=data.series.filter(function(s){return !STATE.hiddenSeries[s];});
+  var fmtKey=opt.fmt||"int";
+  if(rows.length<2){ host.innerHTML='<p class="empty">Not enough periods to draw a trend (need 3+).</p>'; return; }
+  var all=[]; rows.forEach(function(r){series.forEach(function(s){var v=r.values[s];if(v!=null)all.push(opt.area?0:v);});});
+  var tops=rows.map(function(r){ return opt.area? series.reduce(function(a,s){return a+(r.values[s]||0);},0)
+                                                : Math.max.apply(null,series.map(function(s){return r.values[s]==null?-Infinity:r.values[s];})); });
+  var bots=rows.map(function(r){ return opt.area?0:Math.min.apply(null,series.map(function(s){return r.values[s]==null?Infinity:r.values[s];})); });
+  var mx=Math.max.apply(null,tops.filter(isFinite)), mn=Math.min.apply(null,bots.filter(isFinite));
+  var ticks=niceTicks(Math.min(0,mn),mx,5);
+  var f=frame(host,opt.h||250,{b:32});
+  var y0=ticks[0],y1=ticks[ticks.length-1];
+  var y=function(v){return f.p.t+f.ih-(v-y0)/(y1-y0||1)*f.ih;};
+  var x=function(i){return f.p.l+(rows.length===1?f.iw/2:i/(rows.length-1)*f.iw);};
+  yAxis(f,ticks,fmtKey,y);
+  if(opt.area){
+    var acc=rows.map(function(){return 0;});
+    series.forEach(function(s,si){
+      var up=[],dn=[];
+      rows.forEach(function(r,i){ var v=r.values[s]||0; dn.push([x(i),y(acc[i])]); acc[i]+=v; up.push([x(i),y(acc[i])]); });
+      var d="M"+up.map(function(p){return p[0]+","+p[1];}).join("L")+"L"+dn.reverse().map(function(p){return p[0]+","+p[1];}).join("L")+"Z";
+      f.svg.appendChild(el("path",{class:"mark",d:d,fill:SERIES(si),"fill-opacity":.82,stroke:"var(--bg-surface)","stroke-width":2}));
+    });
+  } else {
+    series.forEach(function(s,si){
+      var pts=[],partial=null;
+      rows.forEach(function(r,i){ var v=r.values[s]; if(v!=null) pts.push([x(i),y(v),i]); });
+      if(pts.length<2) return;
+      // the current period is incomplete — draw it dashed so nobody reads a
+      // half-finished month as a collapse
+      if(opt.partialLast&&pts.length>1) partial=pts.slice(-2);
+      var solid=opt.partialLast?pts.slice(0,-1):pts;
+      if(solid.length>1)
+        f.svg.appendChild(el("path",{class:"mark",d:"M"+solid.map(function(p){return p[0]+","+p[1];}).join("L"),
+          fill:"none",stroke:SERIES(si),"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+      if(partial)
+        f.svg.appendChild(el("path",{class:"mark",d:"M"+partial.map(function(p){return p[0]+","+p[1];}).join("L"),
+          fill:"none",stroke:SERIES(si),"stroke-width":2,"stroke-dasharray":"4 3","stroke-linecap":"round"}));
+      pts.forEach(function(p,pi){
+        if(pts.length<=14||pi===pts.length-1)
+          f.svg.appendChild(el("circle",{class:"mark",cx:p[0],cy:p[1],r:pi===pts.length-1?3.6:2.6,
+            fill:SERIES(si),stroke:"var(--bg-surface)","stroke-width":2}));
+      });
+    });
+  }
+  // crosshair band per period: the reader aims at a date, never at a 2px line
+  var cw=f.iw/rows.length;
+  rows.forEach(function(r,i){
+    var hit=el("rect",{class:"hit",x:f.p.l+(x(i)-f.p.l)-cw/2,y:f.p.t,width:cw,height:f.ih});
+    f.svg.appendChild(hit);
+    var line=el("line",{x1:x(i),x2:x(i),y1:f.p.t,y2:f.p.t+f.ih,stroke:"var(--ink-muted)","stroke-width":1,opacity:0});
+    f.svg.appendChild(line);
+    hit.addEventListener("pointerenter",function(){line.setAttribute("opacity",".55");});
+    hit.addEventListener("pointerleave",function(){line.setAttribute("opacity","0");});
+    bindTip(hit, String(r.key)+(opt.partialLast&&i===rows.length-1?"  (partial)":""),
+      series.map(function(s,si){return {color:SERIES(si),name:s==="__all"?(opt.measureLabel||"Value"):s,value:FMT[fmtKey](r.values[s])};}),
+      r.n+" PR line"+(r.n===1?"":"s"), opt.onPick&&function(){opt.onPick(r.key);});
+    var step=Math.ceil(rows.length/Math.floor(f.iw/62));
+    if(i%step===0||i===rows.length-1) f.svg.appendChild(txtEl(x(i),f.p.t+f.ih+16,String(r.key)));
+  });
+  if(series.length>1&&series[0]!=="__all")
+    legend(host,data.series.map(function(s,i){return {name:s,color:SERIES(i),on:!STATE.hiddenSeries[s]};}),
+      opt.area?"rect":"line",function(name){ STATE.hiddenSeries[name]=!STATE.hiddenSeries[name]; render(); });
+}
+
+/* ============================================================================
+   SCATTER — every pair of marks can be neighbours, so it uses the 3-slot
+   subset that clears the ALL-PAIRS CVD gate, not all 8.
+   ========================================================================== */
+function chartScatter(host,pts,opt){
+  opt=opt||{};
+  if(!pts.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var xs=pts.map(function(p){return p.x;}), ys=pts.map(function(p){return p.y;});
+  var xt=niceTicks(0,Math.max.apply(null,xs),4), yt=niceTicks(0,Math.max.apply(null,ys),5);
+  var f=frame(host,opt.h||280,{b:40,l:58});
+  var x0=xt[0],x1=xt[xt.length-1],y0=yt[0],y1=yt[yt.length-1];
+  var X=function(v){return f.p.l+(v-x0)/((x1-x0)||1)*f.iw;}, Y=function(v){return f.p.t+f.ih-(v-y0)/((y1-y0)||1)*f.ih;};
+  yAxis(f,yt,opt.fmtY||"hkd",Y);
+  xt.forEach(function(t){ f.svg.appendChild(txtEl(X(t),f.p.t+f.ih+16,axisFmt(t,opt.fmtX||"hkd"))); });
+  // break-even diagonal: below it the deal lost money
+  var lim=Math.min(x1,y1);
+  f.svg.appendChild(el("line",{x1:X(0),y1:Y(0),x2:X(lim),y2:Y(lim),stroke:"var(--ink-muted)","stroke-width":1,"stroke-dasharray":"5 4"}));
+  f.svg.appendChild(txtEl(X(lim)-4,Y(lim)-7,"break-even","val-label","end"));
+  var cats=[]; pts.forEach(function(p){ if(cats.indexOf(p.cat)<0) cats.push(p.cat); });
+  pts.forEach(function(p){
+    var ci=cats.indexOf(p.cat), col=SERIES(Math.min(ci,2));   // slots 1-3 only: all-pairs safe
+    var c=el("circle",{class:"mark",cx:X(p.x),cy:Y(p.y),r:4.6,fill:col,"fill-opacity":.8,stroke:"var(--bg-surface)","stroke-width":2});
+    f.svg.appendChild(c);
+    var hit=el("circle",{class:"hit",cx:X(p.x),cy:Y(p.y),r:12});  // 24px hit target
+    f.svg.appendChild(hit);
+    bindTip(hit,p.label,[
+      {color:col,name:opt.labY||"Revenue",value:FMT[opt.fmtY||"hkd"](p.y)},
+      {color:null,name:opt.labX||"Cost",value:FMT[opt.fmtX||"hkd"](p.x)},
+      {color:null,name:"Margin",value:fmtPct((p.y-p.x)/(p.y||1)*100)}
+    ],p.cat);
+  });
+  f.svg.appendChild(txtEl(f.p.l+f.iw/2,f.H-4,opt.labX||"Direct cost (HKD)"));
+  if(cats.length>1) legend(host,cats.slice(0,3).map(function(c,i){return {name:c,color:SERIES(i)};}),"rect");
+}
+
+/* ============================================================================
+   HEATMAP — magnitude, so ONE hue light->dark (never a rainbow), plus a
+   scale legend and a table-view twin because colour alone is not a value.
+   ========================================================================== */
+function chartHeat(host,matrix,opt){
+  opt=opt||{};
+  var rowsK=matrix.rowKeys, colsK=matrix.colKeys;
+  if(!rowsK.length||!colsK.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var mx=0; rowsK.forEach(function(r){colsK.forEach(function(c){var v=matrix.get(r,c);if(v!=null&&v>mx)mx=v;});});
+  var cellH=24, labW=opt.labW||128;
+  var f=frame(host,rowsK.length*cellH+46,{l:labW,t:24,b:8,r:10});
+  var cw=f.iw/colsK.length;
+  colsK.forEach(function(c,ci){
+    var s=String(c), sh=s.length>11?s.slice(0,10)+"…":s;
+    f.svg.appendChild(txtEl(f.p.l+cw*ci+cw/2,f.p.t-8,sh));
+  });
+  rowsK.forEach(function(rk,ri){
+    var s=String(rk), sh=s.length>18?s.slice(0,17)+"…":s;
+    f.svg.appendChild(txtEl(f.p.l-8,f.p.t+cellH*ri+cellH/2+3.5,sh,null,"end"));
+    colsK.forEach(function(ck,ci){
+      var v=matrix.get(rk,ck);
+      var step = v==null?null:Math.min(4,Math.floor((v/(mx||1))*4.999));
+      var rect=el("rect",{class:"mark",x:f.p.l+cw*ci+1,y:f.p.t+cellH*ri+1,width:Math.max(1,cw-2),height:cellH-2,rx:2,
+        fill: v==null?"var(--bg-inset)":SEQ(step)});
+      f.svg.appendChild(rect);
+      bindTip(rect,String(rk)+" x "+String(ck),
+        [{color:v==null?"var(--bg-inset)":SEQ(step),name:opt.measureLabel||"Value",value:v==null?"no data":FMT[opt.fmt||"int"](v)}],
+        (matrix.count(rk,ck)||0)+" PR lines");
+    });
+  });
+  // scale legend
+  var sl=document.createElement("div"); sl.className="legend";
+  var lab=document.createElement("span"); lab.textContent="Low"; sl.appendChild(lab);
+  for(var i=0;i<5;i++){ var sw=document.createElement("span"); sw.className="sw"; sw.style.background=SEQ(i); sl.appendChild(sw); }
+  var lab2=document.createElement("span"); lab2.textContent="High · "+FMT[opt.fmt||"int"](mx); sl.appendChild(lab2);
+  host.appendChild(sl);
+}
+
+/* ============================================================================
+   FUNNEL — stages are ORDINAL (order carries meaning), so one hue stepped
+   light->dark, never eight categorical hues.
+   ========================================================================== */
+function chartFunnel(host,stages,opt){
+  opt=opt||{};
+  if(!stages.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var mx=Math.max.apply(null,stages.map(function(s){return s.n;}))||1;
+  var rowH=38, f=frame(host,stages.length*rowH+12,{l:4,r:4,t:6,b:6});
+  stages.forEach(function(s,i){
+    var w=Math.max(3,(s.n/mx)*f.iw), y=f.p.t+i*rowH, x=f.p.l+(f.iw-w)/2;
+    var pth=el("path",{class:"mark"+selClass(opt.dim,s.name),d:barPath(x,y,w,rowH-6,4,"right"),fill:SEQ(Math.min(4,i))});
+    f.svg.appendChild(pth);
+    var fill=SEQ(Math.min(4,i));
+    var t=txtEl(f.p.l+f.iw/2,y+(rowH-6)/2+4,s.name+"  ·  "+nf(s.n),"val-label");
+    t.style.fill=inkOn(fill);          // inline: .val-label's CSS fill would otherwise win
+    t.style.fontWeight="650";
+    f.svg.appendChild(t);
+    var conv = i===0?100:(s.n/(stages[0].n||1)*100);
+    var drop = i===0?null:(stages[i-1].n?(1-s.n/stages[i-1].n)*100:null);
+    var trows=[{color:SEQ(Math.min(4,i)),name:"Reached this stage",value:nf(s.n)},
+               {color:null,name:"Share of stage 1",value:fmtPct(conv)}];
+    if(s.here!=null) trows.push({color:null,name:"Sitting here now",value:nf(s.here)});
+    bindTip(pth,s.name,trows,
+      drop==null?"First stage":("Drop-off from previous stage: "+fmtPct(drop)),
+      opt.onPick&&function(){opt.onPick(s.name);});
+  });
+}
+
+/* ============================================================================
+   WATERFALL — contribution to a change; status colours because the series
+   genuinely MEANS up/down, not "series 4".
+   ========================================================================== */
+function chartWaterfall(host,items,opt){
+  opt=opt||{};
+  if(!items.length){ host.innerHTML='<p class="empty">Not enough history for a bridge.</p>'; return; }
+  var run=0, pts=items.map(function(it){
+    if(it.total){ return {name:it.name,from:0,to:it.value,total:true,value:it.value}; }
+    var from=run; run+=it.value; return {name:it.name,from:from,to:run,value:it.value};
+  });
+  var lo=Math.min(0,Math.min.apply(null,pts.map(function(p){return Math.min(p.from,p.to);})));
+  var hi=Math.max.apply(null,pts.map(function(p){return Math.max(p.from,p.to);}));
+  var ticks=niceTicks(lo,hi,5);
+  var f=frame(host,opt.h||240,{b:48});
+  var y0=ticks[0],y1=ticks[ticks.length-1];
+  var y=function(v){return f.p.t+f.ih-(v-y0)/((y1-y0)||1)*f.ih;};
+  yAxis(f,ticks,opt.fmt||"hkd",y);
+  var bw=f.iw/pts.length, inner=Math.min(48,bw-12);
+  pts.forEach(function(p,i){
+    var cx=f.p.l+bw*i+bw/2, a=y(p.from), b=y(p.to), h=Math.max(1.2,Math.abs(b-a));
+    var col=p.total?"var(--neutral)":(p.value<0?"var(--neg)":"var(--pos)");
+    var pth=el("path",{class:"mark",d:barPath(cx-inner/2,Math.min(a,b),inner,h,4,p.value<0?"down":"up"),fill:col});
+    f.svg.appendChild(pth);
+    if(i<pts.length-1) f.svg.appendChild(el("line",{x1:cx+inner/2,x2:cx+bw-inner/2,y1:b,y2:b,stroke:"var(--rule-strong)","stroke-width":1}));
+    var t=txtEl(0,0,p.name,null,"end"); t.setAttribute("transform","translate("+cx+","+(f.p.t+f.ih+12)+") rotate(-30)");
+    f.svg.appendChild(t);
+    bindTip(pth,p.name,[
+      {color:col,name:p.total?"Level":"Contribution",value:(p.value>0&&!p.total?"+":"")+FMT[opt.fmt||"hkd"](p.value)},
+      {color:null,name:"Running total",value:FMT[opt.fmt||"hkd"](p.to)}
+    ], p.total?"Opening / closing level":(p.value<0?"Pulled margin down":"Pushed margin up"));
+  });
+}
+
+/* ============================================================================
+   DISTRIBUTION — a real box plot (min / Q1 / median / Q3 / max).
+   The PM ruled "three bars instead" because a chart library has no box; that
+   constraint disappears when the marks are drawn by hand, and three bars
+   cannot show a spread.
+   ========================================================================== */
+function chartBox(host,groups,opt){
+  opt=opt||{};
+  groups=groups.filter(function(g){return g.vals.length>=3;});
+  if(!groups.length){ host.innerHTML='<p class="empty">Need at least 3 values per group to show a spread.</p>'; return; }
+  function q(a,p){ var s=a.slice().sort(function(x,y){return x-y;}), i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+                   return lo===hi?s[lo]:s[lo]+(s[hi]-s[lo])*(i-lo); }
+  var stats=groups.map(function(g){ var v=g.vals;
+    return {name:g.name,n:v.length,min:Math.min.apply(null,v),q1:q(v,.25),med:q(v,.5),q3:q(v,.75),max:Math.max.apply(null,v)}; });
+  var lo=Math.min.apply(null,stats.map(function(s){return s.min;})), hi=Math.max.apply(null,stats.map(function(s){return s.max;}));
+  var ticks=niceTicks(lo,hi,5);
+  var f=frame(host,opt.h||250,{b:46});
+  var y0=ticks[0],y1=ticks[ticks.length-1];
+  var y=function(v){return f.p.t+f.ih-(v-y0)/((y1-y0)||1)*f.ih;};
+  yAxis(f,ticks,opt.fmt||"pct",y);
+  var bw=f.iw/stats.length, inner=Math.min(40,bw-18);
+  stats.forEach(function(s,i){
+    var cx=f.p.l+bw*i+bw/2;
+    f.svg.appendChild(el("line",{class:"mark",x1:cx,x2:cx,y1:y(s.min),y2:y(s.max),stroke:"var(--ink-muted)","stroke-width":1}));
+    f.svg.appendChild(el("line",{class:"mark",x1:cx-7,x2:cx+7,y1:y(s.min),y2:y(s.min),stroke:"var(--ink-muted)","stroke-width":1}));
+    f.svg.appendChild(el("line",{class:"mark",x1:cx-7,x2:cx+7,y1:y(s.max),y2:y(s.max),stroke:"var(--ink-muted)","stroke-width":1}));
+    var box=el("rect",{class:"mark"+selClass(opt.dim,s.name),x:cx-inner/2,y:y(s.q3),width:inner,height:Math.max(2,y(s.q1)-y(s.q3)),rx:3,
+      fill:SERIES(0),"fill-opacity":.28,stroke:SERIES(0),"stroke-width":1.5});
+    f.svg.appendChild(box);
+    f.svg.appendChild(el("line",{class:"mark",x1:cx-inner/2,x2:cx+inner/2,y1:y(s.med),y2:y(s.med),stroke:SERIES(0),"stroke-width":2.5}));
+    var t=txtEl(0,0,s.name,null,"end"); t.setAttribute("transform","translate("+cx+","+(f.p.t+f.ih+12)+") rotate(-30)");
+    f.svg.appendChild(t);
+    var hit=el("rect",{class:"hit",x:cx-bw/2,y:f.p.t,width:bw,height:f.ih}); f.svg.appendChild(hit);
+    var F=FMT[opt.fmt||"pct"];
+    bindTip(hit,s.name,[
+      {color:SERIES(0),name:"Median",value:F(s.med)},
+      {color:null,name:"Q1 – Q3",value:F(s.q1)+" – "+F(s.q3)},
+      {color:null,name:"Min – Max",value:F(s.min)+" – "+F(s.max)}
+    ], s.n+" PR lines", opt.onPick&&function(){opt.onPick(s.name);});
+  });
+}
+
+/* ============================================================================
+   DONUT — part-to-whole at a glance only, hard-capped at 4 slices + Other.
+   Past that it is a bar chart, every time.
+   ========================================================================== */
+function chartDonut(host,data,opt){
+  opt=opt||{};
+  var rows=data.rows.slice(0,5), s0=data.series[0];
+  if(!rows.length){ host.innerHTML='<p class="empty">No rows in this slice.</p>'; return; }
+  var tot=rows.reduce(function(a,r){return a+(r.values[s0]||0);},0)||1;
+  var size=Math.min(host.clientWidth||220,200), R=size/2-6, r0=R*.58, cx=size/2, cy=size/2;
+  host.textContent="";
+  var svg=el("svg",{class:"plot",viewBox:"0 0 "+size+" "+size,width:size,height:size});
+  host.appendChild(svg);
+  var a0=-Math.PI/2;
+  rows.forEach(function(r,i){
+    var v=r.values[s0]||0, a1=a0+v/tot*Math.PI*2, gap=0.012;
+    var sa=a0+gap/2, ea=Math.max(sa,a1-gap/2), big=(ea-sa)>Math.PI?1:0;
+    var d="M"+(cx+R*Math.cos(sa))+","+(cy+R*Math.sin(sa))+
+          "A"+R+","+R+" 0 "+big+" 1 "+(cx+R*Math.cos(ea))+","+(cy+R*Math.sin(ea))+
+          "L"+(cx+r0*Math.cos(ea))+","+(cy+r0*Math.sin(ea))+
+          "A"+r0+","+r0+" 0 "+big+" 0 "+(cx+r0*Math.cos(sa))+","+(cy+r0*Math.sin(sa))+"Z";
+    var p=el("path",{class:"mark"+selClass(opt.dim,r.key),d:d,fill:SERIES(i)});
+    svg.appendChild(p);
+    bindTip(p,String(r.key),[
+      {color:SERIES(i),name:opt.measureLabel||"Value",value:FMT[opt.fmt||"int"](v)},
+      {color:null,name:"Share",value:fmtPct(v/tot*100)}
+    ], r.n+" PR lines", opt.onPick&&function(){opt.onPick(r.key);});
+    a0=a1;
+  });
+  var c=txtEl(cx,cy-1,FMT[opt.fmt||"int"](tot),"val-label"); c.setAttribute("font-size","14"); c.setAttribute("font-weight","650");
+  c.setAttribute("fill","var(--ink-primary)"); svg.appendChild(c);
+  svg.appendChild(txtEl(cx,cy+14,"total"));
+  legend(host,rows.map(function(r,i){return {name:String(r.key),color:SERIES(i)};}),"rect");
+}
+
+/* ---- sparkline for KPI tiles ---- */
+function sparkline(vals,w,h){
+  if(!vals||vals.length<2) return null;
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), sp=(mx-mn)||1;
+  var svg=el("svg",{width:w,height:h,viewBox:"0 0 "+w+" "+h,class:"plot","aria-hidden":"true"});
+  var d=vals.map(function(v,i){ return (i/(vals.length-1)*w).toFixed(1)+","+((1-(v-mn)/sp)*(h-4)+2).toFixed(1); }).join("L");
+  svg.appendChild(el("path",{d:"M"+d,fill:"none",stroke:"var(--accent)","stroke-width":1.6,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  var last=(1-(vals[vals.length-1]-mn)/sp)*(h-4)+2;
+  svg.appendChild(el("circle",{cx:w,cy:last,r:2.2,fill:"var(--accent)"}));
+  return svg;
+}
+
+/* A chart cannot measure a card that is not in the document yet — clientWidth
+   is 0 and parentNode is null on a detached node, which is how every plot came
+   back empty the first time. Rather than reorder every tab builder, the
+   measuring renderers queue themselves and render() flushes the queue once the
+   view is attached. */
+var PENDING=[];
+function flushDraws(){
+  var q=PENDING; PENDING=[];
+  q.forEach(function(f){ try{ f(); }catch(e){ console.warn("[dashboard] chart draw failed:",e); } });
+}
+function deferred(fn){
+  return function(host){
+    var args=arguments;
+    if(host && host.nodeType===1 && !host.isConnected){ PENDING.push(function(){ fn.apply(null,args); }); return; }
+    return fn.apply(null,args);
+  };
+}
+chartBar=deferred(chartBar); chartBarH=deferred(chartBarH); chartLine=deferred(chartLine);
+chartScatter=deferred(chartScatter); chartHeat=deferred(chartHeat); chartFunnel=deferred(chartFunnel);
+chartWaterfall=deferred(chartWaterfall); chartBox=deferred(chartBox); chartDonut=deferred(chartDonut);
+
+/* ---- table with inline bars (also the table-view twin of every chart) ---- */
+function tableWithBars(host,data,opt){
+  opt=opt||{};
+  var rows=data.rows.slice(0,opt.topN||40), series=data.series, fmtKey=opt.fmt||"int";
+  var multi=series.length>1, s0=series[0];
+  var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.values[s0]||0);}))||1;
+  var wrap=document.createElement("div"); wrap.className="tbl-wrap";
+  var t=document.createElement("table"); t.className="dt";
+  var th=document.createElement("thead"), tr=document.createElement("tr");
+  var head=[opt.dimLabel||"Group"];
+  if(!multi) head.push("");
+  head=head.concat(multi?series:[opt.measureLabel||"Value"]).concat(["PR lines"]);
+  head.forEach(function(h,i){
+    var c=document.createElement("th"); c.textContent=h;
+    if(i>=(multi?1:2)) c.className="n";
+    tr.appendChild(c); });
+  th.appendChild(tr); t.appendChild(th);
+  var tb=document.createElement("tbody");
+  rows.forEach(function(r){
+    var row=document.createElement("tr");
+    var c1=document.createElement("td"); c1.textContent=String(r.key); row.appendChild(c1);
+    if(!multi){
+      var c2=document.createElement("td"); c2.style.width="28%";
+      var bar=document.createElement("span"); bar.className="inbar";
+      var fill=document.createElement("i");
+      fill.style.width=Math.max(2,Math.abs(r.values[s0]||0)/mx*100)+"%";
+      fill.style.background=(r.values[s0]||0)<0?"var(--neg)":(opt.color||"var(--s1)");
+      bar.appendChild(fill); c2.appendChild(bar); row.appendChild(c2);
+    }
+    series.forEach(function(sk){
+      var c=document.createElement("td"); c.className="n";
+      c.textContent=FMT[fmtKey](r.values[sk]); row.appendChild(c); });
+    var c4=document.createElement("td"); c4.className="n"; c4.textContent=nf(r.n); row.appendChild(c4);
+    if(opt.onPick){ row.style.cursor="pointer"; row.title="Filter by "+String(r.key);
+      row.addEventListener("click",function(){opt.onPick(r.key);}); }
+    tb.appendChild(row);
+  });
+  t.appendChild(tb); wrap.appendChild(t); host.appendChild(wrap);
+}
+</script>
+<script>
+/* ============================================================================
+   DEMO DATA — deterministic (seeded), so a screenshot taken today matches one
+   taken next week. Brands carry different typical margins on purpose: without
+   a story in the data, every chart is a flat wall and the prototype proves
+   nothing about whether the dashboard can show strength and weakness.
+   ========================================================================== */
+var APP_VERSION = "0.2.4";
+var NOW = new Date(2026,8,16);   // fixed "today" so the demo's expiry buckets are stable
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0;
+  var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function makeDemoRows(n){
+  var rnd=mulberry32(20260916);
+  var pick=function(a){return a[Math.floor(rnd()*a.length)];};
+  var gauss=function(){ return (rnd()+rnd()+rnd()+rnd()-2)/2; };
+  var customers=["FUBON BANK (HONG KONG) LIMITED","AIA International Limited","CLP Power HK Ltd","MTR Corporation Limited",
+    "Airport Authority Hong Kong","Hong Kong Baptist Hospital","China Construction Bank (Asia)","Ricoh Asia Pacific Operations",
+    "Shenwan Hongyuan Securities (HK)","ROYAL PLAZA HOTEL","DLN Architects Limited","Banco Santander S.A.",
+    "The Hong Kong University of Science and Technology","Holly International Financial Holdings"];
+  var endCustomers=["OCBC Wing Hang Bank","Environmental Protection Department","Public Finance Limited","(same as customer)"];
+  var brands=["Fortinet","Cisco","Palo Alto","Avaya","Nice Systems","Juniper","ManageEngine","Imperva"];
+  var brandMargin={Fortinet:.34,Cisco:.21,"Palo Alto":.29,Avaya:.11,"Nice Systems":.24,Juniper:.26,ManageEngine:.38,Imperva:.17};
+  var brandTrend ={Fortinet:-.055,Cisco:.004,"Palo Alto":.012,Avaya:-.030,"Nice Systems":.002,Juniper:.008,ManageEngine:.018,Imperva:-.004};
+  var vendorsOf={Fortinet:["EDVANCE TECHNOLOGY (HONG KONG) LIMITED","MAN FUNG TECHNOLOGY LIMITED"],
+    Cisco:["Cisco International Limited","DCSS Technology (Hong Kong) Limited"],"Palo Alto":["B & DATA TECHNOLOGY CO LTD"],
+    Avaya:["AVAYA HONG KONG COMPANY LTD","SEN SPIRIT TECHNOLOGY LIMITED"],"Nice Systems":["Nice Systems (Singapore) Pte. Ltd"],
+    Juniper:["EDVANCE TECHNOLOGY (HONG KONG) LIMITED"],ManageEngine:["GREENSBORO TELECOM LIMITED"],Imperva:["B & DATA TECHNOLOGY CO LTD"]};
+  var books=["UCBV","Avaya","AD & Logger","Security (C600)","Index (C556/C665)"];
+  var cccOf={"UCBV":"C560","Avaya":"CAX1","AD & Logger":"CB13","Security (C600)":"C600","Index (C556/C665)":"C556"};
+  var handlers=["Mak, Connie OM","Hsui, Janet WJ","Lam, Jessica WS","Wong, Kiwi LF","Tan, Simon HH","Chan, Ina YK"];
+  var buyers=["Natalie Wu","Emily Wang","Don Chan","Steven Lai","Jan Ho"];
+  var aos=["Coey","Alice"]; var sbs=["Yau, Ricky CH","Yim, Theo TP","Po, Nicky MY","Chan, Connie WC","Fung, Hayden TC"];
+  var mgrs=["Chu, Patrick WK","Chui, Kenneth TK2","Tsui, Daniel HT","Leung, Gary NT"];
+  var rows=[];
+  for(var i=0;i<n;i++){
+    var brand=pick(brands), book=pick(books);
+    // volume weighted toward the recent two years; 2023-24 deliberately sparse
+    var age=rnd()<.72 ? rnd()*620 : 620+rnd()*720;
+    var prIssued=new Date(NOW.getTime()-age*864e5);
+    var yrsAgo=age/365;
+    var cancelled = rnd()<.043;
+    var stageRoll=rnd();
+    var stage = age<25 ? (stageRoll<.4?"PR No. Ready":stageRoll<.7?"UM Verified":"LIS system Approved")
+              : age<70 ? (stageRoll<.18?"UM Verified":stageRoll<.45?"LIS system Approved":stageRoll<.8?"PO No. Ready":"Completed")
+              : (stageRoll<.06?"Waiting approval":stageRoll<.12?"Waiting book-in":stageRoll<.18?"Waiting licence delivery":"Completed");
+    var reached=STAGE_ORDER.indexOf(stage); if(reached<0) reached=3;
+    var d=function(base,lo,hi){ return new Date(base.getTime()+(lo+rnd()*(hi-lo))*864e5); };
+    var recd=new Date(prIssued.getTime()-(1+rnd()*5)*864e5);
+    var slow = book==="Security (C600)" ? 1.9 : book==="Index (C556/C665)" ? 1.35 : 1;
+    var poDate      = reached>=3 ? d(prIssued, 3*slow, 22*slow) : null;
+    var receiptDate = (reached>=4&&poDate&&rnd()<.88) ? d(poDate, 6, 52) : null;
+    var dnDate      = receiptDate&&rnd()<.8 ? d(receiptDate,1,12) : null;
+    var invDate     = dnDate&&rnd()<.85 ? d(dnDate,1,18) : null;
+    var licDate     = brand==="Fortinet"||brand==="Palo Alto" ? (poDate&&rnd()<.8?d(poDate,2,30):null) : null;
+    var revenue=Math.round(Math.exp(10.4+gauss()*1.35)/100)*100;     // long-tailed, like the real book
+    var m=brandMargin[brand]+brandTrend[brand]*(3-Math.min(3,yrsAgo))+gauss()*.085;
+    if(rnd()<.07) m=-Math.abs(m)*0.6;                                 // a real minority of loss-making deals
+    var cost=Math.round(revenue*(1-m));
+    var ctrStart=d(prIssued,-20,40), ctrEnd=new Date(ctrStart.getTime()+(rnd()<.2?730:365)*864e5);
+    rows.push({
+      recordId:"ATQ-"+(202600+i%80)+"-V0"+(1+i%3)+"-"+(1+i%3), prNo:"6"+(250000+i), poNo:poDate?"ZM"+(1570000+i):null,
+      uid:"UID-26-0"+(1+i%9)+"-0"+(100+i%400), contractNo:(brand==="Avaya"?"P AV/":"L")+(260000+i)+"MZ",
+      desc:brand+" maintenance renewal, refer quotation Q"+(20000+i),
+      customer:pick(customers), vendor:pick(vendorsOf[brand]), brand:brand, model:brand+" "+pick(["FG-200E x2","PA-3410 x6","SRX340 x10","UCM6510","NICE-REC x4"]),
+      endCustomer: rnd()<.22?pick(endCustomers):null,
+      sourceBook:book, chargeCcc:cccOf[book], acctCode:"6456"+(i%9), woCode:"002447"+(40+i%9),
+      handledBy:pick(handlers), issueBy:pick(["Candy Chan","Mandy Lee","Joey Pang"]), iptMgr:pick(mgrs),
+      buyer:pick(buyers), ao:pick(aos), sbContact:pick(sbs), itemNo:(1+i%3)+"-"+brand.toLowerCase(),
+      urgency: rnd()<.09?"Super Urgent":rnd()<.22?"Urgent":"No",
+      btbType: rnd()<.62?"BTB":"NON-BTB",
+      procStatus: cancelled?"Completed":stage, prStatus: reached>=4?"Closed":"In Progress",
+      prHkd:cost, poHkd:poDate?Math.round(cost*(0.98+rnd()*0.04)):null,
+      prUsd: rnd()<.18?Math.round(cost/7.8):null, poUsd: (poDate&&rnd()<.14)?Math.round(cost/7.8):null,
+      revenue:revenue, cost:cost,
+      recdDate:recd, prIssued:prIssued, poDate:poDate, receiptDate:receiptDate, dnDate:dnDate, invDate:invDate,
+      licDate:licDate, ctrStart:ctrStart, ctrEnd:ctrEnd,
+      flagged: rnd()<.07, cancelled:cancelled
+    });
+  }
+  return rows;
+}
+
+/* ============================================================================
+   DATAVERSE — degrade, never throw. One probe decides whether the planned
+   columns exist; a 400 on the optional set must not take the whole page down.
+   ========================================================================== */
+var ROWS=[], LOAD_NOTE="";
+function dvSelect(withOptional){
+  return FIELDS.filter(function(f){ return withOptional||!f.optional; })
+               .map(function(f){ return f.l; }).join(",");
+}
+function loadData(done){
+  var api = (typeof parent!=="undefined" && parent.Xrm && parent.Xrm.WebApi) ? parent.Xrm.WebApi : null;
+  if(!api){
+    console.warn("[dashboard] parent.Xrm.WebApi not available — running on seeded demo data. "+
+                 "This is the standalone/dev path, not an error.");
+    FIELDS.forEach(function(f){ PRESENT[f.k]=true; });   // demo data carries every planned column
+    ROWS=decorate(makeDemoRows(1400));
+    LOAD_NOTE="demo"; return done();
+  }
+  var opt=FIELDS.filter(function(f){return f.optional;}).map(function(f){return f.l;});
+  // Probe ONCE for the whole optional set. Dataverse's 400 body does not name
+  // the offending column reliably, so per-column bisection costs many round
+  // trips to learn nothing; fail the set closed and say so on screen.
+  api.retrieveMultipleRecords("admin_btb_lis_excel_data","?$select="+opt.join(",")+"&$top=1")
+    .then(function(){ FIELDS.forEach(function(f){PRESENT[f.k]=true;}); return fetchAll(api,true); })
+    .catch(function(e){
+      console.warn("[dashboard] planned columns not present yet; loading confirmed columns only.",e&&e.message);
+      FIELDS.forEach(function(f){ PRESENT[f.k]=!f.optional; });
+      return fetchAll(api,false);
+    })
+    .then(function(rows){ ROWS=decorate(rows); LOAD_NOTE="live"; done(); })
+    .catch(function(e){
+      console.warn("[dashboard] Dataverse read failed entirely; falling back to demo data.",e&&e.message);
+      FIELDS.forEach(function(f){ PRESENT[f.k]=true; });
+      ROWS=decorate(makeDemoRows(1400)); LOAD_NOTE="demo-fallback"; done();
+    });
+}
+function fetchAll(api,withOpt){
+  // Sequential paging, never Promise.all — Dataverse throttles, and a burst
+  // costs more wall-clock than it saves.
+  var acc=[];
+  function page(q){
+    return api.retrieveMultipleRecords("admin_btb_lis_excel_data",q).then(function(res){
+      res.entities.forEach(function(e){ acc.push(normalizeRow(e)); });
+      if(res.nextLink && acc.length<50000) return page(res.nextLink.substring(res.nextLink.indexOf("?")));
+      return acc;
+    });
+  }
+  return page("?$select="+dvSelect(withOpt)+"&$top=5000");
+}
+
+/* ============================================================================
+   KPIs — every one excludes cancelled rows. A cancelled PR still sits in the
+   table; counting it in a total is how a dashboard quietly overstates the book.
+   ========================================================================== */
+// The slice handed in here has already had cancelled lines removed by
+// applyFilters unless the reviewer explicitly switched them on, so this is a
+// belt-and-braces guard for any caller that bypasses the filter path.
+function live(rows){ return STATE.showCancelled ? rows : rows.filter(function(r){ return !r.cancelled; }); }
+function sum(rows,k){ var t=null; rows.forEach(function(r){ if(r[k]!=null){ t=(t||0)+r[k]; } }); return t; }
+function median(rows,k){ var v=rows.map(function(r){return r[k];}).filter(function(x){return x!=null;}).sort(function(a,b){return a-b;});
+  if(!v.length) return null; var h=v.length>>1; return v.length%2?v[h]:(v[h-1]+v[h])/2; }
+
+function periodSlice(rows,field,monthsBack,span){
+  var end=new Date(NOW.getFullYear(),NOW.getMonth()-monthsBack,1);
+  var start=new Date(end.getFullYear(),end.getMonth()-span,1);
+  return rows.filter(function(r){ var d=r[field]; return d&&d>=start&&d<end; });
+}
+function deltaEl(cur,prev,invert,fmt){
+  var w=document.createElement("span");
+  if(cur==null||prev==null||!prev){ w.className="delta flat"; w.textContent="— no basis"; return w; }
+  var pct=(cur-prev)/Math.abs(prev)*100;
+  var good = invert ? pct<0 : pct>0;
+  var flat = Math.abs(pct)<0.5;
+  w.className="delta "+(flat?"flat":good?"up":"down");
+  // glyph always present: colour is never the only signal
+  w.textContent=(flat?"→ ":(pct>0?"▲ ":"▼ "))+Math.abs(pct).toFixed(1)+"% vs prior quarter";
+  return w;
+}
+function kpiTile(o){
+  var d=document.createElement("div"); d.className="kpi";
+  var l=document.createElement("div"); l.className="lab"; l.textContent=o.label; d.appendChild(l);
+  var v=document.createElement("div"); v.className="val t-kpi"; v.textContent=o.value; d.appendChild(v);
+  var f=document.createElement("div"); f.className="foot";
+  if(o.delta) f.appendChild(o.delta);
+  if(o.note){ var s=document.createElement("span"); s.textContent=o.note; f.appendChild(s); }
+  d.appendChild(f);
+  if(o.spark){ var sp=sparkline(o.spark,120,26); if(sp){ sp.style.marginTop="8px"; d.appendChild(sp); } }
+  return d;
+}
+
+/* ============================================================================
+   BUILDERS
+   ========================================================================== */
+function card(title,question,opts){
+  var c=document.createElement("div"); c.className="card "+(opts&&opts.span||"c6");
+  var h=document.createElement("header");
+  var t=document.createElement("div"); t.className="t-card"; t.textContent=title; h.appendChild(t);
+  if(opts&&opts.badge){ var b=document.createElement("span"); b.className="pill "+(opts.badgeKind||"neu"); b.textContent=opts.badge; h.appendChild(b); }
+  c.appendChild(h);
+  if(question){ var q=document.createElement("p"); q.className="q"; q.textContent=question; c.appendChild(q); }
+  return c;
+}
+function missing(c,keys){
+  var absent=keys.filter(function(k){return !has(k);});
+  if(!absent.length) return false;
+  var p=document.createElement("p"); p.className="empty";
+  p.textContent="Not available yet — needs the Dataverse column"+(absent.length>1?"s ":" ")+
+    absent.map(function(k){return F[k].l;}).join(", ")+".";
+  c.appendChild(p); return true;
+}
+/* Every chart gets a table-view twin. The toggle is global so a reviewer who
+   cannot read a colour encoding is never stuck on one card. */
+function plotHost(c,data,opt){
+  var h=document.createElement("div");
+  c.appendChild(h);
+  if(STATE.tableView && data){ tableWithBars(h,data,opt); return null; }
+  return h;
+}
+
+/* The table twin of a box plot: the five numbers the shape is drawn from.
+   tableWithBars carries one value per row and cannot say "spread", so a
+   distribution needs its own table or the table view quietly drops a chart. */
+function boxTable(host,groups,opt){
+  opt=opt||{};
+  var F2=FMT[opt.fmt||"pct"];
+  groups=groups.filter(function(g){return g.vals.length>=3;});
+  if(!groups.length){ host.innerHTML='<p class="empty">Need at least 3 values per group to show a spread.</p>'; return; }
+  function q(a,p){ var v=a.slice().sort(function(x,y){return x-y;}), i=(v.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+                   return lo===hi?v[lo]:v[lo]+(v[hi]-v[lo])*(i-lo); }
+  var wrap=document.createElement("div"); wrap.className="tbl-wrap";
+  var t=document.createElement("table"); t.className="dt";
+  var th=document.createElement("thead"), tr=document.createElement("tr");
+  [opt.dimLabel||"Group","Min","Q1","Median","Q3","Max","PR lines"].forEach(function(h,i){
+    var c=document.createElement("th"); c.textContent=h; if(i)c.className="n"; tr.appendChild(c); });
+  th.appendChild(tr); t.appendChild(th);
+  var tb=document.createElement("tbody");
+  groups.forEach(function(g){
+    var v=g.vals, row=document.createElement("tr");
+    var c0=document.createElement("td"); c0.textContent=g.name; row.appendChild(c0);
+    [Math.min.apply(null,v),q(v,.25),q(v,.5),q(v,.75),Math.max.apply(null,v)].forEach(function(n,i){
+      var c=document.createElement("td"); c.className="n"; c.textContent=F2(n);
+      if(i===2) c.style.fontWeight="700";
+      row.appendChild(c); });
+    var cn=document.createElement("td"); cn.className="n"; cn.textContent=nf(v.length); row.appendChild(cn);
+    if(opt.onPick){ row.style.cursor="pointer"; row.title="Filter by "+g.name;
+      row.addEventListener("click",function(){opt.onPick(g.name);}); }
+    tb.appendChild(row);
+  });
+  t.appendChild(tb); wrap.appendChild(t); host.appendChild(wrap);
+}
+/* Same contract as plotHost, for the distribution form. */
+function boxHost(c,groups,opt){
+  var h=document.createElement("div"); c.appendChild(h);
+  if(STATE.tableView){ boxTable(h,groups,opt); return null; }
+  return h;
+}
+
+function ctlRow(c,defs,cardKey){
+  var w=document.createElement("div"); w.className="ctl";
+  defs.forEach(function(d){
+    var lab=document.createElement("label"); lab.style.display="inline-flex"; lab.style.alignItems="center"; lab.style.gap="5px";
+    lab.style.fontSize="11px"; lab.style.color="var(--ink-muted)"; lab.style.fontWeight="600";
+    lab.style.textTransform="uppercase"; lab.style.letterSpacing=".04em";
+    lab.appendChild(document.createTextNode(d.label));
+    var s=document.createElement("select");
+    d.options.forEach(function(o){ var op=document.createElement("option"); op.value=o.k; op.textContent=o.label;
+      if(o.k===d.value) op.selected=true; s.appendChild(op); });
+    s.addEventListener("change",function(){ STATE.pivot[cardKey]=STATE.pivot[cardKey]||{};
+      STATE.pivot[cardKey][d.key]=s.value; render(); });
+    lab.appendChild(s); w.appendChild(lab);
+  });
+  c.appendChild(w);
+}
+function pv(cardKey,key,dflt){ return (STATE.pivot[cardKey]&&STATE.pivot[cardKey][key])||dflt; }
+function measureOpts(){ return availMeasures().map(function(m){return {k:m.k,label:m.label};}); }
+function dimOpts(){ return availDims().map(function(k){return {k:k,label:dimLabel(k)};}); }
+
+/* Small-denominator guard: a brand with 2 deals must never top a ranking.
+   Without it, "strongest / weakest" is just a list of the smallest samples. */
+var MIN_N=8;
+function guarded(agg,minN){
+  var m=minN||MIN_N;
+  var keep=agg.rows.filter(function(r){return r.n>=m;});
+  var dropped=agg.rows.length-keep.length;
+  return {rows:keep,series:agg.series,measure:agg.measure,agg:agg.agg,dropped:dropped};
+}
+
+/* ============================================================================
+   TABS
+   ========================================================================== */
+var TABS=[
+  {k:"overview", name:"Overview",             render:tabOverview},
+  {k:"financial",name:"Financial & Margin",   render:tabFinancial},
+  {k:"trend",    name:"Trends",               render:tabTrend},
+  {k:"pipeline", name:"Pipeline & Cycle Time",render:tabPipeline},
+  {k:"portfolio",name:"Portfolio",            render:tabPortfolio},
+  {k:"renewals", name:"Renewals & Expiry",    render:tabRenewals}
+];
+
+function tabOverview(view,rows){
+  return (STATE.engine==="echarts" ? tabOverviewEC : tabOverviewSVG)(view,rows);
+}
+function tabOverviewSVG(view,rows){
+  var L=live(rows);
+  var curQ=periodSlice(L,"prIssued",0,3), prvQ=periodSlice(L,"prIssued",3,3);
+  var g=document.createElement("div"); g.className="grid";
+  var rev=sum(curQ,"revenue"), prevRev=sum(prvQ,"revenue");
+  var mgn=sum(curQ,"margin"), prevMgn=sum(prvQ,"margin");
+  var mpct=(rev&&mgn!=null)?mgn/rev*100:null, pmpct=(prevRev&&prevMgn!=null)?prevMgn/prevRev*100:null;
+  var cyc=median(curQ,"dPrPo"), pcyc=median(prvQ,"dPrPo");
+  // `rows` has already had cancelled lines removed, so counting them here would
+  // always report 0%. The rate is measured against the same slice WITH them in.
+  var cancelledInSlice=ROWSFILTERED_CANCELLED();
+  var poolN=rows.length+cancelledInSlice.length;
+  var cancelRate=poolN?cancelledInSlice.length/poolN*100:null;
+  // concentration: top-5 customer share of revenue
+  var byCust=aggregate(L,{groupBy:"customer",measure:"revenue",agg:"sum"});
+  var totRev=byCust.rows.reduce(function(a,r){return a+(r.values.__all||0);},0);
+  var top5=byCust.rows.slice(0,5).reduce(function(a,r){return a+(r.values.__all||0);},0);
+  var conc=totRev?top5/totRev*100:null;
+  var spark=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"revenue",agg:"sum"})
+            .rows.slice(-12).map(function(r){return r.values.__all||0;});
+
+  [ {label:"Revenue this quarter", value:has("revenue")?fmtHkdFull(rev):"—",
+     delta:has("revenue")?deltaEl(rev,prevRev):null, spark:has("revenue")?spark:null,
+     note:has("revenue")?null:"needs new_revenue_hkd"},
+    {label:"Gross margin", value:mpct==null?"—":fmtPct(mpct), delta:mpct==null?null:deltaEl(mpct,pmpct),
+     note:"BTB turnover passes through; margin is what stays"},
+    {label:"Median PR → PO", value:cyc==null?"—":fmtDays(cyc), delta:deltaEl(cyc,pcyc,true),
+     note:"median, not mean — one stalled PR must not move it"},
+    {label:"Top-5 customer share", value:conc==null?"—":fmtPct(conc),
+     note:"concentration risk across "+nf(byCust.rows.length)+" customers"},
+    {label:"Cancellation rate", value:cancelRate==null?"—":fmtPct(cancelRate),
+     note:nf(cancelledInSlice.length)+" cancelled lines, held out of every total above"},
+    {label:"Flagged / open", value:nf(L.filter(function(r){return r.flagged;}).length),
+     note:nf(L.filter(function(r){return STAGE_ORDER.indexOf(r.procStatus)>=0&&r.procStatus!=="Completed";}).length)+" still in pipeline"}
+  ].forEach(function(o){ var w=document.createElement("div"); w.className="c4"; w.appendChild(kpiTile(o)); g.appendChild(w); });
+  view.appendChild(g);
+
+  var g2=document.createElement("div"); g2.className="grid";
+  // funnel
+  var c1=card("How far PR lines get","Where does work stop advancing?",{span:"c8"});
+  // A funnel reads REACH, not occupancy: stage N counts every line that got at
+  // least that far, so the bars descend and the drop between two of them is the
+  // real attrition. Occupancy ("how many sit here right now") is a different
+  // question and lives in the tooltip, because with a mature book almost
+  // everything is Completed and an occupancy funnel is one long bar.
+  var Lst=sliceExcept("procStatus");
+  var stages=STAGE_ORDER.map(function(s,i){
+    return {name:s,
+            n:Lst.filter(function(r){ var at=STAGE_ORDER.indexOf(r.procStatus); return at>=i; }).length,
+            here:Lst.filter(function(r){ return r.procStatus===s; }).length};
+  });
+  var fd={rows:stages.map(function(st){ return {key:st.name,n:st.here,values:{__all:st.n},counts:{}}; }),
+          series:["__all"]};
+  var fh=plotHost(c1,fd,{fmt:"int",dimLabel:"Stage",measureLabel:"Reached this stage",color:"var(--q3)",
+                         onPick:function(k){toggleFilter("procStatus",k);}});
+  if(fh) chartFunnel(fh,stages,{dim:"procStatus",onPick:function(k){toggleFilter("procStatus",k);}});
+  g2.appendChild(c1);
+  // urgency donut - 3 slices, legal
+  var c2=card("Urgency mix","How much of the book is running hot?",{span:"c4"});
+  var urg=aggregate(sliceExcept("urgency"),{groupBy:"urgency",measure:"__count",agg:"count"});
+  var h2=plotHost(c2,urg,{fmt:"int",dimLabel:"Urgency",measureLabel:"PR lines"});
+  if(h2) chartDonut(h2,urg,{fmt:"int",dim:"urgency",measureLabel:"PR lines",onPick:function(k){toggleFilter("urgency",k);}});
+  g2.appendChild(c2);
+  view.appendChild(g2);
+
+  var g3=document.createElement("div"); g3.className="grid";
+  var c3=card("Revenue and cost, month by month","Are cost and revenue moving together, or is cost pulling away?",{span:"c8"});
+  if(!missing(c3,["revenue","cost"])){
+    var t=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"revenue",agg:"sum"});
+    var t2=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"cost",agg:"sum"});
+    var merged={rows:t.rows.slice(-18).map(function(r,i,arr){
+        var m=t2.rows.filter(function(x){return x.key===r.key;})[0];
+        return {key:r.key,n:r.n,values:{Revenue:r.values.__all,"Direct cost":m?m.values.__all:null}};
+      }),series:["Revenue","Direct cost"]};
+    var h3=plotHost(c3,merged,{fmt:"hkd",dimLabel:"Month"});
+    if(h3) chartLine(h3,merged,{fmt:"hkd",h:250,partialLast:true});
+  }
+  g3.appendChild(c3);
+  var c4=card("Strongest and weakest brands","Which brand earns its place, and which is bleeding?",{span:"c4"});
+  if(!missing(c4,["brand","revenue","cost"])){
+    var bm=guarded(aggregate(sliceExcept("brand"),{groupBy:"brand",measure:"marginPct",agg:"avg"}));
+    var note=document.createElement("p"); note.className="q";
+    note.textContent="Brands with fewer than "+MIN_N+" deals are held out"+(bm.dropped?" ("+bm.dropped+" held out)":"")+".";
+    c4.appendChild(note);
+    var h4=plotHost(c4,bm,{fmt:"pct",dimLabel:"Brand",measureLabel:"Margin %"});
+    if(h4) chartBarH(h4,bm,{fmt:"pct",colorBySign:true,dim:"brand",measureLabel:"Avg margin %",labW:104,topN:8,
+      onPick:function(k){toggleFilter("brand",k);}});
+  }
+  g3.appendChild(c4);
+  view.appendChild(g3);
+  insights(view,L);
+}
+
+function tabFinancial(view,rows){
+  var L=live(rows);
+  var g=document.createElement("div"); g.className="grid";
+  [["Revenue","revenue",false],["Direct cost","cost",true],["Margin","margin",false]].forEach(function(x){
+    var cur=periodSlice(L,"prIssued",0,3), prv=periodSlice(L,"prIssued",3,3);
+    var w=document.createElement("div"); w.className="c4";
+    w.appendChild(kpiTile({label:x[0]+" · this quarter",
+      value:has("revenue")?fmtHkdFull(sum(cur,x[1])):"—",
+      delta:has("revenue")?deltaEl(sum(cur,x[1]),sum(prv,x[1]),x[2]):null}));
+    g.appendChild(w);
+  });
+  view.appendChild(g);
+
+  var g2=document.createElement("div"); g2.className="grid";
+  var c1=card("Margin by any angle","Where is margin thin, and does it depend on how you slice it?",{span:"c8"});
+  if(!missing(c1,["revenue","cost"])){
+    ctlRow(c1,[
+      {key:"groupBy",label:"Group by",value:pv("finPivot","groupBy","brand"),options:dimOpts()},
+      {key:"measure",label:"Measure",value:pv("finPivot","measure","marginPct"),options:measureOpts()},
+      {key:"agg",label:"Aggregate",value:pv("finPivot","agg","avg"),options:[
+        {k:"sum",label:"Sum"},{k:"avg",label:"Average"},{k:"median",label:"Median"},{k:"count",label:"Count"}]}
+    ],"finPivot");
+    var gb=pv("finPivot","groupBy","brand"), ms=pv("finPivot","measure","marginPct"), ag=pv("finPivot","agg","avg");
+    var d=guarded(aggregate(sliceExcept(gb),{groupBy:gb,measure:ms,agg:ag,topN:10}));
+    var fk=(MEASURES_BY_KEY[ms]||{}).fmt||"int";
+    var h=plotHost(c1,d,{fmt:fk,dimLabel:dimLabel(gb),measureLabel:(MEASURES_BY_KEY[ms]||{}).label});
+    if(h) chartBar(h,d,{fmt:fk,rotate:true,h:250,dim:gb,colorBySign:ms==="marginPct"||ms==="margin",
+      measureLabel:(MEASURES_BY_KEY[ms]||{}).label,onPick:function(k){toggleFilter(gb,k);}});
+  }
+  g2.appendChild(c1);
+  var c2=card("Margin spread by book","Which book is consistent, and which is a lottery?",{span:"c4"});
+  if(!missing(c2,["revenue","cost","sourceBook"])){
+    var groups={}; sliceExcept("sourceBook").forEach(function(r){ if(r.marginPct==null||!r.sourceBook) return;
+      (groups[r.sourceBook]=groups[r.sourceBook]||[]).push(r.marginPct); });
+    var gl=Object.keys(groups).map(function(k){return {name:k,vals:groups[k]};});
+    var h2=boxHost(c2,gl,{fmt:"pct",dimLabel:"Source book",onPick:function(k){toggleFilter("sourceBook",k);}});
+    if(h2) chartBox(h2,gl,{fmt:"pct",h:250,dim:"sourceBook",onPick:function(k){toggleFilter("sourceBook",k);}});
+  }
+  g2.appendChild(c2);
+  view.appendChild(g2);
+
+  var g3=document.createElement("div"); g3.className="grid";
+  var c3=card("Every deal: revenue against cost","Which individual deals sit below break-even?",{span:"c6"});
+  if(!missing(c3,["revenue","cost"])){
+    var pts=L.filter(function(r){return r.revenue!=null&&r.cost!=null;}).slice(0,600).map(function(r){
+      return {x:r.cost,y:r.revenue,cat:r.btbType||"(blank)",label:(r.customer||"(no customer)")+" · "+(r.brand||"")}; });
+    var h3=document.createElement("div"); c3.appendChild(h3);
+    chartScatter(h3,pts,{labX:"Direct cost (HKD)",labY:"Revenue",fmtX:"hkd",fmtY:"hkd",h:280});
+  }
+  g3.appendChild(c3);
+  var c4=card("What moved margin this quarter","Which driver pushed margin, and which pulled it down?",{span:"c6"});
+  if(!missing(c4,["revenue","cost","brand"])){
+    var cur=periodSlice(L,"prIssued",0,3), prv=periodSlice(L,"prIssued",3,3);
+    var items=[{name:"Prior quarter",value:sum(prv,"margin")||0,total:true}];
+    var brands={};
+    cur.forEach(function(r){ if(r.brand&&r.margin!=null) brands[r.brand]=(brands[r.brand]||0)+r.margin; });
+    prv.forEach(function(r){ if(r.brand&&r.margin!=null) brands[r.brand]=(brands[r.brand]||0)-r.margin; });
+    Object.keys(brands).map(function(k){return {k:k,v:brands[k]};})
+      .sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v);}).slice(0,5)
+      .forEach(function(x){ items.push({name:x.k,value:x.v}); });
+    var h4=document.createElement("div"); c4.appendChild(h4);
+    chartWaterfall(h4,items,{fmt:"hkd",h:250});
+  }
+  g3.appendChild(c4);
+  view.appendChild(g3);
+}
+
+function tabTrend(view,rows){
+  var L=live(rows);
+  var c1=card("Trend over time","Is this getting better or worse, and at what grain?",{span:"c12"});
+  ctlRow(c1,[
+    {key:"measure",label:"Measure",value:pv("trend","measure","revenue"),options:measureOpts()},
+    {key:"grain",label:"Grain",value:pv("trend","grain","month"),options:[{k:"month",label:"Month"},{k:"quarter",label:"Quarter"},{k:"year",label:"Year"}]},
+    {key:"split",label:"Split by",value:pv("trend","split",""),options:[{k:"",label:"(none)"}].concat(dimOpts())},
+    {key:"date",label:"Date basis",value:pv("trend","date","prIssued"),options:
+      FIELDS.filter(function(f){return f.type==="date"&&has(f.k);}).map(function(f){return {k:f.k,label:f.label};})}
+  ],"trend");
+  var ms=pv("trend","measure","revenue"), gr=pv("trend","grain","month"),
+      sp=pv("trend","split",""), df=pv("trend","date","prIssued");
+  var d=aggregate(L,{dateGrain:gr,dateField:df,measure:ms,agg:ms==="__count"?"count":(MEASURES_BY_KEY[ms]||{}).fmt==="days"?"median":"sum",
+                     series:sp||null});
+  if(sp&&d.series.length>8){                 // never a 9th hue: the tail folds
+    var keep={}; aggregate(L,{groupBy:sp,measure:ms,agg:"sum",topN:7}).rows.forEach(function(r){keep[r.key]=1;});
+    d.rows.forEach(function(r){ var o=0; d.series.forEach(function(s){ if(!keep[s]){ o+=(r.values[s]||0); delete r.values[s]; } });
+      r.values["Other"]=o; });
+    d.series=d.series.filter(function(s){return keep[s];}).concat(["Other"]);
+  }
+  var fk=(MEASURES_BY_KEY[ms]||{}).fmt||"int";
+  var sparse = d.rows.length<3;
+  if(sparse){ var p=document.createElement("p"); p.className="empty";
+    p.textContent="Not enough periods in this slice to draw a trend (need 3+)."; c1.appendChild(p); }
+  else{
+    var n=document.createElement("div"); n.className="note";
+    n.textContent="The last point is a period still in progress — drawn dashed, and never used as the basis for a change figure.";
+    c1.appendChild(n);
+    var h=plotHost(c1,d,{fmt:fk,dimLabel:"Period",measureLabel:(MEASURES_BY_KEY[ms]||{}).label});
+    if(h) chartLine(h,d,{fmt:fk,h:290,partialLast:true,measureLabel:(MEASURES_BY_KEY[ms]||{}).label});
+  }
+  view.appendChild(gridWrap([c1]));
+
+  var g2=document.createElement("div"); g2.className="grid";
+  var c2=card("Business mix over time","Is the BTB / NON-BTB balance shifting?",{span:"c6"});
+  var mix=aggregate(L,{dateGrain:"quarter",dateField:"prIssued",measure:"__count",agg:"count",series:"btbType"});
+  mix.rows=mix.rows.slice(-10);
+  var h2=plotHost(c2,mix,{fmt:"int",dimLabel:"Quarter"});
+  if(h2) chartBar(h2,mix,{fmt:"int",mode:"stack",h:230,rotate:true});
+  g2.appendChild(c2);
+  var c3=card("Growth by brand and quarter","Which brand/quarter pairs are running hot?",{span:"c6"});
+  if(!missing(c3,["brand"])){
+    var qs=aggregate(L,{dateGrain:"quarter",dateField:"prIssued",measure:has("revenue")?"revenue":"prHkd",agg:"sum",series:"brand"});
+    var last=qs.rows.slice(-6);
+    var brandsK=aggregate(L,{groupBy:"brand",measure:"__count",agg:"count",topN:8}).rows.map(function(r){return r.key;});
+    var mtx={rowKeys:brandsK,colKeys:last.map(function(r){return r.key;}),
+      get:function(b,q){ var row=last.filter(function(r){return r.key===q;})[0]; return row?row.values[b]:null; },
+      count:function(b,q){ var row=last.filter(function(r){return r.key===q;})[0]; return row?row.counts[b]:0; }};
+    var h3=document.createElement("div"); c3.appendChild(h3);
+    chartHeat(h3,mtx,{fmt:"hkd",measureLabel:"Revenue",labW:112});
+  }
+  g2.appendChild(c3);
+  view.appendChild(g2);
+}
+
+function tabPipeline(view,rows){
+  var L=live(rows);
+  var g=document.createElement("div"); g.className="grid";
+  var stagesDef=[["Rec'd → PR issued",null],["PR → PO","dPrPo"],["PO → Receipt","dPoRcpt"],
+                 ["Receipt → DN","dRcptDn"],["DN → Invoice","dDnInv"]];
+  [["dPrPo","PR → PO"],["dPoRcpt","PO → Receipt"],["dTotal","PR → Invoice"]].forEach(function(x){
+    var w=document.createElement("div"); w.className="c4";
+    var cur=periodSlice(L,"prIssued",0,3), prv=periodSlice(L,"prIssued",3,3);
+    w.appendChild(kpiTile({label:"Median "+x[1], value:fmtDays(median(cur,x[0])),
+      delta:deltaEl(median(cur,x[0]),median(prv,x[0]),true),
+      note:"in-flight lines are excluded, not counted as zero"}));
+    g.appendChild(w);
+  });
+  view.appendChild(g);
+
+  var g2=document.createElement("div"); g2.className="grid";
+  var c1=card("Time spent in each stage","Which hand-off is eating the calendar?",{span:"c6"});
+  function medianOf(v){ if(!v.length) return null;
+    var s=v.slice().sort(function(a,b){return a-b;}), h=s.length>>1;
+    return s.length%2?s[h]:(s[h-1]+s[h])/2; }
+  // Median, not mean: one stalled PR would drag a mean somewhere no real case sits.
+  // A line that has not reached the next stage yet contributes nothing here —
+  // it is still in flight, and counting it as zero days would flatter the stage.
+  var stageRows=stagesDef.filter(function(s){return s[1];}).map(function(s){
+    var vals=L.map(function(r){return r[s[1]];}).filter(function(v){return v!=null;});
+    return {key:s[0],n:vals.length,values:{__all:medianOf(vals)},counts:{}};
+  });
+  var sd={rows:stageRows,series:["__all"]};
+  tableWithBars(c1,sd,{fmt:"days",dimLabel:"Stage",measureLabel:"Median days",color:"var(--s4)"});
+  g2.appendChild(c1);
+  var c2=card("Cycle time by handler","Who clears work fastest, on a fair sample?",{span:"c6"});
+  var pipeDim=pv("pipe","by","handledBy");
+  var byH=guarded(aggregate(sliceExcept(pipeDim),{groupBy:pipeDim,measure:"dPrPo",agg:"median",topN:10}));
+  ctlRow(c2,[{key:"by",label:"Group by",value:pv("pipe","by","handledBy"),
+    options:dimOpts().filter(function(o){return ["handledBy","buyer","ao","sbContact","iptMgr","sourceBook","vendor"].indexOf(o.k)>=0;})}],"pipe");
+  var h2=plotHost(c2,byH,{fmt:"days",dimLabel:"Handler",measureLabel:"Median days"});
+  if(h2) chartBarH(h2,byH,{fmt:"days",measureLabel:"Median PR → PO",color:"var(--s4)",labW:140,topN:10,
+    onPick:function(k){toggleFilter(pipeDim,k);}});
+  g2.appendChild(c2);
+  view.appendChild(g2);
+
+  var g3=document.createElement("div"); g3.className="grid";
+  var c3=card("How long has each open stage been waiting","Which stage has work that has been sitting too long?",{span:"c12"});
+  var openGroups={};
+  sliceExcept("procStatus").forEach(function(r){
+    if(r.procStatus==="Completed"||!r.prIssued) return;
+    var age=Math.round((NOW-r.prIssued)/864e5);
+    (openGroups[r.procStatus]=openGroups[r.procStatus]||[]).push(age);
+  });
+  var gl=Object.keys(openGroups).map(function(k){return {name:k,vals:openGroups[k]};});
+  var h3=boxHost(c3,gl,{fmt:"days",dimLabel:"Stage",onPick:function(k){toggleFilter("procStatus",k);}});
+  if(h3) chartBox(h3,gl,{fmt:"days",h:250,dim:"procStatus",onPick:function(k){toggleFilter("procStatus",k);}});
+  g3.appendChild(c3);
+  view.appendChild(g3);
+}
+
+function tabPortfolio(view,rows){
+  var L=live(rows);
+  var c1=card("Pivot the book any way you like","Which slice of the book is driving the number you care about?",{span:"c12"});
+  ctlRow(c1,[
+    {key:"groupBy",label:"Group by",value:pv("port","groupBy","vendor"),options:dimOpts()},
+    {key:"measure",label:"Measure",value:pv("port","measure",has("revenue")?"revenue":"prHkd"),options:measureOpts()},
+    {key:"agg",label:"Aggregate",value:pv("port","agg","sum"),options:[
+      {k:"sum",label:"Sum"},{k:"avg",label:"Average"},{k:"median",label:"Median"},{k:"count",label:"Count"},{k:"max",label:"Max"}]},
+    {key:"chart",label:"Shape",value:pv("port","chart","barh"),options:[
+      {k:"barh",label:"Ranked bars"},{k:"bar",label:"Columns"},{k:"table",label:"Table"}]}
+  ],"port");
+  var gb=pv("port","groupBy","vendor"), ms=pv("port","measure",has("revenue")?"revenue":"prHkd"),
+      ag=pv("port","agg","sum"), sh=pv("port","chart","barh");
+  var d=aggregate(sliceExcept(gb),{groupBy:gb,measure:ms,agg:ag,topN:12});
+  var fk=(MEASURES_BY_KEY[ms]||{}).fmt||"int";
+  var o={fmt:fk,dim:gb,dimLabel:dimLabel(gb),measureLabel:(MEASURES_BY_KEY[ms]||{}).label,onPick:function(k){toggleFilter(gb,k);}};
+  var h=document.createElement("div"); c1.appendChild(h);
+  if(sh==="table"||STATE.tableView) tableWithBars(h,d,o);
+  else if(sh==="bar") chartBar(h,d,Object.assign({rotate:true,h:280},o));
+  else chartBarH(h,d,Object.assign({labW:170,topN:12,rowH:28},o));
+  view.appendChild(gridWrap([c1]));
+
+  var g2=document.createElement("div"); g2.className="grid";
+  var c2=card("Vendor against brand","Which vendor-brand combinations actually make up the book?",{span:"c8"});
+  if(!missing(c2,["brand"])){
+    var vk=aggregate(L,{groupBy:"vendor",measure:"__count",agg:"count",topN:8}).rows.map(function(r){return r.key;});
+    var bk=aggregate(L,{groupBy:"brand",measure:"__count",agg:"count",topN:8}).rows.map(function(r){return r.key;});
+    var idx={}; L.forEach(function(r){ var k=r.vendor+" "+r.brand;
+      idx[k]=idx[k]||{v:0,n:0}; idx[k].v+=(has("revenue")?r.revenue:r.prHkd)||0; idx[k].n++; });
+    var mtx={rowKeys:vk,colKeys:bk,
+      get:function(v,b){ var e=idx[v+" "+b]; return e?e.v:null; },
+      count:function(v,b){ var e=idx[v+" "+b]; return e?e.n:0; }};
+    var h2=document.createElement("div"); c2.appendChild(h2);
+    chartHeat(h2,mtx,{fmt:"hkd",measureLabel:has("revenue")?"Revenue":"PR amount",labW:168});
+  }
+  g2.appendChild(c2);
+  var c3=card("Account code share","Which cost centre carries the book?",{span:"c4"});
+  var ac=aggregate(sliceExcept("acctCode"),{groupBy:"acctCode",measure:has("revenue")?"revenue":"prHkd",agg:"sum",topN:4});
+  var h3=plotHost(c3,ac,{fmt:"hkd",dimLabel:"Account code",measureLabel:"Revenue"});
+  if(h3) chartDonut(h3,ac,{fmt:"hkd",dim:"acctCode",measureLabel:"Revenue",onPick:function(k){toggleFilter("acctCode",k);}});
+  g2.appendChild(c3);
+  view.appendChild(g2);
+}
+
+function tabRenewals(view,rows){
+  var L=live(rows).filter(function(r){ return r.ctrEnd; });
+  var buckets=[["0–30 days","neg"],["31–60 days","cau"],["61–90 days","inf"],["90+ days","neu"]];
+  function bucketOf(d){ return d<0?null : d<=30?0 : d<=60?1 : d<=90?2 : 3; }
+  var g=document.createElement("div"); g.className="grid";
+  [0,1,2].forEach(function(bi){
+    var set=L.filter(function(r){ return bucketOf(r.daysToExpiry)===bi; });
+    var w=document.createElement("div"); w.className="c4";
+    w.appendChild(kpiTile({label:"Expiring in "+buckets[bi][0], value:nf(set.length),
+      note:(has("revenue")?fmtHkdFull(sum(set,"revenue")):fmtHkdFull(sum(set,"prHkd")))+" at stake · "+
+        (bi===0?"act now":bi===1?"prepare quotation":"tell the unit manager")}));
+    g.appendChild(w);
+  });
+  view.appendChild(g);
+
+  var g2=document.createElement("div"); g2.className="grid";
+  var c1=card("Expiry profile","How is the renewal load spread across the next quarter?",{span:"c5"});
+  var bd={rows:buckets.map(function(b,i){ var set=L.filter(function(r){return bucketOf(r.daysToExpiry)===i;});
+    return {key:b[0],n:set.length,values:{__all:set.length},counts:{}}; }),series:["__all"]};
+  var h1=plotHost(c1,bd,{fmt:"int",dimLabel:"Window",measureLabel:"Contracts"});
+  if(h1) chartBar(h1,bd,{fmt:"int",h:220,measureLabel:"Contracts expiring",color:"var(--s8)"});
+  g2.appendChild(c1);
+
+  var c2=card("Nearest expiries","Which specific contracts need a renewal PR started?",{span:"c7",badge:"read-only",badgeKind:"neu"});
+  var soon=L.filter(function(r){return r.daysToExpiry!=null&&r.daysToExpiry>=0&&r.daysToExpiry<=90;})
+            .sort(function(a,b){return a.daysToExpiry-b.daysToExpiry;}).slice(0,14);
+  if(!soon.length){ var e=document.createElement("p"); e.className="empty"; e.textContent="Nothing expires in the next 90 days in this slice."; c2.appendChild(e); }
+  else{
+    var wrap=document.createElement("div"); wrap.className="tbl-wrap";
+    var t=document.createElement("table"); t.className="dt";
+    var thd=document.createElement("thead"), tr=document.createElement("tr");
+    ["Customer","Vendor","Contract end","Days left","Value"].forEach(function(h,i){
+      var th=document.createElement("th"); th.textContent=h; if(i>=3)th.className="n"; tr.appendChild(th); });
+    thd.appendChild(tr); t.appendChild(thd);
+    var tb=document.createElement("tbody");
+    soon.forEach(function(r){
+      var row=document.createElement("tr");
+      [[r.customer||"—",0],[r.vendor||"—",0],[fmtDate(r.ctrEnd),0]].forEach(function(c){
+        var td=document.createElement("td"); td.textContent=c[0]; row.appendChild(td); });
+      var td4=document.createElement("td"); td4.className="n";
+      var p=document.createElement("span");
+      p.className="pill "+(r.daysToExpiry<=30?"neg":r.daysToExpiry<=60?"cau":"inf");
+      p.textContent=(r.daysToExpiry<=30?"▲ ":"")+r.daysToExpiry+"d";
+      td4.appendChild(p); row.appendChild(td4);
+      var td5=document.createElement("td"); td5.className="n";
+      td5.textContent=has("revenue")?fmtHkdFull(r.revenue):fmtHkdFull(r.prHkd); row.appendChild(td5);
+      tb.appendChild(row);
+    });
+    t.appendChild(tb); wrap.appendChild(t); c2.appendChild(wrap);
+  }
+  g2.appendChild(c2);
+  view.appendChild(g2);
+}
+
+function gridWrap(cards){ var g=document.createElement("div"); g.className="grid";
+  cards.forEach(function(c){g.appendChild(c);}); return g; }
+
+/* ============================================================================
+   INSIGHT CALLOUTS — each fires on a stated condition, or not at all. A
+   dashboard that always has five insights is generating sentences, not finding
+   them.
+   ========================================================================== */
+function insights(view,L){
+  var out=[];
+  var cur=periodSlice(L,"prIssued",0,3), prv=periodSlice(L,"prIssued",3,3);
+  if(has("brand")&&has("revenue")){
+    var cm={},pm={},cn={};
+    cur.forEach(function(r){ if(r.brand&&r.marginPct!=null){ (cm[r.brand]=cm[r.brand]||[]).push(r.marginPct); cn[r.brand]=(cn[r.brand]||0)+1; } });
+    prv.forEach(function(r){ if(r.brand&&r.marginPct!=null) (pm[r.brand]=pm[r.brand]||[]).push(r.marginPct); });
+    Object.keys(cm).forEach(function(b){
+      if(!pm[b]||cn[b]<MIN_N) return;
+      var avg=function(a){return a.reduce(function(x,y){return x+y;},0)/a.length;};
+      var dpt=avg(cm[b])-avg(pm[b]);
+      if(Math.abs(dpt)>=3) out.push({kind:dpt<0?"neg":"pos",
+        text:b+" margin "+(dpt<0?"fell":"rose")+" "+Math.abs(dpt).toFixed(1)+" pts versus last quarter, on "+cn[b]+" deals."});
+    });
+  }
+  var exp0=L.filter(function(r){return r.daysToExpiry!=null&&r.daysToExpiry>=0&&r.daysToExpiry<=30;});
+  if(exp0.length) out.push({kind:"cau",text:exp0.length+" contracts expire within 30 days"+
+    (has("revenue")?", worth "+fmtHkdFull(sum(exp0,"revenue")):"")+"."});
+  var cc=median(cur,"dPrPo"), roll=median(L.filter(function(r){return r.prIssued&&(NOW-r.prIssued)/864e5<=365;}),"dPrPo");
+  if(cc!=null&&roll!=null&&cc>roll*1.25) out.push({kind:"cau",
+    text:"PR to PO stretched to "+fmtDays(cc)+" this quarter, "+fmtDays(cc-roll)+" above the rolling 12-month median."});
+  var canc=ROWSFILTERED_CANCELLED();
+  if(canc.length) out.push({kind:"neg",text:canc.length+" PR lines were cancelled in this slice"+
+    (has("revenue")?", worth "+fmtHkdFull(sum(canc,"revenue"))+" of pipeline":"")+". They are excluded from every figure above."});
+  if(!out.length) return;
+  var c=card("What stands out",null,{span:"c12"});
+  out.slice(0,5).forEach(function(o){
+    var d=document.createElement("div"); d.className="callout"; d.style.marginBottom="8px";
+    var m=document.createElement("span"); m.className="mk";
+    m.textContent=o.kind==="neg"?"▼":o.kind==="pos"?"▲":"⚠";
+    m.style.color=o.kind==="neg"?"var(--neg)":o.kind==="pos"?"var(--pos)":"var(--caution)";
+    d.appendChild(m);
+    var t=document.createElement("span"); t.textContent=o.text; d.appendChild(t);
+    c.appendChild(d);
+  });
+  view.appendChild(gridWrap([c]));
+}
+// Deliberately reads the pool BEFORE the cancelled-exclusion, so the callout
+// can report what was held out of every figure above it.
+function ROWSFILTERED_CANCELLED(){
+  var probe={}; for(var k in STATE) probe[k]=STATE[k];
+  probe.showCancelled=true;
+  return applyFilters(ROWS,probe).filter(function(r){return r.cancelled;});
+}
+
+/* ============================================================================
+   FILTER BAR + CHROME
+   ========================================================================== */
+function distinct(rows,k){
+  var s={}; rows.forEach(function(r){ var v=r[k]==null?"(blank)":r[k]; s[v]=(s[v]||0)+1; });
+  return Object.keys(s).sort(function(a,b){return s[b]-s[a];});
+}
+function buildFilters(){
+  var row=document.getElementById("filterRow"); row.textContent="";
+  function fieldWrap(label){ var f=document.createElement("div"); f.className="field";
+    var l=document.createElement("label"); l.textContent=label; f.appendChild(l); return f; }
+  // date basis + range
+  var fd=fieldWrap("Date basis");
+  var sd=document.createElement("select");
+  FIELDS.filter(function(f){return f.type==="date"&&has(f.k);}).forEach(function(f){
+    var o=document.createElement("option"); o.value=f.k; o.textContent=f.label; if(f.k===STATE.dateField)o.selected=true; sd.appendChild(o); });
+  sd.addEventListener("change",function(){STATE.dateField=sd.value;render();});
+  fd.appendChild(sd); row.appendChild(fd);
+  [["From","from"],["To","to"]].forEach(function(x){
+    var f=fieldWrap(x[0]); var i=document.createElement("input"); i.type="date";
+    if(STATE[x[1]]) i.value=STATE[x[1]].toISOString().slice(0,10);
+    i.addEventListener("change",function(){ STATE[x[1]]=i.value?new Date(i.value+(x[1]==="to"?"T23:59:59":"T00:00:00")):null; render(); });
+    f.appendChild(i); row.appendChild(f);
+  });
+  // quick ranges
+  var fq=fieldWrap("Quick range");
+  var sq=document.createElement("select");
+  [["","Custom / all"],["12","Last 12 months"],["24","Last 24 months"],["3","Last quarter"],["ytd","This year"]].forEach(function(o){
+    var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; sq.appendChild(op); });
+  sq.addEventListener("change",function(){
+    var v=sq.value;
+    if(!v){ STATE.from=null; STATE.to=null; }
+    else if(v==="ytd"){ STATE.from=new Date(NOW.getFullYear(),0,1); STATE.to=null; }
+    else { STATE.from=new Date(NOW.getFullYear(),NOW.getMonth()-parseInt(v,10),1); STATE.to=null; }
+    render();
+  });
+  fq.appendChild(sq); row.appendChild(fq);
+  // key dimension filters
+  ["sourceBook","btbType","brand","procStatus","urgency","customer","vendor"].filter(has).forEach(function(k){
+    var f=fieldWrap(dimLabel(k));
+    var s=document.createElement("select");
+    var o0=document.createElement("option"); o0.value=""; o0.textContent="All"; s.appendChild(o0);
+    distinct(ROWS,k).slice(0,60).forEach(function(v){
+      var o=document.createElement("option"); o.value=v; o.textContent=v;
+      if((STATE.filters[k]||[]).indexOf(v)>=0) o.selected=true; s.appendChild(o); });
+    s.addEventListener("change",function(){
+      if(!s.value) delete STATE.filters[k]; else STATE.filters[k]=[s.value]; render(); });
+    f.appendChild(s); row.appendChild(f);
+  });
+  // cancelled toggle
+  var fc=fieldWrap("Cancelled lines");
+  var sc=document.createElement("select");
+  [["hide","Excluded (default)"],["show","Shown in tables"]].forEach(function(o){
+    var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1]; sc.appendChild(op); });
+  sc.value=STATE.showCancelled?"show":"hide";
+  sc.addEventListener("change",function(){ STATE.showCancelled=(sc.value==="show"); render(); });
+  fc.appendChild(sc); row.appendChild(fc);
+}
+function syncFilterToggle(){
+  var n=Object.keys(STATE.filters).reduce(function(a,k){ return a+STATE.filters[k].length; },0);
+  if(STATE.from||STATE.to) n++;
+  var c=document.getElementById("filterCount");
+  c.textContent=String(n); c.className="fc"+(n?"":" zero");
+}
+function buildChips(shown,total){
+  var c=document.getElementById("chipRow"); c.textContent="";
+  var keys=Object.keys(STATE.filters);
+  // The slice band above already names the slice and the counts; repeating them
+  // here is what made the top of the page read as three competing captions.
+  // These chips are now only the per-value remove control.
+  if(!keys.length && !STATE.from && !STATE.to) return;
+  keys.forEach(function(k){
+    STATE.filters[k].forEach(function(v){
+      var ch=document.createElement("span"); ch.className="chip";
+      var t=document.createElement("span"); t.textContent=dimLabel(k)+": "+v; ch.appendChild(t);
+      var b=document.createElement("button"); b.type="button"; b.textContent="×";
+      b.setAttribute("aria-label","Remove filter "+dimLabel(k)+" "+v);
+      b.addEventListener("click",function(){ toggleFilter(k,v); }); ch.appendChild(b);
+      c.appendChild(ch);
+    });
+  });
+  if(STATE.from||STATE.to){
+    var ch=document.createElement("span"); ch.className="chip";
+    var t=document.createElement("span");
+    t.textContent=F[STATE.dateField].label+": "+(STATE.from?fmtDate(STATE.from):"any")+" – "+(STATE.to?fmtDate(STATE.to):"any");
+    ch.appendChild(t);
+    var b=document.createElement("button"); b.type="button"; b.textContent="×"; b.setAttribute("aria-label","Clear date range");
+    b.addEventListener("click",function(){ STATE.from=null; STATE.to=null; render(); }); ch.appendChild(b);
+    c.appendChild(ch);
+  }
+  var all=document.createElement("span"); all.className="chip"; all.style.background="var(--bg-inset)";
+  all.style.borderColor="var(--rule-strong)"; all.style.color="var(--ink-secondary)";
+  var at=document.createElement("span"); at.textContent="Clear all"; all.appendChild(at);
+  var ab=document.createElement("button"); ab.type="button"; ab.textContent="×";
+  ab.addEventListener("click",clearFilters); all.appendChild(ab);
+  c.appendChild(all);
+}
+
+/* ============================================================================
+   THE SLICE BAND - the page's focal point.
+   It answers one question the old layout could not: WHICH slice of the book am
+   I looking at? The filtered value is the largest type on the page; when
+   nothing is filtered the band collapses to a single muted line so it never
+   competes with the charts for attention.
+   ========================================================================== */
+
+/* A chart that PLOTS the dimension you just filtered on must not have its own
+   categories filtered away: pick "Fortinet" and a brand chart built from the
+   filtered slice contains exactly one bar, so there is nothing left to
+   highlight and no way to switch to another brand without going back to the
+   dropdown. So a chart keyed to a dimension is built from the slice with THAT
+   dimension's own filter lifted - every other filter still applies. The
+   selected bar then keeps full colour and the rest recede, which is what makes
+   the pick legible in context. */
+function sliceExcept(dim){
+  if(!dim || !STATE.filters[dim]) return live(applyFilters(ROWS,STATE));
+  var probe={}; for(var k in STATE) probe[k]=STATE[k];
+  probe.filters={};
+  Object.keys(STATE.filters).forEach(function(k){ if(k!==dim) probe.filters[k]=STATE.filters[k]; });
+  return live(applyFilters(ROWS,probe));
+}
+
+function buildSliceBand(shown,total){
+  var host=document.getElementById("sliceBand"); host.textContent="";
+  var keys=Object.keys(STATE.filters);
+  var dated=!!(STATE.from||STATE.to);
+  var band=document.createElement("div"); band.className="slice"+((keys.length||dated)?" on":"");
+
+  var main=document.createElement("div"); main.className="slice-main";
+  if(!keys.length && !dated){
+    var cap0=document.createElement("div"); cap0.className="slice-cap"; cap0.textContent="Showing everything";
+    main.appendChild(cap0);
+    var v0=document.createElement("div"); v0.className="slice-val";
+    v0.textContent="All "+nf(total)+" PR lines"; main.appendChild(v0);
+    var q=document.createElement("div"); q.className="slice-quiet";
+    q.textContent="Click any bar, slice or row to filter \u2014 what you pick appears here.";
+    main.appendChild(q);
+    band.appendChild(main); host.appendChild(band); return;
+  }
+
+  var cap=document.createElement("div"); cap.className="slice-cap"; cap.textContent="Filtering on";
+  main.appendChild(cap);
+
+  // The VALUES lead, not the field names: a manager recognises "Fortinet"
+  // faster than "Brand". The field name follows in the smaller meta line.
+  var vals=[];
+  keys.forEach(function(k){ STATE.filters[k].forEach(function(v){ vals.push(v); }); });
+  if(dated) vals.push((STATE.from?fmtDate(STATE.from):"any")+" \u2013 "+(STATE.to?fmtDate(STATE.to):"any"));
+  var val=document.createElement("div"); val.className="slice-val";
+  vals.forEach(function(v,i){
+    if(i){ var sp=document.createElement("span"); sp.className="sep"; sp.textContent="\u00b7"; val.appendChild(sp); }
+    val.appendChild(document.createTextNode(v));
+  });
+  main.appendChild(val);
+
+  var meta=document.createElement("div"); meta.className="slice-meta";
+  var fields=keys.map(dimLabel); if(dated) fields.push(F[STATE.dateField].label);
+  var m1=document.createElement("span");
+  m1.appendChild(document.createTextNode("by "+fields.join(" + ")));
+  meta.appendChild(m1);
+  var m2=document.createElement("span");
+  var b=document.createElement("b"); b.textContent=nf(shown); m2.appendChild(b);
+  m2.appendChild(document.createTextNode(" of "+nf(total)+" lines"));
+  meta.appendChild(m2);
+  if(total){
+    var m3=document.createElement("span");
+    var b2=document.createElement("b"); b2.textContent=(shown/total*100).toFixed(1)+"%"; m3.appendChild(b2);
+    m3.appendChild(document.createTextNode(" of the book"));
+    meta.appendChild(m3);
+  }
+  main.appendChild(meta);
+  band.appendChild(main);
+
+  var side=document.createElement("div"); side.className="slice-side";
+  var bar=document.createElement("div"); bar.className="slice-bar";
+  var fill=document.createElement("i"); fill.style.width=Math.max(2,total?shown/total*100:0)+"%";
+  bar.appendChild(fill); side.appendChild(bar);
+  var cl=document.createElement("button"); cl.type="button"; cl.className="slice-clear";
+  cl.textContent="Clear filter"; cl.addEventListener("click",clearFilters);
+  side.appendChild(cl);
+  band.appendChild(side);
+  host.appendChild(band);
+}
+
+function buildTabs(){
+  var t=document.getElementById("tabs"); t.textContent="";
+  TABS.forEach(function(tb){
+    var b=document.createElement("button");
+    b.className="tab"; b.type="button"; b.setAttribute("role","tab");
+    b.setAttribute("aria-selected",String(STATE.tab===tb.k)); b.textContent=tb.name;
+    b.addEventListener("click",function(){ STATE.tab=tb.k; STATE.hiddenSeries={}; render(); });
+    t.appendChild(b);
+  });
+}
+
+/* ---- CSV of the current slice ---- */
+function exportCsv(){
+  var rows=applyFilters(ROWS,STATE);
+  var cols=FIELDS.filter(function(f){return has(f.k);});
+  var head=cols.map(function(f){return '"'+f.label.replace(/"/g,'""')+'"';}).join(",");
+  var body=rows.map(function(r){ return cols.map(function(f){
+    var v=r[f.k]; if(v==null) return "";
+    if(v instanceof Date) return v.toISOString().slice(0,10);
+    return '"'+String(v).replace(/"/g,'""')+'"'; }).join(","); }).join("\n");
+  var blob=new Blob([head+"\n"+body],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="btb-report-slice.csv"; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1200);
+}
+
+
+/* ============================================================================
+   THE COMPARISON — the SAME Overview tab, drawn by ECharts instead of by hand.
+
+   Everything upstream of the chart call is shared and untouched: the same
+   FIELDS registry, the same aggregate(), the same sliceExcept() cross-filter,
+   the same KPI tiles, the same cards, the same validated palette read straight
+   off the CSS custom properties. Only the four chart renderers differ, so what
+   you see when you flip the switch IS the library difference and nothing else.
+   ========================================================================== */
+
+/* ECharts wants concrete colours, not var(--s1) - resolve against the live
+   theme so the switch stays honest when the theme changes under it. */
+function ecTok(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+function ecTheme(){
+  return {
+    ink:      ecTok("--ink-primary"),
+    ink2:     ecTok("--ink-secondary"),
+    muted:    ecTok("--ink-muted"),
+    rule:     ecTok("--rule"),
+    hair:     ecTok("--rule-hair"),
+    raised:   ecTok("--bg-raised"),
+    surface:  ecTok("--bg-surface"),
+    pos:      ecTok("--pos"),
+    neg:      ecTok("--neg"),
+    s:        [1,2,3,4,5,6,7,8].map(function(i){ return ecTok("--s"+i); }),
+    q:        [1,2,3,4,5].map(function(i){ return ecTok("--q"+i); })
+  };
+}
+
+/* Every live instance, so a re-render disposes rather than leaks. render()
+   swaps the whole #view node out, which orphans an ECharts instance together
+   with its window resize listener - a hand-rolled SVG chart has no such
+   lifecycle to get wrong, and this is the first real cost of the library. */
+var EC_LIVE = [];
+function ecDisposeAll(){
+  EC_LIVE.forEach(function(c){ try{ c.dispose(); }catch(e){} });
+  EC_LIVE = [];
+}
+window.addEventListener("resize", function(){
+  EC_LIVE.forEach(function(c){ try{ c.resize(); }catch(e){} });
+});
+
+/* Same contract as plotHost(): hand back a host, or null when table view has
+   already claimed the card. The deferred() dance is needed here too - ECharts
+   measures its container on init exactly the way frame() does, so a card that
+   is not yet in the document initialises at 0x0 and stays blank. */
+function ecHost(card, data, opt){
+  var h = document.createElement("div");
+  h.className = "ec-host";
+  h.style.height = ((opt && opt.h) || 260) + "px";
+  card.appendChild(h);
+  if(STATE.tableView && data){ h.style.height=""; h.className=""; tableWithBars(h,data,opt); return null; }
+  return h;
+}
+function ecDraw(host, build){
+  if(!host) return;
+  if(typeof echarts === "undefined"){
+    host.innerHTML = '<p class="ec-fail">ECharts did not load.<br>' +
+                     'This comparison file fetches it from a CDN — check the network, ' +
+                     'or use the SVG switch.</p>';
+    return;
+  }
+  function go(){
+    var c = echarts.init(host, null, {renderer:"svg"});
+    EC_LIVE.push(c);
+    c.setOption(build(ecTheme()));
+    return c;
+  }
+  if(!host.isConnected){ PENDING.push(function(){ var c=go(); if(host.__onc) host.__onc(c); }); return; }
+  var c = go(); if(host.__onc) host.__onc(c);
+}
+/* Selection emphasis, the ECharts way: per-item opacity. selClass() is the
+   same function the SVG side uses, so "picked / faded" cannot drift apart. */
+function ecOpacity(dim, key){
+  var c = selClass(dim, key);
+  return c === " faded" ? 0.3 : 1;
+}
+function ecBaseTip(t){
+  return { backgroundColor:t.raised, borderColor:t.rule, borderWidth:1,
+           padding:[8,11], textStyle:{color:t.ink, fontSize:12,
+           fontFamily:'"Segoe UI",system-ui,-apple-system,sans-serif'},
+           extraCssText:"box-shadow:0 4px 16px rgba(0,0,0,.14);border-radius:6px" };
+}
+
+function tabOverviewEC(view, rows){
+  ecDisposeAll();
+
+  var note = document.createElement("div");
+  note.className = "eng-note";
+  note.innerHTML = '<b>ECharts renderer.</b> Same rows, same filters, same palette — ' +
+    'only the four chart renderers are swapped. Flip back with the switch above to ' +
+    'compare like for like. The other five tabs stay on the hand-rolled SVG either way.';
+  view.appendChild(note);
+
+  var L = live(rows);
+  var curQ = periodSlice(L,"prIssued",0,3), prvQ = periodSlice(L,"prIssued",3,3);
+
+  /* ---- KPI tiles: IDENTICAL code to the SVG tab. A stat tile is not a chart,
+     and handing it to a chart library buys nothing. ---- */
+  var g = document.createElement("div"); g.className = "grid";
+  var rev=sum(curQ,"revenue"), prevRev=sum(prvQ,"revenue");
+  var mgn=sum(curQ,"margin"), prevMgn=sum(prvQ,"margin");
+  var mpct=(rev&&mgn!=null)?mgn/rev*100:null, pmpct=(prevRev&&prevMgn!=null)?prevMgn/prevRev*100:null;
+  var cyc=median(curQ,"dPrPo"), pcyc=median(prvQ,"dPrPo");
+  var cancelledInSlice=ROWSFILTERED_CANCELLED();
+  var poolN=rows.length+cancelledInSlice.length;
+  var cancelRate=poolN?cancelledInSlice.length/poolN*100:null;
+  var byCust=aggregate(L,{groupBy:"customer",measure:"revenue",agg:"sum"});
+  var totRev=byCust.rows.reduce(function(a,r){return a+(r.values.__all||0);},0);
+  var top5=byCust.rows.slice(0,5).reduce(function(a,r){return a+(r.values.__all||0);},0);
+  var conc=totRev?top5/totRev*100:null;
+  var spark=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"revenue",agg:"sum"})
+            .rows.slice(-12).map(function(r){return r.values.__all||0;});
+  [ {label:"Revenue this quarter", value:has("revenue")?fmtHkdFull(rev):"—",
+     delta:has("revenue")?deltaEl(rev,prevRev):null, spark:has("revenue")?spark:null,
+     note:has("revenue")?null:"needs new_revenue_hkd"},
+    {label:"Gross margin", value:mpct==null?"—":fmtPct(mpct), delta:mpct==null?null:deltaEl(mpct,pmpct),
+     note:"BTB turnover passes through; margin is what stays"},
+    {label:"Median PR → PO", value:cyc==null?"—":fmtDays(cyc), delta:deltaEl(cyc,pcyc,true),
+     note:"median, not mean — one stalled PR must not move it"},
+    {label:"Top-5 customer share", value:conc==null?"—":fmtPct(conc),
+     note:"concentration risk across "+nf(byCust.rows.length)+" customers"},
+    {label:"Cancellation rate", value:cancelRate==null?"—":fmtPct(cancelRate),
+     note:nf(cancelledInSlice.length)+" cancelled lines, held out of every total above"},
+    {label:"Flagged / open", value:nf(L.filter(function(r){return r.flagged;}).length),
+     note:nf(L.filter(function(r){return STAGE_ORDER.indexOf(r.procStatus)>=0&&r.procStatus!=="Completed";}).length)+" still in pipeline"}
+  ].forEach(function(o){ var w=document.createElement("div"); w.className="c4"; w.appendChild(kpiTile(o)); g.appendChild(w); });
+  view.appendChild(g);
+
+  /* ================= FUNNEL ================= */
+  var g2 = document.createElement("div"); g2.className = "grid";
+  var c1 = card("How far PR lines get","Where does work stop advancing?",{span:"c8"});
+  var Lst = sliceExcept("procStatus");
+  var stages = STAGE_ORDER.map(function(sName,i){
+    return {name:sName,
+            n:Lst.filter(function(r){ var at=STAGE_ORDER.indexOf(r.procStatus); return at>=i; }).length,
+            here:Lst.filter(function(r){ return r.procStatus===sName; }).length};
+  });
+  var fd = {rows:stages.map(function(st){ return {key:st.name,n:st.here,values:{__all:st.n},counts:{}}; }),
+            series:["__all"]};
+  var fh = ecHost(c1, fd, {fmt:"int",dimLabel:"Stage",measureLabel:"Reached this stage",
+                           color:"var(--q3)",h:300,
+                           onPick:function(k){toggleFilter("procStatus",k);}});
+  if(fh){
+    fh.__onc = function(c){ c.on("click", function(p){ toggleFilter("procStatus", p.name); }); };
+    ecDraw(fh, function(t){
+      var top = stages.length ? stages[0].n : 1;
+      return {
+        animation:false,
+        tooltip: Object.assign(ecBaseTip(t), {
+          trigger:"item",
+          formatter:function(p){
+            var st = stages[p.dataIndex];
+            return "<b>"+st.name+"</b><br>Reached this stage: "+nf(st.n)+
+                   "<br>Sitting here now: "+nf(st.here)+
+                   "<br>"+(top?fmtPct(st.n/top*100):"—")+" of all lines";
+          }
+        }),
+        series:[{
+          type:"funnel", sort:"none", top:16, bottom:16, left:"8%", right:"8%",
+          gap:2,                                  /* the 2px surface gap rule */
+          minSize:"22%", maxSize:"100%",
+          /* ORDINAL data -> one hue stepped light->dark, never 8 categorical hues */
+          label:{ position:"inside", color:t.ink, fontSize:12, fontWeight:600,
+                  formatter:function(p){ return p.name+"  "+nf(p.value); } },
+          labelLine:{show:false},
+          itemStyle:{ borderColor:t.surface, borderWidth:2, borderRadius:4 },
+          emphasis:{ label:{fontSize:12, fontWeight:700} },
+          data: stages.map(function(st,i){
+            var step = t.q[Math.min(4,i)], op = ecOpacity("procStatus",st.name);
+            return { name:st.name, value:st.n,
+                     itemStyle:{ color:step, opacity:op },
+                     // faded: the step is no longer the background inkOn() measured,
+                     // so the label falls back to an ink that reads on the SURFACE
+                     label:{ color: op<1 ? t.muted : inkOn(step), opacity: op<1 ? 0.8 : 1 } };
+          })
+        }]
+      };
+    });
+  }
+  g2.appendChild(c1);
+
+  /* ================= DONUT ================= */
+  var c2 = card("Urgency mix","How much of the book is running hot?",{span:"c4"});
+  var urg = aggregate(sliceExcept("urgency"),{groupBy:"urgency",measure:"__count",agg:"count"});
+  var dh = ecHost(c2, urg, {fmt:"int",dimLabel:"Urgency",measureLabel:"PR lines",h:300});
+  if(dh){
+    dh.__onc = function(c){ c.on("click", function(p){ toggleFilter("urgency", p.name); }); };
+    ecDraw(dh, function(t){
+      var tot = urg.rows.reduce(function(a,r){return a+(r.values.__all||0);},0);
+      return {
+        animation:false,
+        tooltip: Object.assign(ecBaseTip(t), {
+          trigger:"item",
+          formatter:function(p){
+            return "<b>"+p.name+"</b><br>"+nf(p.value)+" PR lines<br>"+
+                   (tot?fmtPct(p.value/tot*100):"—")+" of the slice";
+          }
+        }),
+        legend:{ bottom:0, icon:"roundRect", itemWidth:10, itemHeight:10,
+                 textStyle:{color:t.ink2, fontSize:12} },
+        series:[{
+          type:"pie", radius:["58%","80%"], center:["50%","44%"],
+          avoidLabelOverlap:true, padAngle:2,       /* 2px surface gap */
+          itemStyle:{ borderColor:t.surface, borderWidth:2, borderRadius:4 },
+          label:{ show:false }, labelLine:{show:false},
+          emphasis:{ scale:false, itemStyle:{ borderWidth:2 } },
+          data: urg.rows.slice(0,8).map(function(r,i){
+            return { name:String(r.key), value:r.values.__all||0,
+                     itemStyle:{ color:t.s[i%8], opacity:ecOpacity("urgency",r.key) } };
+          })
+        }]
+      };
+    });
+  }
+  g2.appendChild(c2);
+  view.appendChild(g2);
+
+  /* ================= LINE ================= */
+  var g3 = document.createElement("div"); g3.className = "grid";
+  var c3 = card("Revenue and cost, month by month",
+                "Are cost and revenue moving together, or is cost pulling away?",{span:"c8"});
+  if(!missing(c3,["revenue","cost"])){
+    var t1=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"revenue",agg:"sum"});
+    var t2=aggregate(L,{dateGrain:"month",dateField:"prIssued",measure:"cost",agg:"sum"});
+    var merged={rows:t1.rows.slice(-18).map(function(r){
+        var m=t2.rows.filter(function(x){return x.key===r.key;})[0];
+        return {key:r.key,n:r.n,values:{Revenue:r.values.__all,"Direct cost":m?m.values.__all:null}};
+      }),series:["Revenue","Direct cost"]};
+    var lh = ecHost(c3, merged, {fmt:"hkd",dimLabel:"Month",h:280});
+    if(lh) ecDraw(lh, function(t){
+      return {
+        animation:false,
+        /* ONE axis. Two measures of the same unit (HKD) share it; if they were
+           different units this would be two charts, never a second y-axis. */
+        grid:{ left:64, right:18, top:34, bottom:30 },
+        tooltip: Object.assign(ecBaseTip(t), {
+          trigger:"axis",
+          axisPointer:{ type:"line", lineStyle:{color:t.rule, width:1} },
+          formatter:function(ps){
+            var last = ps[0].dataIndex === merged.rows.length-1;
+            var out = "<b>"+ps[0].axisValue+(last?"  (partial)":"")+"</b>";
+            ps.forEach(function(p){
+              out += '<br><span style="display:inline-block;width:8px;height:8px;border-radius:2px;'+
+                     'background:'+p.color+';margin-right:6px"></span>'+p.seriesName+
+                     ' <b>'+fmtHkd(p.value)+'</b>';
+            });
+            return out;
+          }
+        }),
+        legend:{ top:0, right:0, icon:"roundRect", itemWidth:10, itemHeight:10,
+                 textStyle:{color:t.ink2, fontSize:12} },
+        xAxis:{ type:"category", boundaryGap:false,
+                data: merged.rows.map(function(r){return String(r.key);}),
+                axisLine:{ lineStyle:{color:t.rule} },
+                axisTick:{show:false},
+                axisLabel:{ color:t.muted, fontSize:11 } },
+        yAxis:{ type:"value",
+                axisLine:{show:false}, axisTick:{show:false},
+                splitLine:{ lineStyle:{color:t.hair} },     /* recessive grid */
+                axisLabel:{ color:t.muted, fontSize:11,
+                            formatter:function(v){ return fmtHkd(v); } } },
+        series: merged.series.map(function(name,i){
+          return { name:name, type:"line", smooth:false, showSymbol:false,
+                   symbol:"circle", symbolSize:8,          /* >=8px markers */
+                   lineStyle:{ width:2, color:t.s[i] },    /* 2px lines */
+                   itemStyle:{ color:t.s[i] },
+                   emphasis:{ focus:"series" },
+                   data: merged.rows.map(function(r,ri){
+                     var v = r.values[name];
+                     return ri === merged.rows.length-1
+                       ? { value:v, lineStyle:{ type:"dashed", width:2, color:t.s[i] },
+                           symbol:"circle", symbolSize:8 }
+                       : v;
+                   }) };
+        })
+      };
+    });
+  }
+  g3.appendChild(c3);
+
+  /* ================= RANKED BAR ================= */
+  var c4 = card("Strongest and weakest brands",
+                "Which brand earns its place, and which is bleeding?",{span:"c4"});
+  if(!missing(c4,["brand","revenue","cost"])){
+    var bm=guarded(aggregate(sliceExcept("brand"),{groupBy:"brand",measure:"marginPct",agg:"avg"}));
+    var nEl=document.createElement("p"); nEl.className="q";
+    nEl.textContent="Brands with fewer than "+MIN_N+" deals are held out"+(bm.dropped?" ("+bm.dropped+" held out)":"")+".";
+    c4.appendChild(nEl);
+    var top8 = bm.rows.slice(0,8);
+    // ECharts renders an empty grid - axes, no marks - for an empty series, which
+    // reads as "the chart is broken" rather than "this slice has no qualifying
+    // brand". Every hand-rolled chart already carries this guard; with a library
+    // it has to be written again at each call site.
+    var bh = top8.length ? ecHost(c4, bm, {fmt:"pct",dimLabel:"Brand",measureLabel:"Margin %",h:262}) : null;
+    if(!top8.length){
+      var eEl=document.createElement("p"); eEl.className="empty";
+      eEl.textContent="No brand clears the "+MIN_N+"-deal minimum in this slice.";
+      c4.appendChild(eEl);
+    }
+    if(bh){
+      bh.__onc = function(c){ c.on("click", function(p){ toggleFilter("brand", p.name); }); };
+      ecDraw(bh, function(t){
+        return {
+          animation:false,
+          grid:{ left:98, right:54, top:8, bottom:26 },
+          tooltip: Object.assign(ecBaseTip(t), {
+            trigger:"item",
+            formatter:function(p){
+              var r = top8[top8.length-1-p.dataIndex];
+              return "<b>"+p.name+"</b><br>Avg margin "+fmtPct(p.value)+
+                     "<br>"+nf(r.n)+" PR line"+(r.n===1?"":"s");
+            }
+          }),
+          xAxis:{ type:"value",
+                  axisLine:{show:false}, axisTick:{show:false},
+                  splitLine:{ lineStyle:{color:t.hair} },
+                  axisLabel:{ color:t.muted, fontSize:11,
+                              formatter:function(v){ return fmtPct(v); } } },
+          /* reversed: ECharts draws a category axis bottom-up, and a ranked
+             bar has to read best-at-top like the SVG one does */
+          yAxis:{ type:"category",
+                  data: top8.map(function(r){return String(r.key);}).reverse(),
+                  axisLine:{ lineStyle:{color:t.rule} },
+                  axisTick:{show:false},
+                  axisLabel:{ color:t.ink2, fontSize:12,
+                              formatter:function(v){ return v.length>18?v.slice(0,17)+"…":v; } } },
+          series:[{
+            type:"bar", barWidth:18,
+            /* status-coloured BY SIGN - the series genuinely means up/down */
+            itemStyle:{ borderRadius:[0,4,4,0] },
+            label:{ show:true, position:"right", color:t.ink2, fontSize:11,
+                    formatter:function(p){ return fmtPct(p.value); } },
+            data: top8.slice().reverse().map(function(r){
+              var v = r.values[bm.series[0]] || 0;
+              return { name:String(r.key), value:v,
+                       itemStyle:{ color: v<0 ? t.neg : t.pos,
+                                   borderRadius: v<0 ? [4,0,0,4] : [0,4,4,0],
+                                   opacity: ecOpacity("brand", r.key) } };
+            })
+          }]
+        };
+      });
+    }
+  }
+  g3.appendChild(c4);
+  view.appendChild(g3);
+
+  insights(view, L);
+}
+
+/* ============================================================================
+   RENDER
+   ========================================================================== */
+/* Coalesce renders on a timeout, NOT on requestAnimationFrame.
+   rAF only runs while the page is actually being painted: minimise the window,
+   occlude it, or park this iframe on a background tab in the Model-Driven App
+   and the callback never fires, so a filter change silently does nothing and
+   the page looks frozen. Nothing here needs frame alignment - it only needs
+   several state changes in the same tick to produce one render. */
+var _raf=null;
+function render(){
+  if(_raf) clearTimeout(_raf);
+  _raf=setTimeout(function(){
+    _raf=null;
+    buildTabs();
+    var rows=applyFilters(ROWS,STATE);
+    buildChips(rows.length,ROWS.length);
+    buildSliceBand(rows.length,ROWS.length);
+    syncFilterToggle();
+    // Replace the whole view node rather than clearing it. textContent="" unbinds
+    // nothing: every mark's pointer/focus listener stays alive on the detached
+    // subtree until GC, and the pointer sits over marks that are being swapped
+    // under it mid-render. Swapping in a fresh empty node drops the old tree and
+    // all its listeners in one operation, with nothing hoverable in between.
+    tipHide();
+    // An ECharts instance outlives the node it was drawn into: render() swaps
+    // the whole #view out, which would orphan four instances plus their window
+    // resize listeners on EVERY filter click. A hand-rolled SVG chart has no
+    // lifecycle to get wrong; this is the library's first real running cost.
+    if(typeof ecDisposeAll==="function") ecDisposeAll();
+    var oldView=document.getElementById("view");
+    var view=oldView.cloneNode(false);
+    oldView.parentNode.replaceChild(view,oldView);
+
+    var tab=TABS.filter(function(t){return t.k===STATE.tab;})[0]||TABS[0];
+    if(!rows.length){
+      var e=document.createElement("p"); e.className="empty";
+      e.textContent="No PR lines match the current filters. Remove a chip above to widen the slice.";
+      view.appendChild(e); return;
+    }
+    try{ tab.render(view,rows); flushDraws(); }
+    catch(err){
+      console.warn("[dashboard] tab render failed:",err);
+      var p=document.createElement("p"); p.className="empty";
+      p.textContent="This tab could not be drawn for the current slice. The console has the detail.";
+      view.appendChild(p);
+    }
+  });
+}
+
+/* ---- boot ---- */
+document.getElementById("btnTheme").addEventListener("click",function(){
+  var cur=document.documentElement.getAttribute("data-theme");
+  var next=cur==="dark"?"light":cur==="light"?"dark":
+    (matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark");
+  document.documentElement.setAttribute("data-theme",next);
+  render();
+});
+document.getElementById("btnTable").addEventListener("click",function(){
+  STATE.tableView=!STATE.tableView;
+  this.setAttribute("aria-pressed",String(STATE.tableView));
+  this.classList.toggle("on",STATE.tableView);
+  render();
+});
+document.getElementById("filterToggle").addEventListener("click",function(){
+  var bar=document.getElementById("filterBar");
+  var open=bar.classList.toggle("open");
+  this.setAttribute("aria-expanded",String(open));
+});
+(function(){
+  function pick(e){
+    STATE.engine=e;
+    var a=document.getElementById("engSvg"), b=document.getElementById("engEc");
+    a.classList.toggle("on",e==="svg");  a.setAttribute("aria-pressed",String(e==="svg"));
+    b.classList.toggle("on",e==="echarts"); b.setAttribute("aria-pressed",String(e==="echarts"));
+    if(STATE.tab!=="overview"){ STATE.tab="overview"; }
+    render();
+  }
+  document.getElementById("engSvg").addEventListener("click",function(){pick("svg");});
+  document.getElementById("engEc").addEventListener("click",function(){pick("echarts");});
+  if(/[?&]engine=echarts/.test(location.search)) pick("echarts");
+})();
+document.getElementById("btnReset").addEventListener("click",clearFilters);
+document.getElementById("btnCsv").addEventListener("click",exportCsv);
+/* Re-render on resize ONLY when the width actually changed.
+   Charts are measured in pixels, so a re-render changes the page height, which
+   can add or remove the vertical scrollbar, which changes the viewport WIDTH,
+   which fires resize again — an oscillation that never settles and pegs the
+   renderer. Height-only resizes (and the scrollbar's own width flicker once the
+   width is stable) must not retrigger a draw. */
+var _rz=null, _lastW=innerWidth;
+addEventListener("resize",function(){
+  if(Math.abs(innerWidth-_lastW)<24) return;   // hysteresis: ignore sub-scrollbar jitter
+  clearTimeout(_rz);
+  _rz=setTimeout(function(){
+    if(Math.abs(innerWidth-_lastW)<24) return;
+    _lastW=innerWidth; render();
+  },240);
+});
+
+// Deep link: ?tab=<key> opens straight on that tab, so a manager can bookmark
+// the view they actually use instead of clicking to it every time.
+(function(){
+  var m=/[?&]tab=([a-z]+)/.exec(location.search);
+  if(m && TABS.some(function(t){return t.k===m[1];})) STATE.tab=m[1];
+})();
+
+loadData(function(){
+  var badge=document.getElementById("srcBadge"), line=document.getElementById("srcLine");
+  var missingCols=FIELDS.filter(function(f){return f.optional&&!PRESENT[f.k];});
+  if(LOAD_NOTE==="live"){
+    badge.textContent="LIVE DATAVERSE"; badge.className="srcbadge pill pos";
+  } else {
+    badge.textContent=LOAD_NOTE==="demo-fallback"?"DEMO (DATAVERSE READ FAILED)":"DEMO DATA";
+    badge.className="srcbadge pill "+(LOAD_NOTE==="demo-fallback"?"cau":"neu");
+  }
+  line.textContent=" — V"+APP_VERSION+" · admin_btb_lis_excel_datas · "+nf(ROWS.length)+" PR line items"+
+    (missingCols.length?" · "+missingCols.length+" planned columns not yet in the table":"");
+  buildFilters();
+  render();
+});
+</script>
+</body>
+</html>

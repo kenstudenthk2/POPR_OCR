@@ -1,0 +1,52 @@
+# 真实商业合同(HKT / PCCW / AIA),含价格、服务号与签名。
+# 绝不进入版本控制。
+Document/
+Demo Data/
+fields (1).csv
+Purchase Order Extractor (Cyrus) (1).json
+Test(Kelvin).json
+# _test/_test/harness 读取的真实语料(.eml/.pdf)同 ab-dump 快照——
+# 见 _test/_test/harness/README.md:「Never commit it」。
+_test/_test/
+
+# 依赖与构建产物
+node_modules/
+worker/.wrangler/
+# 派发用的 Docparse/ 打包快照,内容由该目录生成,不作版本管理。
+Docparse.zip
+
+# 本地临时文件
+scratch/
+# Playwright MCP 的测试残留(截图、快照、上传样本)
+.playwright-mcp/
+skills-lock.json
+*.log
+.DS_Store
+*.stackdump
+.claude/scheduled_tasks.lock
+
+# subagent-driven-development 的进度台账与中间产物
+.superpowers/
+
+# 本地 wrangler / 环境变量
+.dev.vars
+.env
+
+# 本地解析测试用的临时探针页（内含真实商业文件，绝不入库）。
+# 注意：旧 main 在这里 ignore 了整个 `_test/`,本分支不能照抄——
+# `_test/app-harness/` 就是本分支的测试套件,是入库的。真实语料由上面
+# 的 `_test/_test/` 一条挡住。
+Docparse/_harness.html
+Docparse/_inkprobe.html
+Docparse/_atqprobe.html
+Docparse/_regress.html
+
+# Playwright browser_evaluate 的取值输出（测试残留）
+*-fields.json
+after*.json
+base.json
+new.json
+
+# 本地存放的旧版本 App 快照,不作版本管理
+gitignore/
+.git_backup*/

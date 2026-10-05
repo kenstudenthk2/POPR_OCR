@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Master Records — PR Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Funnel+Sans:wght@700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Same design tokens as PR Assistant App.html's own <style> block -- this
+     page is meant to be added as a standalone custom page inside the same
+     PowerApps model-driven app, so it has to look like it belongs next to
+     it, not like a second product. Trimmed to only the classes this page's
+     components (Card/PrimaryButton/GhostButton/Pill/TopBar, the Manage
+     modal, the Columns dropdown) actually use -- the sidebar/verify-table/
+     n8n-loader/doc-scan-loader rules from the master file are not ported
+     since this page has none of those. */
+  :root {
+    --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+    --focus-ring: 0 0 0 4px rgba(255, 153, 0, 0.28);
+    --ink: #1D1D1F;
+    --muted: #515154;
+    --line: #D2D2D7;
+    --surface: #FFFFFF;
+    --surface-soft: #F5F5F7;
+    --charcoal: #EDE9E1;
+    --graphite: #424242;
+    --orange: #FF9900;
+    --orange-dark: #B35F00;
+    --green: #15803D;
+    --amber: #B45309;
+    --red: #DC2626;
+  }
+  html { color-scheme: light; }
+  body {
+    font-family: "IBM Plex Sans", Inter, system-ui, sans-serif;
+    font-size: clamp(16px, 1.05vw, 18px);
+    line-height: 1.5;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(255, 153, 0, 0.10), transparent 31rem),
+      linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, select, textarea { font: inherit; }
+  button:focus-visible, a:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible, [role=button]:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .ui-transition {
+    transition-property: transform, background-color, border-color, color, opacity, box-shadow, filter;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out-ui);
+  }
+  .pressable:not(:disabled) { box-shadow: 0 1px 2px rgba(29, 29, 31, 0.05); }
+  @media (hover: hover) and (pointer: fine) {
+    .pressable:hover:not(:disabled) { box-shadow: 0 4px 10px rgba(29, 29, 31, 0.10); }
+  }
+  .pressable:active:not(:disabled) {
+    transform: scale(0.97);
+    box-shadow: 0 1px 1px rgba(29, 29, 31, 0.06);
+  }
+  .clickable-cue {
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(29, 29, 31, 0.08);
+  }
+  .clickable-cue:hover {
+    box-shadow: 0 12px 28px rgba(29, 29, 31, 0.12), 0 0 0 1px rgba(255, 153, 0, 0.25);
+  }
+  .clickable-cue:active:not(:disabled) {
+    box-shadow: 0 2px 6px rgba(29, 29, 31, 0.10);
+  }
+  .inverse-hover:hover {
+    background: #FFF3D6 !important;
+    color: var(--ink) !important;
+    border-color: var(--orange-dark) !important;
+  }
+  @keyframes panel-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel-rise { animation: panel-rise 260ms var(--ease-out-ui) both; }
+  @keyframes modal-backdrop-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-backdrop { animation: modal-backdrop-fade 200ms ease both; }
+  @keyframes modal-pop {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .modal-pop { animation: modal-pop 200ms var(--ease-out-ui) both; transform-origin: center; }
+  @keyframes dropdown-pop {
+    from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .dropdown-pop { animation: dropdown-pop 160ms var(--ease-out-ui) both; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #8E8E93; border-radius: 9999px; border: 2px solid var(--surface-soft); }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-transition { transition-duration: 80ms; }
+    .pressable:active:not(:disabled) { transform: none; }
+    .panel-rise, .modal-backdrop, .modal-pop, .dropdown-pop { animation: none !important; }
+  }
+</style>
+</head>
+<body class="bg-[var(--surface-soft)]">
+<div id="root"></div>
+
+<script type="text/babel-jsx" id="app-src">
+/* PR Assistant App_MasterRecords.html
+   ------------------------------------
+   A standalone companion to "PR Assistant App.html", meant to be added as
+   its own custom page inside the same PowerApps model-driven app (not
+   embedded inside the multi-step Upload -> Process -> Verify -> Save flow
+   the main file drives). It shows and manages admin_btb_lis_excel_datas
+   records only -- the same table and the same confirmed column names the
+   main file's own "Master Records" nav step already reads/writes.
+
+   Everything below (components, column list, the Manage modal, the
+   Dataverse read/write helpers) is copied from PR Assistant App.html's own
+   RecordsPage / MasterRecordDetailModal -- the "master page" the user asked
+   this file to be styled and wired like -- not re-derived from the earlier
+   gemini prototype's plain-HTML version, which targeted a different,
+   fictional entity (crt_masterlist) with none of this table's real column
+   names. Keep both files' copies in sync by hand if either one's column
+   names or field behaviour changes; there is no shared module between them
+   (this repo has no build step -- see CLAUDE.md). */
+
+const { useState, useMemo, useEffect, useRef } = React;
+
+/* ---------- Small building blocks (verbatim from PR Assistant App.html) ---------- */
+
+function Icon({ name, className = "w-4 h-4", title }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+  const paths = {
+    upload: <React.Fragment><path d="M12 16V4" /><path d="M7 9l5-5 5 5" /><path d="M5 20h14" /></React.Fragment>,
+    check: <React.Fragment><path d="M20 6L9 17l-5-5" /></React.Fragment>,
+    sheet: <React.Fragment><path d="M14 3v5h5" /><path d="M5 3h9l5 5v13H5z" /><path d="M8 13h8" /><path d="M8 17h8" /><path d="M10 9v10" /></React.Fragment>,
+    chevronDown: <React.Fragment><path d="M6 9l6 6 6-6" /></React.Fragment>,
+    close: <React.Fragment><path d="M18 6 6 18" /><path d="m6 6 12 12" /></React.Fragment>,
+    file: <React.Fragment><path d="M14 3v5h5" /><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /></React.Fragment>,
+  };
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden={title ? undefined : "true"} role={title ? "img" : undefined} {...common}>
+      {title && <title>{title}</title>}
+      {paths[name] || paths.file}
+    </svg>
+  );
+}
+
+function Pill({ children, className = "", title }) {
+  return <span title={title} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] leading-4 font-bold ${className}`}>{children}</span>;
+}
+
+function Card({ children, className = "" }) {
+  return <div className={`panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] ${className}`}>{children}</div>;
+}
+
+function PrimaryButton({ children, onClick, disabled, className = "" }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`clickable-cue min-h-12 px-5 py-2.5 rounded-lg text-[16px] font-bold ui-transition pressable
+        ${disabled ? "bg-[var(--line)] text-white cursor-not-allowed shadow-none" : "bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] hover:text-[var(--ink)]"} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({ children, onClick, className = "", href, download, title, disabled }) {
+  const cls = `clickable-cue inverse-hover min-h-12 px-4.5 py-2.5 rounded-lg text-[16px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] ui-transition pressable
+    ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`;
+  if (href) return <a href={href} download={download} title={title} className={`inline-block ${cls}`}>{children}</a>;
+  return <button onClick={onClick} disabled={disabled} title={title} className={cls}>{children}</button>;
+}
+
+function TopBar({ title, desc, right }) {
+  return (
+    <div className="w-full flex flex-col xl:flex-row xl:justify-between xl:items-center gap-5 px-5 md:px-8 py-6 shrink-0">
+      <div>
+        <div className="text-[clamp(34px,3.4vw,52px)] leading-[1.02] font-bold text-[var(--ink)]" style={{fontFamily:"'Space Grotesk', system-ui, sans-serif"}}>{title}</div>
+        <div className="mt-2 max-w-4xl text-[clamp(17px,1.2vw,20px)] leading-8 text-[var(--muted)]" style={{fontFamily:"'IBM Plex Sans', system-ui, sans-serif"}}>{desc}</div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">{right}</div>
+    </div>
+  );
+}
+
+// Shown next to the title, same MAJOR.MINOR.PATCH rule as PR Assistant
+// App.html's own APP_VERSION (see that file's CLAUDE.md section) -- this is
+// a separate, independently-developed file, so it keeps its own counter
+// starting from 1.0.0 rather than sharing App.html's.
+const MASTER_RECORDS_PAGE_VERSION = "3.0.0";
+
+/* ---------- Status vocabulary (verbatim from PR Assistant App.html) ---------- */
+
+const STATUS_STYLES = {
+  Pending:   "bg-[#FEF3C7] text-[var(--amber)]",
+  Completed: "bg-[#DCFCE7] text-[var(--green)]",
+  Cancel:    "bg-[#FEE2E2] text-[var(--red)]",
+  Return:    "bg-[#DBEAFE] text-[#1D4ED8]",
+  Duplicate: "bg-[#EDE9FE] text-[#6D28D9]",
+};
+
+// admin_btb_lis_excel_datas' new_prstatus choice values -- the Web API hands
+// back the raw integer Value, not the Label a reviewer reads on screen.
+const PR_STATUS_CHOICES = {
+  "1": "Completed",
+  "2": "Pending",
+  "3": "Cancel",
+  "4": "Return",
+  "5": "Duplicate",
+};
+
+const PR_STATUS_VALUES = Object.fromEntries(
+  Object.entries(PR_STATUS_CHOICES).map(([value, label]) => [label, Number(value)])
+);
+
+/* ---------- Demo/local-fallback data (same shape as PR Assistant
+   App.html's DEMO_RECORDS, kept in sync by hand -- see this file's own
+   Dataverse-connection comment above MasterRecordsApp). Only used when this
+   page is opened outside the model-driven app (no parent.Xrm.WebApi), via
+   the "Demo Mode" toggle -- it never overwrites a real Dataverse read. ---------- */
+
+const DEMO_RECORDS = [
+  { id: 1, status: "Pending",   flagged: false, statusRemark: "—", prNo: "PRQ-2026-0412",
+    no: "1", recdDate: "22 Jul 2026", poNo: "PO-2026-0412", customerName: "ACME Trading Ltd",        vendor: "Cisco Systems Ltd", prDescription: "Network switch upgrade",
+    recordId: "PR-2026-0412", uid: "UID-2026-0412", startDate: "01 Jan 2026", endDate: "31 Dec 2026", contractNo: "AG-2026-004801",
+    hkd: "128,400.00", usdOthers: "—", handledBy: "Chan Tai Man", iptUnitMgr: "Networking & Security",
+    quotationStartDate: "01 Jan 2026", quotationEndDate: "31 Dec 2026", poDate: "20 Jul 2026", receiptDate: "22 Jul 2026",
+    poAmountHkd: "128,400.00", umMgr: "Wong Siu Ming", prIssuedMonth: "Jul 2026", prIssuedOn: "20 Jul 2026",
+    worksOrderCode: "WO-4412", yn: "Y", remarks: "—", invoiceDnNo: "INV-88231", invoiceDnDate: "25 Jul 2026",
+    btbType: "NON-BTB", quotationExpiryDate: "2026-09-20" },
+  { id: 2, status: "Completed", flagged: false, statusRemark: "—", prNo: "PRQ-2026-0398",
+    no: "2", recdDate: "20 Jul 2026", poNo: "PO-2026-0398", customerName: "Bright Star Electronics", vendor: "Dell Technologies", prDescription: "Server room AV refresh",
+    recordId: "PR-2026-0398", uid: "UID-2026-0398", startDate: "01 Feb 2026", endDate: "31 Jan 2027", contractNo: "AG-2026-004788",
+    hkd: "342,000.00", usdOthers: "—", handledBy: "Lee Ka Wai", iptUnitMgr: "Enterprise Infrastructure",
+    quotationStartDate: "01 Feb 2026", quotationEndDate: "31 Jan 2027", poDate: "18 Jul 2026", receiptDate: "20 Jul 2026",
+    poAmountHkd: "342,000.00", umMgr: "Ho Chi Fung", prIssuedMonth: "Jul 2026", prIssuedOn: "18 Jul 2026",
+    worksOrderCode: "WO-4398", yn: "Y", remarks: "Completed on schedule", invoiceDnNo: "INV-88214", invoiceDnDate: "22 Jul 2026",
+    btbType: "BTB", quotationExpiryDate: "2027-01-31" },
+  { id: 3, status: "Completed", flagged: false, statusRemark: "—", prNo: "PRQ-2026-0405",
+    no: "3", recdDate: "19 Jul 2026", poNo: "PO-2026-0405", customerName: "Dragon Logistics HK",     vendor: "HPE",               prDescription: "Warehouse WiFi rollout",
+    recordId: "PR-2026-0405", uid: "UID-2026-0405", startDate: "01 Mar 2026", endDate: "28 Feb 2027", contractNo: "AG-2026-004795",
+    hkd: "96,750.00", usdOthers: "—", handledBy: "Cheung Hiu Tung", iptUnitMgr: "Networking & Security",
+    quotationStartDate: "01 Mar 2026", quotationEndDate: "28 Feb 2027", poDate: "17 Jul 2026", receiptDate: "19 Jul 2026",
+    poAmountHkd: "96,750.00", umMgr: "Wong Siu Ming", prIssuedMonth: "Jul 2026", prIssuedOn: "17 Jul 2026",
+    worksOrderCode: "WO-4405", yn: "Y", remarks: "—", invoiceDnNo: "INV-88198", invoiceDnDate: "21 Jul 2026",
+    btbType: "NON-BTB", quotationExpiryDate: "2026-08-01" },
+  { id: 4, status: "Cancel",    flagged: true,  statusRemark: "Customer cancelled the PO on 18 Jul", prNo: "PRQ-2026-0389",
+    no: "4", recdDate: "18 Jul 2026", poNo: "PO-2026-0389", customerName: "Evergreen Solutions",     vendor: "Juniper Networks",  prDescription: "Firewall replacement",
+    recordId: "PR-2026-0389", uid: "UID-2026-0389", startDate: "01 Apr 2026", endDate: "31 Mar 2027", contractNo: "AG-2026-004770",
+    hkd: "215,600.00", usdOthers: "—", handledBy: "Lam Wing Yan", iptUnitMgr: "Enterprise Infrastructure",
+    quotationStartDate: "01 Apr 2026", quotationEndDate: "31 Mar 2027", poDate: "—", receiptDate: "—",
+    poAmountHkd: "—", umMgr: "Ho Chi Fung", prIssuedMonth: "Jul 2026", prIssuedOn: "15 Jul 2026",
+    worksOrderCode: "WO-4389", yn: "N", remarks: "Customer cancelled the PO on 18 Jul", invoiceDnNo: "—", invoiceDnDate: "—" },
+  { id: 5, status: "Duplicate", flagged: true,  statusRemark: "Same PO No. as record #2", prNo: "PRQ-2026-0398-B",
+    no: "5", recdDate: "17 Jul 2026", poNo: "PO-2026-0398", customerName: "Fung Kee Industrial",     vendor: "Lenovo",            prDescription: "Desktop refresh — Finance floor",
+    recordId: "PR-2026-0398-B", uid: "UID-2026-0398B", startDate: "01 Feb 2026", endDate: "31 Jan 2027", contractNo: "AG-2026-004788",
+    hkd: "68,900.00", usdOthers: "—", handledBy: "Lee Ka Wai", iptUnitMgr: "Enterprise Infrastructure",
+    quotationStartDate: "01 Feb 2026", quotationEndDate: "31 Jan 2027", poDate: "17 Jul 2026", receiptDate: "17 Jul 2026",
+    poAmountHkd: "68,900.00", umMgr: "Ho Chi Fung", prIssuedMonth: "Jul 2026", prIssuedOn: "17 Jul 2026",
+    worksOrderCode: "WO-4398B", yn: "N", remarks: "Same PO No. as record #2", invoiceDnNo: "—", invoiceDnDate: "—",
+    btbType: "BTB", quotationExpiryDate: "2027-01-31" },
+  { id: 6, status: "Return",    flagged: false, statusRemark: "—", prNo: "PRQ-2026-0401",
+    no: "6", recdDate: "16 Jul 2026", poNo: "PO-2026-0401", customerName: "Grand Pacific Corp",      vendor: "Nice Systems BV",   prDescription: "AV Equipment Upgrade — Meeting Room B",
+    recordId: "PR-2026-0401", uid: "UID-2026-0401", startDate: "01 Jul 2026", endDate: "31 Dec 2026", contractNo: "AG-2026-004821",
+    hkd: "54,200.00", usdOthers: "—", handledBy: "Chan Tai Man", iptUnitMgr: "Networking & Security",
+    quotationStartDate: "01 Jul 2026", quotationEndDate: "31 Dec 2026", poDate: "14 Jul 2026", receiptDate: "16 Jul 2026",
+    poAmountHkd: "54,200.00", umMgr: "Wong Siu Ming", prIssuedMonth: "Jul 2026", prIssuedOn: "14 Jul 2026",
+    worksOrderCode: "WO-4401", yn: "Y", remarks: "Returned for re-quote", invoiceDnNo: "—", invoiceDnDate: "—",
+    btbType: "NON-BTB", quotationExpiryDate: "2026-09-15" },
+];
+const EMPTY_RECORDS = [];
+const DEMO_PAGINATION = ["←","1","2","3","…","8","→"];
+const EMPTY_PAGINATION = ["←","1","→"];
+
+/* ---------- Column list (verbatim from PR Assistant App.html's
+   MASTER_RECORDS_COLUMNS) ---------- */
+
+const MASTER_RECORDS_COLUMNS = [
+  { key: "status", label: "Status", width: "w-[130px]", cellClassName: "flex items-center gap-1.5",
+    render: (r, helpers) => (<React.Fragment>
+      <select value={r.status || ""} onClick={e => e.stopPropagation()}
+        onChange={e => helpers.onStatusChange(r, e.target.value)}
+        aria-label={`Status for ${r.recordId}`}
+        className={`text-[12px] font-semibold rounded-full pl-2.5 pr-1.5 py-1 border-0 outline-none cursor-pointer ui-transition ${r.status ? STATUS_STYLES[r.status] : "bg-[#F3EBE2] text-[#6B6B6B]"}`}>
+        {!r.status && <option value="">—</option>}
+        {Object.values(PR_STATUS_CHOICES).map(label => <option key={label} value={label}>{label}</option>)}
+      </select>
+      <button type="button" onClick={e => { e.stopPropagation(); helpers.onToggleFlag(r); }}
+        title={r.flagged ? "Remove flag" : "Add flag"} aria-label={r.flagged ? "Remove flag" : "Add flag"}
+        className={`ui-transition pressable ${r.flagged ? "" : "opacity-25 grayscale hover:opacity-60"}`}>
+        🚩
+      </button>
+    </React.Fragment>),
+    exportValue: r => r.status || "" },
+  { key: "no", label: "No.", width: "w-[50px]", cellClassName: "text-[14px] text-[#3D3D3D] tabular-nums",
+    render: r => r.no, exportValue: r => r.no },
+  { key: "recdDate", label: "Rec'd Date", width: "w-[100px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.recdDate, exportValue: r => r.recdDate },
+  { key: "poNo", label: "PO No.", width: "w-[110px]", cellClassName: "text-[14px] text-[#3D3D3D]",
+    render: r => r.poNo, exportValue: r => r.poNo },
+  { key: "uid", label: "UID #", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate", defaultVisible: true,
+    render: r => r.uid, exportValue: r => r.uid },
+  // Computed, not stored -- same evaluateManageWorkflowState the Manage modal's
+  // stepper uses, read off the row's already-fetched prNo/poNo/reviewApprovalRaw
+  // so this can never disagree with what the modal itself would show for the
+  // same record. Colours ported from the reference screen's own 5-stage map.
+  { key: "workflowStatus", label: "Workflow Status", width: "w-[170px]", cellClassName: "whitespace-nowrap", defaultVisible: true,
+    render: r => {
+      const step = masterRecordWorkflowStep(r);
+      return (
+        <span className={"inline-flex items-center px-3 py-1 rounded-full text-[12px] leading-4 font-bold " +
+          (MANAGE_WORKFLOW_BADGE_CLASS[step] || "bg-[#F3EBE2] text-[#6B6B6B]")}>
+          {step}
+        </span>
+      );
+    },
+    exportValue: r => masterRecordWorkflowStep(r) },
+  { key: "recordId", label: "Record ID", width: "w-[140px]", cellClassName: "text-[13px] text-[#6B6B6B] truncate",
+    render: r => r.recordId, exportValue: r => r.recordId },
+  { key: "customerName", label: "Customer Name", width: "w-[170px]", cellClassName: "text-[14px] font-medium text-[#1A1A1A] truncate", defaultVisible: true,
+    render: r => r.customerName, exportValue: r => r.customerName },
+  { key: "vendor", label: "Vendor", width: "w-[150px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate", defaultVisible: true,
+    render: r => r.vendor, exportValue: r => r.vendor },
+  // BTB Type pill -- styling ported from the reference screen (NON-BTB warm,
+  // BTB charcoal, unset reads as an explicit "Unset" rather than an em dash
+  // so it doesn't look like a formatting glitch).
+  { key: "btbType", label: "BTB / NON-BTB", width: "w-[110px]", cellClassName: "whitespace-nowrap", defaultVisible: true,
+    render: r => r.btbType
+      ? <span className={"inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold " +
+          (r.btbType === "NON-BTB" ? "bg-[#FFF3D6] text-[var(--orange-dark)]" : "bg-[var(--charcoal)] text-[var(--graphite)]")}>
+          {r.btbType}
+        </span>
+      : <span className="text-[12px] text-[#8E8E93] italic">Unset</span>,
+    exportValue: r => r.btbType || "" },
+  // Derived from BTB Type + PR Amount by the approval threshold matrix, never
+  // read from or written to Dataverse -- see getDualApprovers. An empty
+  // approver reads as an explicit "Not required", not an em dash: "no approval
+  // needed" and "nobody has filled this in yet" are opposite answers and must
+  // not share a glyph.
+  { key: "approver", label: "Approver", width: "w-[110px]", cellClassName: "whitespace-nowrap", defaultVisible: true,
+    render: r => {
+      const approver = masterRecordApprover(r);
+      return approver
+        ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#EDE9FE] text-[#6D28D9]">{approver}</span>
+        : <span className="text-[12px] text-[#8E8E93]">Not required</span>;
+    },
+    exportValue: r => masterRecordApprover(r) || "Not required" },
+  { key: "prDescription", label: "PR Description", width: "flex-1 min-w-0", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.prDescription, exportValue: r => r.prDescription },
+  { key: "prNo", label: "PR No.", width: "w-[110px]", cellClassName: "text-[14px] text-[#3D3D3D]",
+    render: r => r.prNo, exportValue: r => r.prNo },
+  { key: "startDate", label: "Start Date", width: "w-[100px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.startDate, exportValue: r => r.startDate },
+  { key: "endDate", label: "End Date", width: "w-[100px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.endDate, exportValue: r => r.endDate },
+  { key: "contractNo", label: "Contract No.", width: "w-[150px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.contractNo, exportValue: r => r.contractNo },
+  // Labelled "PR Amount" (not "HKD") to match the reference screen -- same
+  // admin_hkd2 column the Manage modal edits under that same name (see this
+  // file's own comment above MasterRecordDetailModal). formatPrAmountDisplay
+  // strips whatever separators the source already carries (DEMO_RECORDS'
+  // comma-formatted strings, or fetchRecordsFromDataverse's bare numeric
+  // string) so it renders "HK$ 1,234,567.00" from either.
+  { key: "hkd", label: "PR Amount", width: "w-[140px]", cellClassName: "text-[13px] font-mono text-[#3D3D3D] tabular-nums",
+    render: r => formatPrAmountDisplay(r.hkd), exportValue: r => r.hkd },
+  { key: "usdOthers", label: "USD / Others", width: "w-[110px]", cellClassName: "text-[14px] text-[#3D3D3D] tabular-nums",
+    render: r => r.usdOthers, exportValue: r => r.usdOthers },
+  { key: "handledBy", label: "Handled By", width: "w-[150px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.handledBy, exportValue: r => r.handledBy },
+  { key: "iptUnitMgr", label: "IPT Unit Mgr", width: "w-[170px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.iptUnitMgr, exportValue: r => r.iptUnitMgr },
+  { key: "quotationStartDate", label: "Quotation Start Date", width: "w-[150px]", cellClassName: "text-[13px] text-[#6B6B6B] truncate",
+    render: r => r.quotationStartDate, exportValue: r => r.quotationStartDate },
+  { key: "quotationEndDate", label: "Quotation End Date", width: "w-[150px]", cellClassName: "text-[13px] text-[#6B6B6B] truncate",
+    render: r => r.quotationEndDate, exportValue: r => r.quotationEndDate },
+  { key: "poDate", label: "PO Date", width: "w-[100px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.poDate, exportValue: r => r.poDate },
+  { key: "receiptDate", label: "Receipt Date", width: "w-[100px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.receiptDate, exportValue: r => r.receiptDate },
+  { key: "poAmountHkd", label: "PO Amount HK$", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] tabular-nums",
+    render: r => r.poAmountHkd, exportValue: r => r.poAmountHkd },
+  { key: "umMgr", label: "UM/Mgr", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.umMgr, exportValue: r => r.umMgr },
+  { key: "prIssuedMonth", label: "PR Issued Month", width: "w-[140px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.prIssuedMonth, exportValue: r => r.prIssuedMonth },
+  { key: "prIssuedOn", label: "PR Issued On", width: "w-[130px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.prIssuedOn, exportValue: r => r.prIssuedOn },
+  { key: "worksOrderCode", label: "Works Order Code", width: "w-[150px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.worksOrderCode, exportValue: r => r.worksOrderCode },
+  { key: "yn", label: "Y / N", width: "w-[70px]", cellClassName: "text-[14px] text-[#3D3D3D]",
+    render: r => r.yn, exportValue: r => r.yn },
+  { key: "remarks", label: "Remarks", width: "w-[200px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.remarks, exportValue: r => r.remarks },
+  { key: "invoiceDnNo", label: "Invoice # / DN #", width: "w-[150px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.invoiceDnNo, exportValue: r => r.invoiceDnNo },
+  { key: "invoiceDnDate", label: "Invoice / DN Date", width: "w-[130px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums",
+    render: r => r.invoiceDnDate, exportValue: r => r.invoiceDnDate },
+  { key: "statusRemark", label: "Status Remark", width: "w-[200px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.statusRemark, exportValue: r => r.statusRemark },
+  { key: "issueBy", label: "Issued By", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate", defaultVisible: true,
+    render: r => r.issueBy, exportValue: r => r.issueBy },
+  { key: "chargeCcc", label: "Charge CCC", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.chargeCcc, exportValue: r => r.chargeCcc },
+  { key: "accountCode", label: "Account Code", width: "w-[130px]", cellClassName: "text-[14px] text-[#3D3D3D] truncate",
+    render: r => r.accountCode, exportValue: r => r.accountCode },
+  // Quotation Expiry Date is this page's own Manage-modal field -- BTB Type
+  // moved up next to Customer/Vendor (see its entry above), no duplicate
+  // entry stays down here. Review/Approval documents are deliberately not a
+  // column either -- they share one Text column as a small JSON blob with no
+  // honest single-line cell. Last in the array on purpose: it's the last
+  // default-visible column too, and default visibility follows array order.
+  { key: "quotationExpiryDate", label: "Quotation Expiry Date", width: "w-[150px]", cellClassName: "text-[13px] text-[#6B6B6B] tabular-nums", defaultVisible: true,
+    render: r => formatIsoDateDisplay(r.quotationExpiryDate), exportValue: r => r.quotationExpiryDate || "" },
+];
+const MASTER_RECORDS_COLUMN_KEYS = MASTER_RECORDS_COLUMNS.map(c => c.key);
+const MASTER_RECORDS_DEFAULT_COLUMN_KEYS = MASTER_RECORDS_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
+// A distinct localStorage key from PR Assistant App.html's own Master
+// Records page -- this is a separate page a reviewer may open independently,
+// so its column picks should not silently follow the other file's.
+const MASTER_RECORDS_COLUMNS_STORAGE_KEY = "prAssistant.masterRecordsStandalone.visibleColumns";
+
+function loadMasterRecordsVisibleColumns() {
+  try {
+    const raw = window.localStorage.getItem(MASTER_RECORDS_COLUMNS_STORAGE_KEY);
+    if (!raw) return MASTER_RECORDS_DEFAULT_COLUMN_KEYS;
+    const parsed = JSON.parse(raw);
+    const kept = Array.isArray(parsed) ? parsed.filter(k => MASTER_RECORDS_COLUMN_KEYS.includes(k)) : [];
+    return kept.length ? kept : MASTER_RECORDS_DEFAULT_COLUMN_KEYS;
+  } catch (e) {
+    return MASTER_RECORDS_DEFAULT_COLUMN_KEYS;
+  }
+}
+
+/* ---------- Manage modal (verbatim from PR Assistant App.html's
+   MasterRecordDetailModal -- see that file's own comment block above it for
+   the full reasoning on new_btb_type/new_quotation_expiry_date/admin_hkd2/
+   new_review). ---------- */
+
+const MANAGE_WORKFLOW_STEPS = ["Submit LIS System", "Waiting UM Review", "Waiting PR Request Approval", "Input PO No.", "Completed"];
+
+// Not a member of MANAGE_WORKFLOW_STEPS on purpose: a cancelled record is not
+// at a stage, it is off the ladder entirely. Keeping it out is what lets
+// workflowStepsFor/ManageWorkflowStepper still draw the ladder a record WOULD
+// have walked, greyed out, underneath the cancellation banner.
+const MANAGE_WORKFLOW_CANCELLED = "Cancelled";
+
+// The stage list a record actually walks, which depends on its own amount. A
+// record whose PR amount needs no approver never passes through "Waiting PR
+// Request Approval", so that step is dropped from the stepper as well as from
+// the state machine -- leaving it drawn, greyed and permanently unreachable,
+// reads as a stage still to come rather than as one that does not apply.
+function workflowStepsFor(hasApprover) {
+  return hasApprover ? MANAGE_WORKFLOW_STEPS : MANAGE_WORKFLOW_STEPS.filter(s => s !== "Waiting PR Request Approval");
+}
+
+// Same 5-stage colour map as the reference screen's own STATUS_BADGE_CLASS,
+// keyed by MANAGE_WORKFLOW_STEPS so the Master Records table's Workflow
+// Status pill and ManageWorkflowStepper's own "current step" chip can never
+// silently drift onto different colours for the same step name.
+const MANAGE_WORKFLOW_BADGE_CLASS = {
+  "Submit LIS System": "bg-[#F3EBE2] text-[#6B6B6B]",
+  "Waiting UM Review": "bg-[#FEF3C7] text-[#D97706]",
+  "Waiting PR Request Approval": "bg-[#EDE9FE] text-[#6D28D9]",
+  "Input PO No.": "bg-[#FEE2E2] text-[var(--red)]",
+  "Completed": "bg-[#DCFCE7] text-[var(--green)]",
+  [MANAGE_WORKFLOW_CANCELLED]: "bg-[#FEE2E2] text-[#991B1B]",
+};
+
+/* ---------- Hong Kong's own calendar day ---------- */
+// Every expiry and countdown in this page measures against HKT's calendar
+// day, not the viewer's machine timezone. A reviewer on a laptop still set to
+// UTC would otherwise read a quotation as "Expired" up to a day early, and one
+// on US time up to a day late -- and the amber "Expiring Soon" band is only 14
+// days wide, so a one-day slip moves records in and out of it.
+function getCurrentHKTDate() {
+  const now = new Date();
+  const hkt = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Hong_Kong" }));
+  return new Date(hkt.getFullYear(), hkt.getMonth(), hkt.getDate());
+}
+
+/* ---------- Approver threshold matrix ---------- */
+// The PR amount decides WHO has to approve, and a BTB case is held to a far
+// higher bar than a NON-BTB one. The thresholds are stated as ".99" ceilings
+// rather than round numbers on purpose: "> 499999.99" and ">= 500000" differ
+// for any amount carrying cents, and these are the reference screen's own
+// figures.
+//
+// An amount below the lowest band returns an EMPTY approver, and that is not a
+// missing value -- it is the answer "no approval is required", which removes a
+// whole stage from the workflow below and disables the Approval upload.
+//
+// Nothing here is stored. btbType (new_btb_type) and the PR amount
+// (admin_hkd2) both are, so the approver is derived from them on every render,
+// the same way the Workflow Status column already is -- there is no
+// approver/approval-status column on admin_btb_lis_excel_datas to drift out of
+// step with them.
+const APPROVER_BANDS = {
+  "BTB": [
+    { over: 23399999.99, approver: "MD" },
+    { over: 1999999.99,  approver: "SVP" },
+    { over: 999999.99,   approver: "VP" },
+    { over: 499999.99,   approver: "AVP" },
+  ],
+  "NON-BTB": [
+    { over: 779999.99, approver: "MD" },
+    { over: 155999.99, approver: "SVP" },
+    { over: 38999.99,  approver: "AVP or VP" },
+  ],
+};
+
+function getDualApprovers(btbType, amount) {
+  const type = String(btbType == null ? "" : btbType).trim().toUpperCase();
+  // The table's own PR Amount arrives as a display string that may carry
+  // thousand separators ("128,400.00"); the Manage modal's draft arrives bare.
+  // Both have to read as the same number, or the same record would sit in
+  // different approval bands depending on which one asked.
+  const numAmount = parseFloat(String(amount == null ? "" : amount).replace(/,/g, "")) || 0;
+  // Anything that is not the literal "BTB" is held to the NON-BTB ladder, same
+  // as the reference's own if/else: an unset BTB Type must not inherit BTB's
+  // much higher -- i.e. far more permissive -- thresholds by default.
+  const bands = type === "BTB" ? APPROVER_BANDS["BTB"] : APPROVER_BANDS["NON-BTB"];
+  const hit = bands.find(b => numAmount > b.over);
+  const approver = hit ? hit.approver : "";
+  if (!approver) return { approver: "", statusDisplay: "Not Required" };
+  return { approver: approver, statusDisplay: "Waiting PR Request Approval (" + approver + ")" };
+}
+
+function hasValue(v) {
+  return Boolean(v) && String(v).trim() !== "" && v !== "—";
+}
+
+// The Workflow strip's own tabs, ported from the reference screen's
+// STATUS_TABS. Two of them ("Expired", "Expiring Soon") are NOT workflow
+// stages at all -- they are quotation-expiry date checks that cut across every
+// stage, which is why matchesWorkflowTab below answers them separately rather
+// than comparing them to a stage name.
+const WORKFLOW_TABS = ["All", "Expired", "Expiring Soon", "Submit LIS System", "Waiting UM Review",
+  "Waiting PR Request Approval", "Input PO No.", "Completed", "Cancelled"];
+
+function matchesWorkflowTab(r, tab) {
+  if (tab === "All") return true;
+  if (tab === "Expired" || tab === "Expiring Soon") {
+    // Both exclude cancelled records, same as the reference's own tab counts:
+    // a cancelled requisition's quotation going stale is not work anyone has
+    // to pick up, so counting it would inflate the two tabs a reviewer uses
+    // to decide what to chase today.
+    if (r.status === "Cancel") return false;
+    const info = quotationExpiryInfo(r.quotationExpiryDate);
+    return Boolean(info) && info.tone === (tab === "Expired" ? "expired" : "soon");
+  }
+  return masterRecordWorkflowStep(r) === tab;
+}
+
+// Table-header click-to-sort (see toggleSort in RecordsPage). Compares the
+// column's own exportValue -- already the plain, unformatted value each
+// column's Excel export uses, so sorting can never disagree with what a
+// reviewer would see if they exported the same view. Empty/placeholder
+// values ("", "—") always sort to the end regardless of direction, rather
+// than bouncing between top and bottom when the arrow flips.
+function isEmptySortValue(v) {
+  return v === null || v === undefined || String(v).trim() === "" || String(v).trim() === "—";
+}
+const SORT_DATE_LIKE = /^\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}$/;
+const SORT_ISO_DATE_LIKE = /^\d{4}-\d{2}-\d{2}/;
+const SORT_NUMERIC_LIKE = /^-?\d+(\.\d+)?$/;
+function compareMasterRecordSortValues(va, vb) {
+  const aEmpty = isEmptySortValue(va), bEmpty = isEmptySortValue(vb);
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  const sa = String(va).trim(), sb = String(vb).trim();
+  // "DD Mon YYYY" (fmtLisDate's own format, also DEMO_RECORDS') or ISO --
+  // only when BOTH sides look date-shaped, so a stray numeric-looking string
+  // on one side doesn't get misread as a date.
+  if ((SORT_DATE_LIKE.test(sa) || SORT_ISO_DATE_LIKE.test(sa)) && (SORT_DATE_LIKE.test(sb) || SORT_ISO_DATE_LIKE.test(sb))) {
+    const da = new Date(sa), db = new Date(sb);
+    if (!isNaN(da.getTime()) && !isNaN(db.getTime())) return da.getTime() - db.getTime();
+  }
+  // Numeric only when the WHOLE value (after stripping thousand separators)
+  // is a number -- "REC-2026-129" must fall through to string compare, not
+  // get coerced into a number from its embedded digits.
+  const na = SORT_NUMERIC_LIKE.test(sa.replace(/,/g, "")) ? Number(sa.replace(/,/g, "")) : NaN;
+  const nb = SORT_NUMERIC_LIKE.test(sb.replace(/,/g, "")) ? Number(sb.replace(/,/g, "")) : NaN;
+  if (!isNaN(na) && !isNaN(nb)) return na - nb;
+  return sa.toLowerCase().localeCompare(sb.toLowerCase());
+}
+
+// The Master Records table's own PR Amount cell -- strips whatever separators
+// the source already carries (DEMO_RECORDS' comma-formatted strings, or
+// fetchRecordsFromDataverse's bare numeric string) and reformats as
+// "HK$ 1,234,567.00", same shape as the reference screen. A value that isn't
+// a parseable number (missing, "—") reads as "-", never as "HK$ NaN".
+function formatPrAmountDisplay(v) {
+  if (!hasValue(v)) return "-";
+  const n = parseFloat(String(v).replace(/,/g, ""));
+  if (Number.isNaN(n)) return "-";
+  return `HK$ ${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function plainDecimalDraft(v) {
+  return hasValue(v) ? String(v).replace(/,/g, "") : "";
+}
+
+// The state machine, ported from the reference screen's evaluateWorkflowState.
+// Order matters and every gate is a hard one:
+//
+//   cancelled              -> "Cancelled"                    (nothing else asked)
+//   no PR No.              -> "Submit LIS System"
+//   no UM Review document  -> "Waiting UM Review"
+//   approver required and
+//     no approval document -> "Waiting PR Request Approval"
+//   no PO No.              -> "Input PO No."
+//   otherwise              -> "Completed"
+//
+// The approver gate is the only CONDITIONAL one, and that conditionality is the
+// whole point of the threshold matrix: when getDualApprovers returns no
+// approver the approval document is never asked for at all, so a small-amount
+// record steps straight from UM Review to Input PO No. rather than stalling
+// forever on a stage nobody will ever action.
+//
+// btbType/prAmount are optional so an older two-key call still answers -- with
+// neither stated the NON-BTB ladder reads 0 and returns no approver, i.e. the
+// approval stage is skipped rather than silently demanded.
+function evaluateManageWorkflowState({ prNo, reviewDoc, approvalDoc, poNo, btbType, prAmount, cancelled }) {
+  if (cancelled) return MANAGE_WORKFLOW_CANCELLED;
+  if (!hasValue(prNo)) return "Submit LIS System";
+  if (!reviewDoc) return "Waiting UM Review";
+  const { approver } = getDualApprovers(btbType, prAmount);
+  if (approver && !approvalDoc) return "Waiting PR Request Approval";
+  if (!hasValue(poNo)) return "Input PO No.";
+  return "Completed";
+}
+
+// `steps` is whichever ladder workflowStepsFor handed back (4 stages when no
+// approver is required, 5 when one is), defaulting to the full five so a caller
+// that does not care still renders. A cancelled record keeps its ladder drawn
+// and greyed under a banner rather than losing it: a reviewer looking at a
+// cancelled record still wants to see how far it had got.
+function ManageWorkflowStepper({ currentStep, steps }) {
+  const list = steps && steps.length ? steps : MANAGE_WORKFLOW_STEPS;
+  const cancelled = currentStep === MANAGE_WORKFLOW_CANCELLED;
+  const currentIndex = cancelled ? -1 : list.indexOf(currentStep);
+  return (
+    <div className="flex flex-col gap-2">
+      {cancelled && (
+        <div className="flex justify-center">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FEE2E2] border border-[#FCA5A5] text-[var(--red)] font-bold text-[14px]">
+            &#128683; Status: Cancelled
+          </span>
+        </div>
+      )}
+      <ol className={"flex items-start" + (cancelled ? " opacity-50" : "")}>
+        {list.map((step, i) => {
+          const done = currentIndex >= 0 && (i < currentIndex || (i === currentIndex && step === "Completed"));
+          const current = i === currentIndex && !done;
+          const lineFilled = currentIndex >= 0 && i < currentIndex;
+          return (
+            <React.Fragment key={step}>
+              <li className="flex flex-col items-center gap-1.5 shrink-0 w-[104px]">
+                <span className={"flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ui-transition " +
+                  (done ? "bg-[var(--green)] text-white" :
+                   current ? "bg-[#FFF3D6] text-[var(--orange-dark)] ring-2 ring-[var(--orange-dark)]" :
+                   "bg-white text-[#8E8E93] border-2 border-[var(--line)]")}>
+                  {done ? <Icon name="check" className="w-3.5 h-3.5" /> : i + 1}
+                </span>
+                <span className={"text-[11px] text-center leading-tight " + (done || current ? "font-bold text-[var(--ink)]" : "text-[#8E8E93]")}>
+                  {step}
+                </span>
+              </li>
+              {i < list.length - 1 && (
+                <div className={"h-[2px] flex-1 mt-[11px] ui-transition " + (lineFilled ? "bg-[var(--green)]" : "bg-[var(--line)]")} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function parseReviewApproval(raw) {
+  if (!raw) return { review: null, approval: null };
+  try {
+    const parsed = JSON.parse(raw);
+    return { review: parsed.review || null, approval: parsed.approval || null };
+  } catch (e) {
+    return { review: null, approval: null };
+  }
+}
+function serializeReviewApproval(review, approval) {
+  return JSON.stringify({ review: review || null, approval: approval || null });
+}
+
+// The Master Records table's own Workflow Status cell -- same inputs
+// MasterRecordDetailModal's ManageWorkflowStepper derives its current step
+// from (record.prNo/poNo, plus new_review's two document names), so the
+// table row and the modal it opens into can never disagree about which stage
+// a record is on.
+function masterRecordWorkflowStep(r) {
+  const { review, approval } = parseReviewApproval(r.reviewApprovalRaw);
+  return evaluateManageWorkflowState({
+    prNo: r.prNo, reviewDoc: review, approvalDoc: approval, poNo: r.poNo,
+    // btbType/hkd are what decide whether the approval stage applies at all,
+    // so the table's own pill has to be handed them too -- without them every
+    // row would report "Waiting PR Request Approval" while the modal it opens
+    // into (which does pass them) showed "Input PO No." for the same record.
+    btbType: r.btbType, prAmount: r.hkd,
+    // There is no workflow-status column on admin_btb_lis_excel_datas. What
+    // marks a record cancelled is the manual Status field (new_prstatus) the
+    // Status cell and the Cancel tab already read -- so cancelling is one
+    // write to a column that exists, and "Cancelled" needs no second source of
+    // truth that could disagree with the badge in the same row.
+    cancelled: r.status === "Cancel",
+  });
+}
+
+// The derived approver for a table row, same inputs as above. Read by the
+// Approver column and by the Manage modal's own notice; nothing writes it --
+// see getDualApprovers' note on why it is never stored.
+function masterRecordApprover(r) {
+  return getDualApprovers(r.btbType, r.hkd).approver;
+}
+
+function formatIsoDateDisplay(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  return isNaN(d.getTime()) ? "—"
+    : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// The grid's date-kind cells (PO Date, Receipt Date, Invoice/DN Date) are
+// plain text inputs pre-filled with formatIsoDateDisplay's own "DD Mon
+// YYYY" -- a reviewer editing one is just as likely to retype that same
+// shape as to type ISO. Accepts either, rejects everything else (returns
+// null, which the caller reads as "leave this field out of the write").
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DISPLAY_DATE_RE = /^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})$/;
+const SHORT_MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function parseIsoDate(input) {
+  const val = String(input || "").trim();
+  if (!val) return null;
+  const isoMatch = val.match(ISO_DATE_RE);
+  if (isoMatch) {
+    const d = new Date(val + "T00:00:00");
+    return isNaN(d.getTime()) ? null : val;
+  }
+  const dispMatch = val.match(DISPLAY_DATE_RE);
+  if (dispMatch) {
+    const day = parseInt(dispMatch[1], 10);
+    const monthIdx = SHORT_MONTH_NAMES.indexOf(dispMatch[2].slice(0, 3).toLowerCase());
+    const year = parseInt(dispMatch[3], 10);
+    if (monthIdx === -1) return null;
+    const d = new Date(year, monthIdx, day);
+    if (isNaN(d.getTime()) || d.getDate() !== day || d.getMonth() !== monthIdx) return null;
+    return `${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+// Measured against HKT's calendar day (see getCurrentHKTDate) rather than the
+// viewer's, and it reports the day count as well as the tone so the KPI strip,
+// the workflow tabs and the Manage modal's countdown line all read the same
+// number off one function instead of each redoing the arithmetic.
+function quotationExpiryInfo(dateStr) {
+  if (!dateStr) return null;
+  const expiry = new Date(dateStr + "T00:00:00");
+  if (isNaN(expiry.getTime())) return null;
+  const diffDays = Math.ceil((expiry - getCurrentHKTDate()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { text: "Expired", tone: "expired", days: diffDays };
+  if (diffDays <= 14) return { text: `${diffDays} day${diffDays === 1 ? "" : "s"} remaining`, tone: "soon", days: diffDays };
+  return { text: `${diffDays} days remaining`, tone: "ok", days: diffDays };
+}
+
+// workflowStatus is excluded too -- it is the same computed step the
+// "Workflow Status (preview)" stepper above already shows, just as a table
+// pill instead of a stepper.
+const MANAGE_GRID_EXCLUDED_KEYS = new Set(["status", "prNo", "poNo", "recordId", "btbType", "hkd", "quotationExpiryDate", "workflowStatus", "approver"]);
+
+// Dataverse column name + value kind for every field the read-only grid used
+// to just display -- one entry per gridColumns key (MASTER_RECORDS_COLUMNS
+// minus MANAGE_GRID_EXCLUDED_KEYS), confirmed against fetchRecordsFromDataverse's
+// own read mapping (same admin_btb_lis_excel_datas column names, same "2026-
+// 09-11 schema" comment there). "date" columns are real Dataverse Date
+// columns (fetchRecordsFromDataverse runs fmtLisDate on them); Quotation
+// Start/End Date are deliberately "text" even though they look like dates --
+// they are Text columns that can carry a stated period ("TBC", a range) same
+// as buildRecordPayload's own comment on these two elsewhere in this file.
+const MASTER_RECORDS_EDITABLE_FIELDS = {
+  no:                 { field: "admin_nox002e2",                 kind: "text" },
+  recdDate:           { field: "admin_recx0027dx0020datex00202", kind: "date" },
+  customerName:       { field: "admin_customerx0020name2",       kind: "text" },
+  vendor:             { field: "admin_vendor2",                  kind: "text" },
+  prDescription:      { field: "admin_prx0020description2",      kind: "text" },
+  uid:                { field: "admin_uidx0020x00232",           kind: "text" },
+  startDate:          { field: "admin_startx0020date",           kind: "date" },
+  endDate:            { field: "admin_odatax0020endx0020date2",  kind: "date" },
+  contractNo:         { field: "admin_contractx0020nox002e2",    kind: "text" },
+  usdOthers:          { field: "admin_usdx0020x002fx0020others2",kind: "text" },
+  handledBy:          { field: "admin_handledx0020byx00202",     kind: "text" },
+  iptUnitMgr:         { field: "admin_iptx0020unitx0020mgr2",    kind: "text" },
+  quotationStartDate: { field: "admin_startx0020date2",          kind: "text" },
+  quotationEndDate:   { field: "admin_odatax0020endx0020date3",  kind: "text" },
+  poDate:             { field: "admin_pox0020date2",             kind: "date" },
+  receiptDate:        { field: "admin_receiptx0020date2",        kind: "date" },
+  poAmountHkd:        { field: "admin_pox0020amountx0020hkx00242", kind: "number" },
+  umMgr:              { field: "admin_umx002fmgr2",              kind: "text" },
+  prIssuedMonth:      { field: "admin_prx0020issuedx0020month2", kind: "text" },
+  prIssuedOn:         { field: "admin_prx0020issuedx0020on2",    kind: "text" },
+  worksOrderCode:     { field: "admin_worksx0020orderx0020code2",kind: "text" },
+  yn:                 { field: "admin_yx0020x002fx0020n2",       kind: "text" },
+  remarks:            { field: "admin_remarks2",                 kind: "text" },
+  invoiceDnNo:        { field: "admin_invoicex0020x0023x0020x002", kind: "text" },
+  invoiceDnDate:      { field: "admin_invoicex0020x002fx0020dnx2", kind: "date" },
+  issueBy:            { field: "admin_issuex0020by2",            kind: "text" },
+  chargeCcc:          { field: "admin_chargex0020ccc2",          kind: "text" },
+  accountCode:        { field: "admin_accountx0020code2",        kind: "text" },
+  // new_-prefixed, not admin_-with-a-"2" -- Status Remark is one of the three
+  // columns added alongside new_flagged/new_prstatus (see the fetch query
+  // below, which already reads it). It was in the editable grid with no entry
+  // here, so saveAllPendingChanges''' own "no config -> skip" guard silently
+  // discarded anything a reviewer typed into it.
+  statusRemark:       { field: "new_statusremark",               kind: "text" },
+};
+
+function MasterRecordDetailModal({ record, onClose, onStatusChange, onToggleFlag, updateMasterRecordField, updateMasterRecordFields, fieldSaveError, dismissFieldSaveError }) {
+  const [prEditing, setPrEditing] = useState(false);
+  const [prDraft, setPrDraft] = useState(hasValue(record.prNo) ? record.prNo : "");
+  const [poEditing, setPoEditing] = useState(false);
+  const [poDraft, setPoDraft] = useState(hasValue(record.poNo) ? record.poNo : "");
+
+  // The former read-only grid's own drafts, one entry per MASTER_RECORDS_
+  // EDITABLE_FIELDS key, keyed the same way prDraft/poDraft are but as a
+  // single object -- 29 separate useState calls would be unreadable. Absent
+  // from this object means "showing the record's own current value", not
+  // "empty"; gridFieldValue below is what actually resolves that.
+  const [fieldDrafts, setFieldDrafts] = useState({});
+  const gridFieldValue = (key) =>
+    key in fieldDrafts ? fieldDrafts[key] : (hasValue(record[key]) ? String(record[key]) : "");
+  const setGridFieldDraft = (key, val) => setFieldDrafts(prev => ({ ...prev, [key]: val }));
+  const isGridFieldDirty = (key) => {
+    if (!(key in fieldDrafts)) return false;
+    const val = fieldDrafts[key].trim();
+    const current = hasValue(record[key]) ? String(record[key]).trim() : "";
+    return val !== current;
+  };
+  // A field key sits here for a moment right after "Save" writes it to
+  // Dataverse -- the green flash confirming "saved", not "editable now".
+  const [flashKeys, setFlashKeys] = useState(new Set());
+  const flashSaved = (key) => {
+    setFlashKeys(prev => { const next = new Set(prev); next.add(key); return next; });
+    setTimeout(() => {
+      setFlashKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }, 700);
+  };
+  const [prAmountDraft, setPrAmountDraft] = useState(plainDecimalDraft(record.hkd));
+  // BTB Type and Quotation Expiry used to write on the instant they changed;
+  // they now sit in a draft like every other field here, so a select/date
+  // pick is just as easy to highlight-then-batch as a typed value is.
+  const [btbTypeDraft, setBtbTypeDraft] = useState(record.btbType || "");
+  const [quotationExpiryDraft, setQuotationExpiryDraft] = useState(record.quotationExpiryDate || "");
+  const isPrDirty = prDraft.trim() !== (hasValue(record.prNo) ? record.prNo : "");
+  const isPoDirty = poDraft.trim() !== (hasValue(record.poNo) ? record.poNo : "");
+  const isPrAmountDirty = prAmountDraft.trim() !== plainDecimalDraft(record.hkd);
+  const isBtbTypeDirty = btbTypeDraft !== (record.btbType || "");
+  const isQuotationExpiryDirty = quotationExpiryDraft !== (record.quotationExpiryDate || "");
+
+  const initialDocs = parseReviewApproval(record.reviewApprovalRaw);
+  const [reviewDoc, setReviewDoc] = useState(initialDocs.review ? { name: initialDocs.review, url: null } : null);
+  const [approvalDoc, setApprovalDoc] = useState(initialDocs.approval ? { name: initialDocs.approval, url: null } : null);
+
+  // Every refusal below says WHY in this one line rather than just greying a
+  // control out. A disabled button with no explanation and a rule the reviewer
+  // could satisfy in one step are the same pixel otherwise, and only one of
+  // them is a problem they can act on -- the same reasoning App.html's own
+  // Save lock follows.
+  const [notice, setNotice] = useState(null);
+  const refuse = (msg) => setNotice(msg);
+
+  // ---- Derived approval + stage, off the DRAFTS, not off `record` ----------
+  // Every gate below is measured against what is currently on screen, so
+  // raising the PR Amount past a threshold reveals the approval stage (and its
+  // upload) immediately, before anything is saved -- rather than after a save,
+  // a close and a re-open.
+  const approval = getDualApprovers(btbTypeDraft, prAmountDraft);
+  const hasApprover = Boolean(approval.approver);
+  const cancelled = record.status === "Cancel";
+  const workflowStep = evaluateManageWorkflowState({
+    prNo: prDraft, reviewDoc, approvalDoc, poNo: poDraft,
+    btbType: btbTypeDraft, prAmount: prAmountDraft, cancelled,
+  });
+  const completed = workflowStep === "Completed";
+  const expiryInfo = quotationExpiryInfo(quotationExpiryDraft);
+
+  // ---- Field locking, ported from updateFieldLockingAndApprovalUI ---------
+  // Two whole-record locks come first and the per-field rules only apply
+  // inside them:
+  //   Cancelled -- nothing is editable at all; the footer's red button becomes
+  //                "Re-open".
+  //   Completed -- everything is frozen EXCEPT PO No., which procurement still
+  //                corrects after the fact (a mistyped PO is found later, and
+  //                re-opening a finished record to fix one would be worse).
+  const fieldsLocked = cancelled || completed;
+  // PR No. stops being editable the moment a UM Review document exists: the
+  // reviewer signed off against THAT number, so changing it afterwards would
+  // silently re-point a signed review at a different requisition. Deleting the
+  // document is the deliberate way back.
+  const prLockReason = cancelled ? "This record is cancelled — re-open it to make changes."
+    : completed ? "This record is completed. Only PO No. stays editable."
+    : reviewDoc ? "A UM Review document is attached, and it was reviewed against this PR Number. Delete the document first if the number has to change."
+    : null;
+  // PO No. only opens at its own stage. Completed is deliberately NOT locked
+  // here -- that is the one field a finished record still allows.
+  const poLockReason = cancelled ? "This record is cancelled — re-open it to make changes."
+    : (!completed && (workflowStep === "Submit LIS System" || workflowStep === "Waiting UM Review" || workflowStep === "Waiting PR Request Approval"))
+      ? "PO No. opens at the \"Input PO No.\" stage. This record is still at \"" + workflowStep + "\"."
+      : null;
+  // Both uploads need a PR Number first: the document is filed against the
+  // requisition, so attaching one to a record that does not yet name a PR
+  // leaves a file with nothing to belong to.
+  const reviewUploadReason = cancelled ? "This record is cancelled — re-open it to attach documents."
+    : completed ? "This record is completed."
+    : !hasValue(prDraft) ? "Enter and save a PR Number first — the UM Review is filed against it."
+    : null;
+  const approvalUploadReason = cancelled ? "This record is cancelled — re-open it to attach documents."
+    : completed ? "This record is completed."
+    : !hasApprover ? "Not required — a " + (btbTypeDraft || "NON-BTB") + " PR at this amount is below every approval threshold."
+    : !hasValue(prDraft) ? "Enter and save a PR Number first — the approval is filed against it."
+    : (workflowStep === "Submit LIS System" || workflowStep === "Waiting UM Review") ? "Attach the UM Review document first."
+    : null;
+
+  const saveReviewApproval = (nextReviewName, nextApprovalName) => {
+    updateMasterRecordField(record.recordId, "new_review",
+      serializeReviewApproval(nextReviewName, nextApprovalName),
+      { reviewApprovalRaw: serializeReviewApproval(nextReviewName, nextApprovalName) });
+  };
+  const pickReviewDoc = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (reviewUploadReason) { refuse(reviewUploadReason); return; }
+    setNotice(null);
+    setReviewDoc({ name: file.name, url: URL.createObjectURL(file) });
+    saveReviewApproval(file.name, approvalDoc ? approvalDoc.name : null);
+  };
+  const pickApprovalDoc = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (approvalUploadReason) { refuse(approvalUploadReason); return; }
+    setNotice(null);
+    setApprovalDoc({ name: file.name, url: URL.createObjectURL(file) });
+    saveReviewApproval(reviewDoc ? reviewDoc.name : null, file.name);
+  };
+  // Deleting either document steps the record BACKWARDS, so it asks first --
+  // the review/approval names are the only thing on this screen that writes to
+  // Dataverse the instant it changes (they drive the stage), so there is no
+  // draft to abandon if the reviewer changes their mind after the fact.
+  const deleteReviewDoc = () => {
+    if (fieldsLocked) { refuse(prLockReason || "This record is not editable."); return; }
+    if (!window.confirm("Remove the UM Review document? This record steps back to \"Waiting UM Review\".")) return;
+    setNotice(null);
+    setReviewDoc(null);
+    saveReviewApproval(null, approvalDoc ? approvalDoc.name : null);
+  };
+  const deleteApprovalDoc = () => {
+    if (fieldsLocked) { refuse(prLockReason || "This record is not editable."); return; }
+    if (!window.confirm("Remove the PR Approval document? This record steps back to \"Waiting PR Request Approval\".")) return;
+    setNotice(null);
+    setApprovalDoc(null);
+    saveReviewApproval(reviewDoc ? reviewDoc.name : null, null);
+  };
+
+  // ---- Cancel / Re-open ---------------------------------------------------
+  // Both write the ONE column that already exists for this: new_prstatus, the
+  // same manual Status the table's own cell and its Cancel tab read. There is
+  // no previous-status column to restore from on re-open, and none is needed --
+  // the workflow stage is recomputed from PR No./documents/PO No. every render,
+  // so a re-opened record lands back on exactly the stage its own contents put
+  // it at. Re-open therefore only has to clear the cancellation, which it does
+  // by setting the manual Status to "Pending".
+  const [confirming, setConfirming] = useState(null); // null | "cancel" | "reopen"
+  const doCancel = () => { setConfirming(null); setNotice(null); onStatusChange(record, "Cancel"); onClose(); };
+  const doReopen = () => { setConfirming(null); setNotice(null); onStatusChange(record, "Pending"); };
+
+  const gridColumns = MASTER_RECORDS_COLUMNS.filter(c => !MANAGE_GRID_EXCLUDED_KEYS.has(c.key));
+
+  // Nothing above writes on its own any more -- every field just sits in a
+  // draft, amber-highlighted while it disagrees with `record`. This is the
+  // ONE place anything reaches Dataverse: it gathers every dirty field into
+  // a single writeMasterRecordFields call (one id lookup, one updateRecord
+  // covering however many columns changed), flashes each one green on
+  // success, then closes so the reviewer sees the table holding the values
+  // they just typed. A field that fails to parse (bad number/date) is
+  // silently left out and stays dirty on screen, same as before batching.
+  // On failure nothing is cleared and the modal stays open -- fieldSaveError
+  // explains why, and every draft is still there to retry.
+  const saveAllPendingChanges = async () => {
+    // A cancelled record refuses the whole write. A completed one lets PO No.
+    // through and nothing else -- the same asymmetry the per-field locks
+    // above draw, enforced here too so a draft that was already dirty when
+    // the record reached Completed cannot ride along on the next Save.
+    if (cancelled) { refuse("This record is cancelled — re-open it before saving changes."); return; }
+    const fields = {};
+    const localPatch = {};
+    const keys = [];
+
+    const prVal = prDraft.trim();
+    if (prVal && isPrDirty && !prLockReason) { fields["admin_prx0020nox002e2"] = prVal; localPatch.prNo = prVal; keys.push("prNo"); }
+    const poVal = poDraft.trim();
+    if (poVal && isPoDirty && !poLockReason) { fields["admin_pox0020nox002e2"] = poVal; localPatch.poNo = poVal; keys.push("poNo"); }
+    if (isPrAmountDirty && !fieldsLocked) {
+      const amtVal = prAmountDraft.trim();
+      fields["admin_hkd2"] = amtVal === "" ? null : parseFloat(amtVal);
+      localPatch.hkd = amtVal;
+      keys.push("hkd");
+    }
+    if (isBtbTypeDirty && !fieldsLocked) { fields["new_btb_type"] = btbTypeDraft || null; localPatch.btbType = btbTypeDraft; keys.push("btbType"); }
+    if (isQuotationExpiryDirty && !fieldsLocked) {
+      fields["new_quotation_expiry_date"] = quotationExpiryDraft || null;
+      localPatch.quotationExpiryDate = quotationExpiryDraft;
+      keys.push("quotationExpiryDate");
+    }
+    Object.keys(fieldDrafts).forEach(key => {
+      if (fieldsLocked) return;
+      if (!isGridFieldDirty(key)) return;
+      const config = MASTER_RECORDS_EDITABLE_FIELDS[key];
+      if (!config) return;
+      const val = gridFieldValue(key).trim();
+      let dvValue, displayValue;
+      if (config.kind === "number") {
+        const n = val === "" ? null : parseFloat(val.replace(/,/g, ""));
+        if (val !== "" && Number.isNaN(n)) return;
+        dvValue = n;
+        displayValue = val === "" ? "—" : val;
+      } else if (config.kind === "date") {
+        if (val === "") { dvValue = null; displayValue = "—"; }
+        else {
+          const iso = parseIsoDate(val);
+          if (!iso) return;
+          dvValue = iso;
+          displayValue = formatIsoDateDisplay(iso);
+        }
+      } else {
+        dvValue = val === "" ? null : val;
+        displayValue = val === "" ? "—" : val;
+      }
+      fields[config.field] = dvValue;
+      localPatch[key] = displayValue;
+      keys.push(key);
+    });
+
+    if (keys.length === 0) { onClose(); return; }
+
+    const ok = await updateMasterRecordFields(record.recordId, fields, localPatch);
+    if (!ok) return; // fieldSaveError is up; every draft stays put to retry
+
+    keys.forEach(flashSaved);
+    setPrEditing(false);
+    setPoEditing(false);
+    setFieldDrafts(prev => {
+      const next = { ...prev };
+      keys.forEach(k => { delete next[k]; });
+      return next;
+    });
+    onClose();
+  };
+
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={"Manage " + record.recordId}
+      className="modal-backdrop fixed inset-0 z-50 bg-[#F4F0E8]/85 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+      <div onClick={e => e.stopPropagation()}
+        className="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+
+        <div className="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="text-[19px] font-bold text-[var(--ink)]" style={{ fontFamily: "'Funnel Sans', system-ui, sans-serif" }}>{record.recordId}</div>
+              <span className={"inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold " +
+                (MANAGE_WORKFLOW_BADGE_CLASS[workflowStep] || "bg-[#F3EBE2] text-[#6B6B6B]")}>{workflowStep}</span>
+            </div>
+            <div className="text-[14px] text-[#6B6B6B]">{record.customerName} · {record.vendor}</div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button type="button" onClick={saveAllPendingChanges} disabled={cancelled}
+              title={cancelled ? "This record is cancelled — re-open it before saving changes." : undefined}
+              className={`ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-transparent ${
+                cancelled ? "bg-[var(--line)] text-white cursor-not-allowed" : "bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]"}`}>
+              Save
+            </button>
+            <button type="button" onClick={onClose} aria-label="Close"
+              className="ui-transition pressable text-[14px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)] flex items-center gap-1">
+              <Icon name="close" className="w-4 h-4" /> Close
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 overflow-y-auto flex flex-col gap-5">
+          {fieldSaveError && (
+            <div className="flex gap-2 px-4 py-3 bg-[#FDECEC] border-l-4 border-[#B23B3B] rounded-lg">
+              <div className="flex-1 text-[14px] leading-5 text-[#3D3D3D]">{fieldSaveError} The change was not saved and has been reverted.</div>
+              <button type="button" onClick={dismissFieldSaveError} className="text-[13px] font-semibold text-[#B23B3B] shrink-0">Dismiss</button>
+            </div>
+          )}
+
+          {notice && (
+            <div className="flex gap-2 px-4 py-3 bg-[#FFF3D6] border-l-4 border-[var(--orange-dark)] rounded-lg">
+              <div className="flex-1 text-[14px] leading-5 text-[#3D3D3D]">{notice}</div>
+              <button type="button" onClick={() => setNotice(null)} className="text-[13px] font-semibold text-[var(--orange-dark)] shrink-0">Dismiss</button>
+            </div>
+          )}
+
+          <div className="bg-[#FBF6EF] p-4 rounded-xl border border-[#EBE3D7]">
+            <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+              <div className="text-[13px] font-bold text-[#6B6B6B] uppercase tracking-wider">Sequential Workflow Stage</div>
+              <span className="text-[12px] text-[#6B6B6B] italic">Computed from PR No. · documents · PO No. — not a stored field</span>
+            </div>
+            {/* 4 stages, not 5, when the amount needs no approver -- see
+                workflowStepsFor. */}
+            <ManageWorkflowStepper currentStep={workflowStep} steps={workflowStepsFor(hasApprover)} />
+            <div className="mt-3 pt-3 border-t border-[#EBE3D7] flex items-center gap-2 flex-wrap">
+              <span className="text-[12px] font-bold uppercase tracking-wider text-[#6B6B6B]">Approval required</span>
+              {hasApprover ? (
+                <React.Fragment>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-bold bg-[#EDE9FE] text-[#6D28D9]">{approval.approver}</span>
+                  <span className="text-[13px] text-[#6B6B6B]">
+                    — a {btbTypeDraft || "NON-BTB"} PR at {formatPrAmountDisplay(prAmountDraft)} needs {approval.approver} sign-off before PO No. opens.
+                  </span>
+                </React.Fragment>
+              ) : (
+                <span className="text-[13px] text-[#6B6B6B]">
+                  <span className="font-semibold text-[var(--ink)]">Not required</span> — below every threshold for a {btbTypeDraft || "NON-BTB"} PR, so this record skips the approval stage entirely.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-6">
+            <div className="flex flex-col gap-1">
+              <label className="text-[13px] font-semibold text-[#6B6B6B]">Status</label>
+              <select value={record.status || ""} onChange={e => onStatusChange(record, e.target.value)}
+                aria-label={`Status for ${record.recordId}`}
+                className={`text-[13px] font-semibold rounded-full pl-2.5 pr-1.5 py-1 border-0 outline-none cursor-pointer ui-transition ${record.status ? STATUS_STYLES[record.status] : "bg-[#F3EBE2] text-[#6B6B6B]"}`}>
+                {!record.status && <option value="">—</option>}
+                {Object.values(PR_STATUS_CHOICES).map(label => <option key={label} value={label}>{label}</option>)}
+              </select>
+            </div>
+            <button type="button" onClick={() => onToggleFlag(record)}
+              title={record.flagged ? "Remove flag" : "Add flag"} aria-label={record.flagged ? "Remove flag" : "Add flag"}
+              className={`ui-transition pressable flex items-center gap-1.5 ${record.flagged ? "" : "opacity-25 grayscale hover:opacity-60"}`}>
+              🚩 <span className="text-[13px] text-[#6B6B6B]">Flagged</span>
+            </button>
+          </div>
+
+          {/* Both Edit buttons stay CLICKABLE when their field is locked, and
+              answer with the reason instead of doing nothing -- a greyed
+              button and a rule the reviewer could satisfy in one step look
+              identical otherwise. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[13px] font-semibold text-[#6B6B6B]">PR No.</label>
+              <div className="flex gap-2 items-center">
+                <input value={prDraft} onChange={e => setPrDraft(e.target.value)} disabled={!prEditing || Boolean(prLockReason)} placeholder="Enter PR Number…"
+                  className={`flex-1 px-3 py-2 text-[16px] rounded-lg border-[1.5px] ui-transition focus:border-[var(--orange)] focus:outline-none ${
+                    flashKeys.has("prNo") ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    (prEditing && isPrDirty) ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    (prEditing && !prLockReason) ? "bg-white border-[var(--line)] text-[var(--ink)]" : "bg-[var(--surface-soft)] border-[var(--line)] text-[#6B6B6B]"}`} />
+                <button type="button" title={prLockReason || undefined}
+                  onClick={() => { if (prLockReason) { refuse(prLockReason); return; } setNotice(null); setPrEditing(e => !e); }}
+                  className={`ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-transparent whitespace-nowrap ${
+                    prLockReason ? "bg-[var(--line)] text-white" : "bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]"}`}>
+                  {prLockReason ? "🔒 Locked" : prEditing ? "Done" : "Edit"}
+                </button>
+              </div>
+              {prLockReason && <div className="text-[12px] text-[#6B6B6B] leading-4 mt-0.5">{prLockReason}</div>}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[13px] font-semibold text-[#6B6B6B]">PO No.</label>
+              <div className="flex gap-2 items-center">
+                <input value={poDraft} onChange={e => setPoDraft(e.target.value)} disabled={!poEditing || Boolean(poLockReason)} placeholder="Enter PO Number…"
+                  className={`flex-1 px-3 py-2 text-[16px] rounded-lg border-[1.5px] ui-transition focus:border-[var(--orange)] focus:outline-none ${
+                    flashKeys.has("poNo") ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    (poEditing && isPoDirty) ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    (poEditing && !poLockReason) ? "bg-white border-[var(--line)] text-[var(--ink)]" : "bg-[var(--surface-soft)] border-[var(--line)] text-[#6B6B6B]"}`} />
+                <button type="button" title={poLockReason || undefined}
+                  onClick={() => { if (poLockReason) { refuse(poLockReason); return; } setNotice(null); setPoEditing(e => !e); }}
+                  className={`ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-transparent whitespace-nowrap ${
+                    poLockReason ? "bg-[var(--line)] text-white" : "bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]"}`}>
+                  {poLockReason ? "🔒 Locked" : poEditing ? "Done" : "Edit"}
+                </button>
+              </div>
+              {poLockReason && <div className="text-[12px] text-[#6B6B6B] leading-4 mt-0.5">{poLockReason}</div>}
+            </div>
+          </div>
+
+          <div className="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] flex flex-col gap-3">
+            <div className="text-[15px] font-bold text-[var(--ink)]">BTB Type · PR Amount · Quotation Expiry · Documents</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* These two are what the approval matrix reads, so they carry
+                  the same whole-record lock as everything else: a cancelled or
+                  completed record must not have its approval band moved under
+                  a sign-off that already happened. */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-semibold text-[#6B6B6B]">BTB / NON-BTB</label>
+                <select value={btbTypeDraft} onChange={e => setBtbTypeDraft(e.target.value)} disabled={fieldsLocked}
+                  className={`w-full px-3 py-2 text-[16px] rounded-lg border-[1.5px] ui-transition ${
+                    fieldsLocked ? "bg-[var(--surface-soft)] border-[var(--line)] text-[#6B6B6B] cursor-not-allowed" :
+                    flashKeys.has("btbType") ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    isBtbTypeDirty ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    "bg-white border-[var(--line)] text-[var(--ink)]"}`}>
+                  <option value="">— Select —</option>
+                  <option value="BTB">BTB</option>
+                  <option value="NON-BTB">NON-BTB</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] font-semibold text-[#6B6B6B]">PR Amount (HKD)</label>
+                <input type="number" step="0.01" value={prAmountDraft} onChange={e => setPrAmountDraft(e.target.value)}
+                  placeholder="0.00" disabled={fieldsLocked}
+                  className={`w-full px-3 py-2 text-[16px] rounded-lg border-[1.5px] ui-transition focus:border-[var(--orange)] focus:outline-none ${
+                    fieldsLocked ? "bg-[var(--surface-soft)] border-[var(--line)] text-[#6B6B6B] cursor-not-allowed" :
+                    flashKeys.has("hkd") ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    isPrAmountDirty ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    "bg-white border-[var(--line)] text-[var(--ink)]"}`} />
+              </div>
+              {/* An expired quotation turns its whole box red, not just its
+                  countdown line -- this is the one field on the screen a
+                  reviewer has to notice without reading it. */}
+              <div className={`flex flex-col gap-1 p-2.5 -m-2.5 rounded-lg border ui-transition ${
+                expiryInfo && expiryInfo.tone === "expired" ? "bg-[#FEE2E2] border-[var(--red)]" : "border-transparent"}`}>
+                <label className="text-[13px] font-semibold text-[#6B6B6B]">Quotation Expiry Date</label>
+                <input type="date" value={quotationExpiryDraft} onChange={e => setQuotationExpiryDraft(e.target.value)} disabled={fieldsLocked}
+                  className={`w-full px-3 py-2 text-[16px] rounded-lg border-[1.5px] ui-transition ${
+                    fieldsLocked ? "bg-[var(--surface-soft)] border-[var(--line)] text-[#6B6B6B] cursor-not-allowed" :
+                    flashKeys.has("quotationExpiryDate") ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    isQuotationExpiryDirty ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    "bg-white border-[var(--line)] text-[var(--ink)]"}`} />
+                {expiryInfo && (
+                  <div className={`text-[13px] mt-0.5 ${expiryInfo.tone === "ok" ? "text-[#6B6B6B] font-medium" : "text-[var(--red)] font-bold"}`}>
+                    {expiryInfo.text}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <span className="text-[12px] text-[#6B6B6B] italic">Only the file name is saved (new_review is a text column) — the file itself stays on this device for this session only.</span>
+              {/* A blocked upload renders as a real button that ANSWERS -- the
+                  <label>+hidden-input form cannot, because a disabled file
+                  input makes its label silently inert, which is exactly the
+                  "nothing happened and nobody said why" the reasons exist to
+                  avoid. The Approval slot's whole panel also greys out when no
+                  approver is required, so "not applicable" and "not done yet"
+                  do not look the same. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {[["UM Review Document", reviewDoc, pickReviewDoc, deleteReviewDoc, "review", reviewUploadReason, false],
+                  ["PR Request Approval Document", approvalDoc, pickApprovalDoc, deleteApprovalDoc, "approval", approvalUploadReason, !hasApprover]]
+                  .map(([label, doc, onPick, onDelete, key, reason, notApplicable]) => (
+                  <div key={key} className={`flex flex-col gap-2 ui-transition ${notApplicable && !doc ? "opacity-60" : ""}`}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span className="text-[15px] font-semibold text-[var(--ink)]">{label}</span>
+                      {notApplicable && !doc && <span className="text-[11px] font-bold uppercase tracking-wider text-[#6B6B6B]">Not required</span>}
+                    </div>
+                    {doc ? (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-[var(--line)]">
+                        {doc.url ? (
+                          <a href={doc.url} target="_blank" rel="noreferrer" className="text-[14px] font-medium text-[#1D4ED8] hover:underline truncate">{doc.name}</a>
+                        ) : (
+                          <span className="text-[14px] font-medium text-[var(--ink)] truncate">📎 {doc.name}</span>
+                        )}
+                        <button type="button" onClick={onDelete} title={fieldsLocked ? "This record is not editable." : undefined}
+                          className={`text-[13px] font-semibold px-2 py-1 ${fieldsLocked ? "text-[#8E8E93] cursor-not-allowed" : "text-[var(--red)] hover:underline"}`}>Delete</button>
+                      </div>
+                    ) : reason ? (
+                      <button type="button" onClick={() => refuse(reason)} title={reason}
+                        className="w-full ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold bg-[var(--surface-soft)] border border-[var(--line)] text-[#6B6B6B] text-center">
+                        🔒 Upload unavailable
+                      </button>
+                    ) : (
+                      <label className="w-full ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold bg-white border border-[#B8B8BD] text-[var(--ink)] hover:bg-[#FFF3D6] text-center cursor-pointer">
+                        <Icon name="upload" className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" /> Upload
+                        <input type="file" className="hidden" onChange={onPick} />
+                      </label>
+                    )}
+                    {!doc && reason && <div className="text-[12px] text-[#6B6B6B] leading-4">{reason}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Was a read-only display grid (label + plain <span> value) --
+              every field here now has a real Dataverse column mapped in
+              MASTER_RECORDS_EDITABLE_FIELDS, so each value is a text input
+              that saves on blur (same convention as PR Amount above). A
+              value showing "—" (nothing saved) edits from a blank box, same
+              as PR No./PO No. already do. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+            {gridColumns.map(c => (
+              <div key={c.key} className="flex flex-col gap-1 py-1 border-b border-[#EFEAE2]">
+                <label className="text-[14px] font-semibold text-[#6B6B6B]">{c.label}</label>
+                <input value={gridFieldValue(c.key)} onChange={e => setGridFieldDraft(c.key, e.target.value)}
+                  aria-label={c.label} disabled={fieldsLocked}
+                  className={`w-full px-[7px] py-[3px] text-[15px] rounded-md border-[1.5px] ui-transition focus:bg-white focus:border-[var(--orange)] focus:outline-none ${
+                    fieldsLocked ? "bg-transparent border-transparent text-[#6B6B6B] cursor-not-allowed" :
+                    flashKeys.has(c.key) ? "bg-[#DCFCE7] border-[var(--green)] text-[var(--ink)]" :
+                    isGridFieldDirty(c.key) ? "bg-[#FEF3C7] border-[var(--amber)] text-[var(--ink)]" :
+                    "bg-transparent border-transparent text-[var(--ink)]"}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cancel / Re-open. Both write ONE column -- new_prstatus, the manual
+            Status the table's own cell and its Cancel tab already read -- so
+            cancelling needs no workflow-status column, and re-opening needs no
+            stored previous status: the stage is recomputed from the record's
+            own contents (see the comment above `confirming`). The confirmation
+            is an inline panel rather than a nested modal: this screen is
+            already a modal, and stacking a second one over it is where the
+            reference screen's own two dialogs fought with its backdrop. */}
+        <div className="px-6 py-4 border-t border-[var(--line)] shrink-0 flex flex-col gap-3">
+          {confirming && (
+            <div className={"panel-rise rounded-xl border p-4 flex flex-col gap-3 " +
+              (confirming === "cancel" ? "bg-[#FDECEC] border-[#FCA5A5]" : "bg-[#FFF3D6] border-[var(--orange-dark)]")}>
+              <div className="flex items-center gap-2">
+                <span className="text-[18px]">{confirming === "cancel" ? "⚠️" : "🔄"}</span>
+                <span className="text-[15px] font-bold text-[var(--ink)]">
+                  {confirming === "cancel" ? "Cancel this record?" : "Re-open this record?"}
+                </span>
+              </div>
+              <div className="text-[14px] leading-5 text-[#3D3D3D]">
+                {confirming === "cancel"
+                  ? "Its Status becomes \"Cancel\" and every field on this screen turns read-only. Nothing is deleted — re-opening it later restores the stage its own PR No., documents and PO No. put it at."
+                  : "Its Status returns to \"Pending\" and the fields unlock. The workflow stage is recomputed from this record's own PR No., documents and PO No., so it lands back exactly where it left off."}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button type="button" onClick={() => setConfirming(null)}
+                  className="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">
+                  Leave
+                </button>
+                <button type="button" onClick={confirming === "cancel" ? doCancel : doReopen}
+                  className={"ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-bold text-white border-[1.5px] border-transparent " +
+                    (confirming === "cancel" ? "bg-[var(--red)] hover:bg-[#B91C1C]" : "bg-[var(--orange-dark)] hover:bg-[#8A4A00]")}>
+                  Confirm
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            {cancelled ? (
+              <button type="button" onClick={() => setConfirming("reopen")}
+                className="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange-dark)] text-white hover:bg-[#8A4A00] border-[1.5px] border-transparent">
+                🔄 Re-open
+              </button>
+            ) : (
+              <button type="button" onClick={() => setConfirming("cancel")}
+                className="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-bold bg-[var(--red)] text-white hover:bg-[#B91C1C] border-[1.5px] border-transparent">
+                Record Cancel
+              </button>
+            )}
+            <span className="text-[12px] text-[#6B6B6B]">
+              Stage: <span className="font-semibold text-[var(--ink)]">{workflowStep}</span>
+              {hasApprover ? ` · Approver: ${approval.approver}` : " · No approval required"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Records page (adapted from PR Assistant App.html's
+   RecordsPage -- "+ New Record"/openReply are dropped since this page has
+   no Upload/Reply flow of its own; a Demo Mode toggle and the page's own
+   version pill take their place in the header). ---------- */
+
+function RecordsPage({ records, demoMode, toggleDemo, recordsLoadError, updateMasterRecordField, updateMasterRecordFields, fieldSaveError, dismissFieldSaveError }) {
+  const [filter, setFilter] = useState("All Records");
+  // A SECOND, independent filter, ANDed with `filter` above. The two answer
+  // different questions and both are worth keeping: `filter` is the manual
+  // Status a reviewer set by hand (new_prstatus -- Completed/Pending/Cancel/
+  // Return/Duplicate), while this one is the computed workflow stage plus the
+  // two quotation-expiry checks. Collapsing them into one strip would have
+  // meant dropping one set, and "a reviewer marked this Duplicate" and "this
+  // record is waiting on a UM review" are not alternatives to each other.
+  const [workflowFilter, setWorkflowFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [handledByFilter, setHandledByFilter] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("");
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState(loadMasterRecordsVisibleColumns);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const columnsRef = useRef(null);
+  // Table header click-to-sort -- ported from the reference screen's own
+  // handleSort/applySort (its "Record ID ↕" etc. column headers). No default
+  // sort column, unlike the reference's `sortCol: 'Title'`: this page already
+  // has its own default row order (Dataverse's own fetch order / DEMO_RECORDS'
+  // order), and picking a silent default here would reorder rows before a
+  // reviewer ever touched a header.
+  const [sortKey, setSortKey] = useState(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  const toggleSort = (key) => {
+    if (sortKey === key) { setSortAsc(a => !a); return; }
+    setSortKey(key);
+    setSortAsc(true);
+  };
+  const [managingRecordId, setManagingRecordId] = useState(null);
+  const managingRecord = managingRecordId ? records.find(r => r.recordId === managingRecordId) : null;
+  const tabs = ["All Records", "Completed", "Pending", "Cancel", "Return", "Duplicate"];
+  const pagination = demoMode ? DEMO_PAGINATION : EMPTY_PAGINATION;
+
+  const onStatusChange = (r, newLabel) => {
+    if (!newLabel || newLabel === r.status) return;
+    updateMasterRecordField(r.recordId, "new_prstatus", PR_STATUS_VALUES[newLabel], { status: newLabel });
+  };
+  const onToggleFlag = (r) => {
+    const next = !r.flagged;
+    updateMasterRecordField(r.recordId, "new_flagged", next, { flagged: next });
+  };
+
+  const filtered = useMemo(() => {
+    const rows = records.filter(r => {
+      const matchesTab = filter === "All Records" || r.status === filter;
+      const matchesWorkflow = matchesWorkflowTab(r, workflowFilter);
+      const q = search.toLowerCase();
+      // Searches EVERY value on the row, same as the reference screen's own
+      // `Object.values(item).some(...)`. The old five-field list silently
+      // missed the UID, the contract number and the PR No. -- the three things
+      // a reviewer is most likely to paste in from an email.
+      const matchesSearch = !q || Object.keys(r).some(k =>
+        k !== "reviewApprovalRaw" && String(r[k] == null ? "" : r[k]).toLowerCase().includes(q));
+      const matchesHandledBy = !handledByFilter || (r.handledBy || "").toLowerCase().includes(handledByFilter.toLowerCase());
+      const matchesVendor = !vendorFilter || (r.vendor || "").toLowerCase().includes(vendorFilter.toLowerCase());
+      const matchesCustomer = !customerFilter || (r.customerName || "").toLowerCase().includes(customerFilter.toLowerCase());
+      return matchesTab && matchesWorkflow && matchesSearch && matchesHandledBy && matchesVendor && matchesCustomer;
+    });
+    if (!sortKey) return rows;
+    const col = MASTER_RECORDS_COLUMNS.find(c => c.key === sortKey);
+    if (!col) return rows;
+    const sorted = [...rows].sort((a, b) => {
+      const cmp = compareMasterRecordSortValues(col.exportValue(a), col.exportValue(b));
+      return sortAsc ? cmp : -cmp;
+    });
+    return sorted;
+  }, [records, filter, workflowFilter, search, handledByFilter, vendorFilter, customerFilter, sortKey, sortAsc]);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(MASTER_RECORDS_COLUMNS_STORAGE_KEY, JSON.stringify(visibleColumnKeys)); } catch (e) {}
+  }, [visibleColumnKeys]);
+
+  useEffect(() => {
+    if (!columnsOpen) return;
+    const onOutside = (e) => { if (columnsRef.current && !columnsRef.current.contains(e.target)) setColumnsOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setColumnsOpen(false); };
+    window.addEventListener("mousedown", onOutside);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onOutside);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [columnsOpen]);
+
+  const toggleColumn = (key) => setVisibleColumnKeys(prev => {
+    if (prev.includes(key)) return prev.length > 1 ? prev.filter(k => k !== key) : prev;
+    return MASTER_RECORDS_COLUMN_KEYS.filter(k => prev.includes(k) || k === key);
+  });
+
+  const activeColumns = useMemo(() => {
+    const cols = MASTER_RECORDS_COLUMNS.filter(c => visibleColumnKeys.includes(c.key));
+    return cols.map((c, i) => (i === cols.length - 1 ? { ...c, width: "flex-1 min-w-0" } : c));
+  }, [visibleColumnKeys]);
+
+  const exportExcel = () => {
+    if (typeof XLSX === "undefined") {
+      window.alert("Excel export isn't available right now.");
+      return;
+    }
+    const rows = filtered.map(r => {
+      const row = {};
+      activeColumns.forEach(c => { row[c.label] = c.exportValue(r); });
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(rows, { header: activeColumns.map(c => c.label) });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Master Records");
+    XLSX.writeFile(wb, `MasterRecords_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const counts = {
+    total: records.length,
+    completed: records.filter(r => r.status === "Completed").length,
+    pending: records.filter(r => r.status === "Pending").length,
+    cancel: records.filter(r => r.status === "Cancel").length,
+    return: records.filter(r => r.status === "Return").length,
+    duplicate: records.filter(r => r.status === "Duplicate").length,
+    flagged: records.filter(r => r.flagged).length,
+  };
+
+  // The KPI strip's own counts -- deliberately NOT `counts` above. That one is
+  // keyed off the manual Status field (Completed/Pending/Cancel/Return/
+  // Duplicate) the tabs still use; the reference screen's 5 cards are keyed
+  // off the computed Workflow Status (masterRecordWorkflowStep, same as the
+  // table's own column) and two date checks, same as the reference's own
+  // updateDashboard(). endDate is fmtLisDate's "DD Mon YYYY" display string
+  // (also what DEMO_RECORDS carries), which `new Date(...)` parses the same
+  // way fmtLisDate's own `new Date(raw)` does -- an unparseable/placeholder
+  // value ("—") reads as "not expired" rather than throwing.
+  // Completed/Pending deliberately EXCLUDE cancelled records rather than
+  // counting them as pending, same as the reference's own updateDashboard: a
+  // cancelled record is not outstanding work, and rolling it into Pending
+  // would make the number a reviewer reads as "still to do" wrong by exactly
+  // the count of the card beside it. Expired/Expiring Soon are the quotation
+  // expiry checks (against HKT's day, via quotationExpiryInfo), not the
+  // contract end date -- the quotation is the thing that has to be re-quoted
+  // if it lapses.
+  const kpi = {
+    total: records.length,
+    completedTasks: records.filter(r => r.status !== "Cancel" && masterRecordWorkflowStep(r) === "Completed").length,
+    pendingTasks: records.filter(r => r.status !== "Cancel" && masterRecordWorkflowStep(r) !== "Completed").length,
+    quotationExpired: records.filter(r => matchesWorkflowTab(r, "Expired")).length,
+    expiringSoon: records.filter(r => matchesWorkflowTab(r, "Expiring Soon")).length,
+    cancelled: records.filter(r => r.status === "Cancel").length,
+  };
+  const tabCounts = {
+    "All Records": counts.total, Completed: counts.completed, Pending: counts.pending,
+    Cancel: counts.cancel, Return: counts.return, Duplicate: counts.duplicate,
+  };
+
+  return (
+    <React.Fragment>
+      <TopBar title="Master Records" desc="Search and browse the saved records"
+        right={<React.Fragment>
+          <Pill className="bg-[#F3EBE2] text-[#6B6B6B]" title="This page's own version -- independent from PR Assistant App.html's">v{MASTER_RECORDS_PAGE_VERSION}</Pill>
+          {demoMode && <Pill className="bg-[#FBF0E8] text-[#D4916E]">Demo Mode</Pill>}
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-white border-[1.5px] border-[#C5BEB6] rounded-full w-[240px]">
+            <span className="text-[#6B6B6B] text-[13px]">🔍</span>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search customer, vendor, PO No…"
+              aria-label="Search records"
+              className="flex-1 text-[14px] outline-none bg-transparent placeholder:text-[#6B6B6B]" />
+          </div>
+          <GhostButton onClick={() => setFiltersOpen(o => !o)} className={"flex items-center gap-1.5" + (filtersOpen ? " !border-[var(--orange-dark)] !bg-[#FFF3D6]" : "")}>
+            Filter Data
+            <Icon name="chevronDown" className={"w-3.5 h-3.5 ui-transition" + (filtersOpen ? " rotate-180" : "")} />
+          </GhostButton>
+          <div ref={columnsRef} className="relative inline-block">
+            <GhostButton onClick={() => setColumnsOpen(o => !o)} className="flex items-center gap-1.5">
+              Columns
+              <Icon name="chevronDown" className={"w-3.5 h-3.5 ui-transition" + (columnsOpen ? " rotate-180" : "")} />
+            </GhostButton>
+            {columnsOpen && (
+              <div className="absolute z-20 right-0 mt-1.5 w-56 dropdown-pop rounded-lg border-[1.5px] border-[var(--line)] bg-white shadow-[0_12px_28px_rgba(29,29,31,0.14)] p-2"
+                style={{ transformOrigin: "top" }}>
+                {MASTER_RECORDS_COLUMNS.map(c => (
+                  <label key={c.key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer hover:bg-[#FFF4DE]">
+                    <input type="checkbox" checked={visibleColumnKeys.includes(c.key)} onChange={() => toggleColumn(c.key)}
+                      className="w-[16px] h-[16px] accent-[#D4916E] rounded border-[1.5px] border-[#C5BEB6] shrink-0" />
+                    <span className="flex-1 text-[13px] text-[#3D3D3D]">{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <GhostButton onClick={exportExcel} className="flex items-center gap-1.5">
+            <Icon name="sheet" className="w-4 h-4" />
+            Export Excel
+          </GhostButton>
+          <GhostButton onClick={toggleDemo} className={demoMode ? "!border-[var(--orange)] !bg-[#FFF4DE] !text-[var(--ink)]" : ""}>
+            {demoMode ? "Exit Demo" : "Demo Mode"}
+          </GhostButton>
+        </React.Fragment>} />
+
+      {/* Clicking a card sets the Workflow strip below to the same view, so a
+          count and the rows behind it are one click apart. Total Records and
+          Cancelled Records map onto "All" and "Cancelled"; the card whose tab
+          is already active toggles back to All. */}
+      <div className="px-5 md:px-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+        {[["Total Records", kpi.total, "text-[#6B6B6B]", "bg-[var(--orange)]", "All", "text-[var(--ink)]"],
+          ["Completed Tasks", kpi.completedTasks, "text-[var(--green)]", "", "Completed", "text-[var(--ink)]"],
+          ["Pending Tasks", kpi.pendingTasks, "text-[#6B6B6B]", "bg-[var(--amber)]", null, "text-[var(--ink)]"],
+          ["Quotation Expired", kpi.quotationExpired, "text-[#6B6B6B]", "bg-[var(--red)]", "Expired", "text-[var(--ink)]"],
+          ["Expiring Soon (14 Days)", kpi.expiringSoon, "text-[#6B6B6B]", "bg-[var(--amber)]", "Expiring Soon", "text-[var(--ink)]"],
+          ["Cancelled Records", kpi.cancelled, "text-[var(--red)]", "bg-[var(--red)]", "Cancelled", "text-[var(--red)]"]]
+          .map(([label, value, labelClass, dotClass, tab, valueClass]) => {
+          const active = tab && workflowFilter === tab && tab !== "All";
+          return (
+            <Card key={label} className={"p-4 ui-transition " + (tab ? "cursor-pointer pressable hover:bg-[#FBF6EF] " : "") + (active ? "!border-[var(--orange-dark)]" : "")}>
+              <div role={tab ? "button" : undefined} tabIndex={tab ? 0 : undefined}
+                onClick={tab ? () => setWorkflowFilter(active ? "All" : tab) : undefined}
+                onKeyDown={tab ? (e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setWorkflowFilter(active ? "All" : tab); } }) : undefined}>
+                <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] ${labelClass}`}>
+                  {dotClass && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />}
+                  {label}
+                </div>
+                <div className={`mt-2 text-[26px] font-bold ${valueClass}`}>{value}</div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {filtersOpen && (
+        <div className="px-5 md:px-8 mb-5">
+          <Card className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#6B6B6B]">Handled By</label>
+              <input value={handledByFilter} onChange={e => setHandledByFilter(e.target.value)} placeholder="Name…"
+                className="w-full px-3 py-2 text-[14px] text-[#1A1A1A] bg-white rounded-lg border-[1.5px] border-[var(--line)] ui-transition focus:border-[var(--orange)] focus:outline-none" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#6B6B6B]">Vendor</label>
+              <input value={vendorFilter} onChange={e => setVendorFilter(e.target.value)} placeholder="Vendor…"
+                className="w-full px-3 py-2 text-[14px] text-[#1A1A1A] bg-white rounded-lg border-[1.5px] border-[var(--line)] ui-transition focus:border-[var(--orange)] focus:outline-none" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#6B6B6B]">Customer Name</label>
+              <input value={customerFilter} onChange={e => setCustomerFilter(e.target.value)} placeholder="Customer…"
+                className="w-full px-3 py-2 text-[14px] text-[#1A1A1A] bg-white rounded-lg border-[1.5px] border-[var(--line)] ui-transition focus:border-[var(--orange)] focus:outline-none" />
+            </div>
+          </Card>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-6 px-5 md:px-8 pb-8">
+        <div className="flex-1 flex flex-col">
+          {recordsLoadError && (
+            <div className="mb-4 w-full flex gap-2 px-4 py-3 bg-[#FDECEC] border-l-4 border-[#B23B3B] rounded-lg">
+              <div className="flex-1 text-[13px] leading-5 text-[#3D3D3D]">
+                <span className="font-bold text-[#B23B3B]">Could not load records from Dataverse.</span>{" "}
+                {recordsLoadError} The list below may be empty or out of date because of this, not because there is nothing saved.
+              </div>
+            </div>
+          )}
+          {fieldSaveError && (
+            <div className="mb-4 w-full flex gap-2 px-4 py-3 bg-[#FDECEC] border-l-4 border-[#B23B3B] rounded-lg">
+              <div className="flex-1 text-[13px] leading-5 text-[#3D3D3D]">{fieldSaveError} The change was not saved and has been reverted.</div>
+              <button type="button" onClick={dismissFieldSaveError} className="text-[12px] font-semibold text-[#B23B3B] shrink-0">Dismiss</button>
+            </div>
+          )}
+          {/* Workflow stage strip -- the computed stage (plus the two quotation
+              expiry checks), ANDed with the manual Status tabs below it. Its
+              counts are computed over `records`, not over `filtered`, so a
+              count never changes just because another filter is narrowing the
+              rows -- it always answers "how many records are at this stage",
+              which is what makes it safe to click. */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#6B6B6B] shrink-0">Workflow</span>
+            {WORKFLOW_TABS.map(t => {
+              const active = workflowFilter === t;
+              const count = t === "All" ? records.length : records.filter(r => matchesWorkflowTab(r, t)).length;
+              return (
+                <button key={t} type="button" onClick={() => setWorkflowFilter(t)} aria-pressed={active}
+                  className={`ui-transition pressable flex items-center gap-1.5 px-2.5 py-1 rounded-full border-[1.5px] ${
+                    active ? "border-[var(--orange-dark)] bg-[#FFF3D6]" : "border-[var(--line)] bg-white hover:bg-[#FBF6EF]"}`}>
+                  <span className={`text-[12px] whitespace-nowrap ${active ? "text-[var(--ink)] font-semibold" : "text-[#6B6B6B]"}`}>{t}</span>
+                  <span className={`px-1.5 rounded-full text-[10px] font-bold ${active ? "bg-white text-[var(--orange-dark)]" : "bg-[#F3EBE2] text-[#6B6B6B]"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex border-b border-[#C5BEB6] flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#6B6B6B] self-center pr-3 shrink-0">Status</span>
+            {tabs.map(t => (
+              <button key={t} type="button" onClick={() => setFilter(t)} aria-pressed={filter === t}
+                className={`px-4 py-2.5 border-b-2 -mb-px ui-transition pressable flex items-center gap-1.5 ${filter === t ? "border-[#D4916E]" : "border-transparent"}`}>
+                <span className={`text-[13px] whitespace-nowrap ${filter === t ? "text-[#D4916E] font-semibold" : "text-[#6B6B6B]"}`}>{t}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${filter === t ? "bg-[#FBF0E8] text-[#D4916E]" : "bg-[#F3EBE2] text-[#6B6B6B]"}`}>{tabCounts[t]}</span>
+              </button>
+            ))}
+          </div>
+
+          <Card className="w-full rounded-t-none overflow-hidden">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+              <div className="flex px-4 py-3 bg-[#F3EBE2] sticky top-0 z-10">
+                {activeColumns.map(c => (
+                  <button type="button" key={c.key} onClick={() => toggleSort(c.key)}
+                    aria-label={`Sort by ${c.label}`}
+                    className={`flex items-center gap-1 text-left text-[12px] font-semibold ui-transition cursor-pointer select-none hover:text-[var(--orange-dark)] ${sortKey === c.key ? "text-[var(--orange-dark)]" : "text-[#6B6B6B]"} ${c.width.startsWith("flex-1") ? "" : "shrink-0"} ${c.width}`}>
+                    {c.label}
+                    <span className="text-[10px]">{sortKey === c.key ? (sortAsc ? "↑" : "↓") : "↕"}</span>
+                  </button>
+                ))}
+                <div className="w-[140px] shrink-0 text-[12px] font-semibold text-[#6B6B6B] text-right">Action</div>
+              </div>
+              {filtered.map(r => (
+                <div key={r.id} className="w-full flex px-4 py-3.5 border-b border-[#C5BEB6] hover:bg-[#FBF6EF] ui-transition items-center text-left">
+                  {activeColumns.map(c => (
+                    <span key={c.key} className={`${c.width} ${c.width.startsWith("flex-1") ? "" : "shrink-0"} ${c.cellClassName || ""}`}>
+                      {c.render(r, { onStatusChange, onToggleFlag })}
+                    </span>
+                  ))}
+                  <div className="w-[140px] shrink-0 text-right">
+                    <button type="button" onClick={() => setManagingRecordId(r.recordId)}
+                      className="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold whitespace-nowrap bg-[var(--orange)] text-[#1A1A1A] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">
+                      View &amp; Manage
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filtered.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-[#6B6B6B]">No records match.</div>}
+            </div>
+            <div className="flex justify-between items-center px-4 py-3">
+              <div className="text-xs text-[#6B6B6B]">Showing 1–{filtered.length} of {records.length} records</div>
+              <div className="flex gap-1">
+                {pagination.map((p,i) => (
+                  <div key={i} className={`px-3 py-1.5 rounded-md border text-xs ${p==="1" ? "bg-[#D4916E] text-white border-transparent font-semibold" : "bg-white border-[#C5BEB6] text-[#3D3D3D]"}`}>{p}</div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {managingRecord && (
+        <MasterRecordDetailModal key={managingRecord.recordId} record={managingRecord}
+          onClose={() => setManagingRecordId(null)}
+          onStatusChange={onStatusChange} onToggleFlag={onToggleFlag}
+          updateMasterRecordField={updateMasterRecordField}
+          updateMasterRecordFields={updateMasterRecordFields}
+          fieldSaveError={fieldSaveError} dismissFieldSaveError={dismissFieldSaveError} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ---------- Dataverse read/write (verbatim from PR Assistant App.html's own
+   findExistingLisRecordId/writeMasterRecordField/DATAVERSE_LIS_SOURCE and
+   its RecordsPage fetch effect) ---------- */
+
+const DATAVERSE_LIS_SOURCE = {
+  entity: "admin_btb_lis_excel_datas",
+  titleField: "admin_title",
+  select: ["admin_title", "admin_customerx0020name2", "admin_vendor2",
+    "admin_hkd2", "admin_contractx0020nox002e2",
+    "admin_startx0020date", "admin_odatax0020endx0020date2",
+    "admin_prx0020reference2", "admin_uidx0020x00232",
+    "admin_issuex0020by2", "admin_chargex0020ccc2",
+    "admin_worksx0020orderx0020code2", "admin_accountx0020code2",
+    "admin_prx0020issuedx0020on2", "admin_prx0020nox002e2",
+    "admin_handledx0020byx00202", "admin_iptx0020unitx0020mgr2",
+    "admin_startx0020date2", "admin_odatax0020endx0020date3"],
+};
+
+function dataverseVerifyQuery(recordId, source) {
+  const escaped = String(recordId || "").replace(/'/g, "''");
+  return "?$select=" + source.select.join(",") + "&$filter=" + source.titleField + " eq '" + escaped + "'";
+}
+
+// null   -- no existing row for this Record_ID
+// ""     -- an existing row was found but its id column was not on the response
+// <guid> -- an existing row's id
+async function findExistingLisRecordId(recordId, webApi) {
+  if (!webApi || !recordId) return null;
+  const response = await webApi.retrieveMultipleRecords(
+    DATAVERSE_LIS_SOURCE.entity, dataverseVerifyQuery(recordId, DATAVERSE_LIS_SOURCE));
+  const entity = response.entities && response.entities[0];
+  if (!entity) return null;
+  return entity[DATAVERSE_LIS_SOURCE.entity + "id"] || "";
+}
+
+// One id lookup, one updateRecord call, however many columns are in `fields`
+// -- the Manage modal's "Save" button batches every dirty field of a record
+// into a single write through this, rather than one round trip per field.
+async function writeMasterRecordFields(recordId, fields, webApi) {
+  if (!webApi || !recordId) return { ok: false, error: "Not connected to Dataverse." };
+  try {
+    const existingId = await findExistingLisRecordId(recordId, webApi);
+    if (!existingId) {
+      return { ok: false, error: "No BTB_LIS_Excel_Datas row found for Record_ID " + recordId + "." };
+    }
+    await webApi.updateRecord("admin_btb_lis_excel_datas", existingId, fields);
+    return { ok: true };
+  } catch (err) {
+    console.error("Could not update " + Object.keys(fields).join(", ") + " for Record_ID " + recordId + ":", err);
+    return { ok: false, error: err.message || String(err) };
+  }
+}
+
+async function writeMasterRecordField(recordId, fieldName, fieldValue, webApi) {
+  return writeMasterRecordFields(recordId, { [fieldName]: fieldValue }, webApi);
+}
+
+/* ---------- App shell ---------- */
+
+function MasterRecordsApp() {
+  const [demoMode, setDemoMode] = useState(false);
+  const [records, setRecords] = useState(EMPTY_RECORDS);
+  const [recordsLoadError, setRecordsLoadError] = useState(null);
+  const [fieldSaveError, setFieldSaveError] = useState(null);
+
+  useEffect(() => {
+    // Same read PR Assistant App.html's own Master Records step uses --
+    // field names confirmed 2026-09-11 against the live Dataverse column
+    // list (see that file's CLAUDE.md section for the full reasoning on the
+    // "2" suffix / new_-prefixed exceptions). Follows this repo's own
+    // "Dataverse embedded mode vs. standalone/demo" rule: no
+    // parent.Xrm.WebApi degrades to a local fallback (an empty list plus a
+    // console.warn) instead of throwing -- a reviewer opening this page from
+    // inside the model-driven app gets real data, opening the bare file
+    // in a browser gets an empty page with a Demo Mode toggle to preview it.
+    const fmtLisDate = (raw) => {
+      const d = raw ? new Date(raw) : null;
+      return d && !isNaN(d.getTime())
+        ? d.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "—";
+    };
+    const fetchRecordsFromDataverse = async () => {
+      try {
+        const query = "?$select=admin_title,admin_nox002e2,admin_prx0020nox002e2,admin_recx0027dx0020datex00202,admin_pox0020nox002e2,"
+          + "admin_customerx0020name2,admin_vendor2,admin_prx0020description2,new_flagged,new_prstatus,new_statusremark,"
+          + "admin_uidx0020x00232,admin_startx0020date,admin_odatax0020endx0020date2,admin_contractx0020nox002e2,"
+          + "admin_hkd2,admin_usdx0020x002fx0020others2,admin_handledx0020byx00202,admin_iptx0020unitx0020mgr2,"
+          + "admin_startx0020date2,admin_odatax0020endx0020date3,admin_pox0020date2,admin_receiptx0020date2,"
+          + "admin_pox0020amountx0020hkx00242,admin_umx002fmgr2,admin_prx0020issuedx0020month2,admin_prx0020issuedx0020on2,"
+          + "admin_worksx0020orderx0020code2,admin_yx0020x002fx0020n2,admin_remarks2,"
+          + "admin_invoicex0020x0023x0020x002,admin_invoicex0020x002fx0020dnx2,"
+          + "admin_issuex0020by2,admin_chargex0020ccc2,admin_accountx0020code2,"
+          + "new_btb_type,new_quotation_expiry_date,new_review";
+        const response = await parent.Xrm.WebApi.retrieveMultipleRecords("admin_btb_lis_excel_datas", query);
+
+        const mappedRecords = response.entities.map((item, i) => ({
+          id: item.admin_title || String(i),
+          status: item.new_prstatus != null ? (PR_STATUS_CHOICES[String(item.new_prstatus)] || "") : "",
+          flagged: item.new_flagged === true,
+          statusRemark: item.new_statusremark || "—",
+          no: item.admin_nox002e2 || "—",
+          prNo: item.admin_prx0020nox002e2 || "—",
+          recdDate: fmtLisDate(item.admin_recx0027dx0020datex00202),
+          poNo: item.admin_pox0020nox002e2 || "—",
+          customerName: item.admin_customerx0020name2 || "—",
+          vendor: item.admin_vendor2 || "—",
+          prDescription: item.admin_prx0020description2 || "—",
+          recordId: item.admin_title || "—",
+          uid: item.admin_uidx0020x00232 || "—",
+          startDate: fmtLisDate(item.admin_startx0020date),
+          endDate: fmtLisDate(item.admin_odatax0020endx0020date2),
+          contractNo: item.admin_contractx0020nox002e2 || "—",
+          hkd: item.admin_hkd2 != null ? String(item.admin_hkd2) : "—",
+          usdOthers: item.admin_usdx0020x002fx0020others2 || "—",
+          handledBy: item.admin_handledx0020byx00202 || "—",
+          iptUnitMgr: item.admin_iptx0020unitx0020mgr2 || "—",
+          quotationStartDate: item.admin_startx0020date2 || "—",
+          quotationEndDate: item.admin_odatax0020endx0020date3 || "—",
+          poDate: fmtLisDate(item.admin_pox0020date2),
+          receiptDate: fmtLisDate(item.admin_receiptx0020date2),
+          poAmountHkd: item.admin_pox0020amountx0020hkx00242 != null ? String(item.admin_pox0020amountx0020hkx00242) : "—",
+          umMgr: item.admin_umx002fmgr2 || "—",
+          prIssuedMonth: item.admin_prx0020issuedx0020month2 || "—",
+          prIssuedOn: item.admin_prx0020issuedx0020on2 || "—",
+          worksOrderCode: item.admin_worksx0020orderx0020code2 || "—",
+          yn: item.admin_yx0020x002fx0020n2 || "—",
+          remarks: item.admin_remarks2 || "—",
+          invoiceDnNo: item.admin_invoicex0020x0023x0020x002 || "—",
+          invoiceDnDate: fmtLisDate(item.admin_invoicex0020x002fx0020dnx2),
+          issueBy: item.admin_issuex0020by2 || "—",
+          chargeCcc: item.admin_chargex0020ccc2 || "—",
+          accountCode: item.admin_accountx0020code2 || "—",
+          btbType: item.new_btb_type || "",
+          quotationExpiryDate: item.new_quotation_expiry_date ? item.new_quotation_expiry_date.split('T')[0] : "",
+          reviewApprovalRaw: item.new_review || "",
+        }));
+
+        setRecords(mappedRecords);
+        setRecordsLoadError(null);
+      } catch (error) {
+        console.error("Failed to load records from Dataverse:", error);
+        setRecordsLoadError(error.message || String(error));
+      }
+    };
+
+    if (parent && parent.Xrm && parent.Xrm.WebApi) {
+      fetchRecordsFromDataverse();
+    } else {
+      console.warn("Master Records: parent.Xrm.WebApi not found -- add this page inside the model-driven app to load real data. Showing an empty list; use Demo Mode to preview with sample records.");
+    }
+  }, []);
+
+  // Same optimistic-update + revert-on-failure pipeline as PR Assistant
+  // App.html's own updateMasterRecordField. `fields` is Dataverse column name
+  // -> value (however many changed at once); `localPatch` is the matching
+  // app-shaped patch merged into the row immediately, before the write even
+  // resolves, so the table is current the instant the modal closes.
+  const updateMasterRecordFields = async (recordId, fields, localPatch) => {
+    const previous = records.find(r => r.recordId === recordId);
+    if (!previous) return false;
+    setFieldSaveError(null);
+    setRecords(prev => prev.map(r => (r.recordId === recordId ? { ...r, ...localPatch } : r)));
+    const webApi = parent && parent.Xrm && parent.Xrm.WebApi;
+    if (!webApi) return true; // Demo/standalone mode: the local update above is the whole write.
+    const result = await writeMasterRecordFields(recordId, fields, webApi);
+    if (!result.ok) {
+      setRecords(prev => prev.map(r => (r.recordId === recordId ? previous : r)));
+      setFieldSaveError(`Could not save changes for ${recordId}: ${result.error}`);
+      return false;
+    }
+    return true;
+  };
+  const updateMasterRecordField = (recordId, fieldName, dvValue, localPatch) =>
+    updateMasterRecordFields(recordId, { [fieldName]: dvValue }, localPatch);
+
+  const toggleDemo = () => {
+    const next = !demoMode;
+    setDemoMode(next);
+    setRecords(next ? DEMO_RECORDS : EMPTY_RECORDS);
+    setRecordsLoadError(null);
+    setFieldSaveError(null);
+  };
+
+  return (
+    <RecordsPage records={records} demoMode={demoMode} toggleDemo={toggleDemo}
+      recordsLoadError={recordsLoadError}
+      updateMasterRecordField={updateMasterRecordField}
+      updateMasterRecordFields={updateMasterRecordFields}
+      fieldSaveError={fieldSaveError} dismissFieldSaveError={() => setFieldSaveError(null)} />
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<MasterRecordsApp />);
+</script>
+<script>
+  // A <script type="text/babel-jsx"> is inert to the browser -- it never
+  // executes on its own, which is the point (so Babel can read its text
+  // before anything runs). PR Assistant App.html's own bootstrap does this
+  // same manual transform-then-append instead of relying on babel-standalone's
+  // automatic DOMContentLoaded script scan, so this file matches it exactly.
+  var src = document.getElementById("app-src").textContent;
+  var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+  var s = document.createElement("script");
+  s.textContent = out;
+  document.body.appendChild(s);
+</script>
+</body>
+</html>

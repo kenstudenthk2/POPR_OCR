@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docparse — read any document</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --paper: #f2efe8;
+    --paper-edge: #e3ddce;
+    --ink: #1f2420;
+    --ink-soft: #5b6058;
+    --rule: #c9c2ae;
+    --accent: #2f5d4f;
+    --accent-soft: #dde8e2;
+    --warn: #7a3527;
+    --row-alt: #f7f4ec;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    --serif: "IBM Plex Serif", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); min-height: 100vh; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sheet { max-width: 920px; margin: 0 auto; padding: 40px 24px 80px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 30px; }
+  header h1 { font-size: 22px; margin: 0; font-weight: 600; }
+  header .tag { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+  p.lede { color: var(--ink-soft); font-size: 15px; margin: 0 0 28px; }
+
+  .dropzone { border: 1.5px dashed var(--rule); background: #fdfcf9; border-radius: 2px; padding: 50px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+  .dropzone:hover { border-color: var(--ink-soft); }
+  .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone .glyph { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 10px; }
+  .dropzone h2 { margin: 0 0 6px; font-size: 18px; font-weight: 500; }
+  .dropzone p { margin: 0; color: var(--ink-soft); font-size: 13.5px; }
+  .dropzone input { display: none; }
+
+  #fileInfoCard { display: none; margin-top: 20px; border: 1px solid var(--rule); background: #fdfcf9; }
+  #fileInfoCard.show { display: block; }
+  #fileInfoCard .row { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--paper-edge); font-family: var(--mono); font-size: 12.5px; }
+  #fileInfoCard .row:last-child { border-bottom: none; }
+  #fileInfoCard .row span:first-child { color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+
+  button#runBtn { margin-top: 16px; width: 100%; background: var(--ink); color: var(--paper); border: none; padding: 14px; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; display: none; }
+  button#runBtn.show { display: block; }
+  button#runBtn:disabled { opacity: 0.5; cursor: progress; }
+  button#runBtn:not(:disabled):hover { background: var(--accent); }
+
+  #status { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--accent); display: none; }
+  #status.show { display: block; }
+  #status #statusText::after { content: ''; display: inline-block; width: 1.4em; text-align: left; animation: type-dots 1.4s steps(4) infinite; }
+  #status .bar { height: 4px; margin-top: 10px; background-image: repeating-linear-gradient(90deg, var(--rule) 0, var(--rule) 6px, transparent 6px, transparent 9px); overflow: hidden; }
+  #status .bar span { display: block; height: 100%; width: 34%; background-image: repeating-linear-gradient(90deg, var(--accent) 0, var(--accent) 6px, transparent 6px, transparent 9px); animation: sweep 1.3s linear infinite; }
+  #status .bar.determinate span { animation: none; width: 0%; }
+  @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+  @keyframes type-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; } }
+
+  #error { display: none; margin-top: 18px; border-left: 3px solid var(--warn); background: #fbeeeb; padding: 12px 14px; font-family: var(--mono); font-size: 12.5px; color: var(--warn); }
+  #error.show { display: block; }
+
+  #results { margin-top: 40px; display: none; }
+  #results.show { display: block; }
+  #results h3 { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin: 0 0 14px; }
+
+  /* Batch mode: one tab per file, one file's content visible at a time */
+  #resultTabs { display: none; gap: 2px; overflow-x: auto; }
+  #resultTabs.show { display: flex; }
+  #resultTabs.show + #resultBody { border-top: 1px solid var(--ink); padding-top: 18px; }
+  #resultTabs button { font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; background: #fdfcf9; border: 1px solid var(--rule); color: var(--ink-soft); padding: 8px 14px; cursor: pointer; white-space: nowrap; flex-shrink: 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  #resultTabs button:hover { color: var(--ink); border-color: var(--ink-soft); }
+  #resultTabs button.active { color: var(--ink); background: var(--paper); border-color: var(--ink); font-weight: 600; }
+  #resultTabs button.failed:not(.active) { color: var(--warn); }
+  .result-pane { display: none; }
+  .result-pane.show { display: block; }
+
+  /* Detected fields panel */
+  #fieldsSection { display: none; margin-bottom: 40px; }
+  #fieldsSection.show { display: block; }
+  #fieldsSection p.hint { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin: -8px 0 14px; }
+  table.fields { width: 100%; border-collapse: collapse; background: #fdfcf9; border: 1px solid var(--rule); }
+  table.fields td { padding: 8px 12px; border-bottom: 1px solid var(--paper-edge); font-size: 14px; vertical-align: top; }
+  table.fields tr:last-child td { border-bottom: none; }
+  table.fields td.flabel { font-family: var(--mono); font-size: 11.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; width: 34%; white-space: normal; }
+  table.fields td.fvalue { color: var(--ink); }
+  table.fields tr:nth-child(even) td { background: var(--row-alt); }
+  table.fields tr:hover td { background: var(--accent-soft); }
+  table.fields td.fvalue[contenteditable="true"] { cursor: text; }
+  table.fields td.fvalue[contenteditable="true"]:hover { outline: 1px dashed var(--rule); outline-offset: -1px; }
+  table.fields td.fvalue[contenteditable="true"]:focus { outline: 1px solid var(--accent); outline-offset: -1px; background: #fff; }
+
+  /* Document content: pages, paragraphs, tables */
+  .page-block { margin-bottom: 34px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .page-block h4 { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin: 0 0 12px; }
+  .doc-para { font-size: 15px; line-height: 1.55; margin: 0 0 14px; white-space: pre-wrap; word-wrap: break-word; }
+  table.doc-table { border-collapse: collapse; margin: 0 0 16px; font-size: 13.5px; width: 100%; }
+  table.doc-table td, table.doc-table th { border: 1px solid var(--rule); padding: 5px 9px; text-align: left; }
+  table.doc-table tr:first-child td { background: var(--accent-soft); font-weight: 600; }
+  table.doc-table tr:not(:first-child):nth-child(even) td { background: var(--row-alt); }
+  table.doc-table tr:not(:first-child):hover td { background: var(--accent-soft); }
+
+  .toolbar { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .toolbar button { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; background: none; border: 1px solid var(--rule); color: var(--ink-soft); padding: 8px 12px; cursor: pointer; }
+  .toolbar button:hover { border-color: var(--ink); color: var(--ink); }
+  .toolbar button.primary { border-color: var(--accent); color: var(--accent); }
+  .toolbar button.primary:hover { background: var(--accent); color: var(--paper); }
+  .toolbar button:disabled { opacity: 0.5; cursor: progress; }
+
+  p.ai-hint { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin: 6px 0 0; }
+  p.ai-hint a { color: var(--accent); }
+
+  footer { margin-top: 60px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-align: center; }
+
+  /* Recent files (session history) */
+  #recentSection { display: none; margin-bottom: 26px; }
+  #recentSection.show { display: block; }
+  #recentSection h3 { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin: 0 0 10px; display: flex; justify-content: space-between; align-items: baseline; }
+  #recentSection h3 button { font-family: var(--mono); font-size: 10px; text-transform: none; letter-spacing: 0; background: none; border: none; color: var(--ink-soft); cursor: pointer; text-decoration: underline; padding: 0; }
+  #recentList { display: flex; flex-direction: column; gap: 6px; }
+  .recent-item { display: flex; justify-content: space-between; gap: 10px; border: 1px solid var(--rule); background: #fdfcf9; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  .recent-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .recent-item .rname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent-item .rmeta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); white-space: nowrap; }
+
+  /* Batch queue */
+  #queueSection { display: none; margin-top: 16px; }
+  #queueSection.show { display: block; }
+  #queueSection h3 { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-soft); margin: 0 0 4px; }
+  #queueList { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .queue-item { display: flex; justify-content: space-between; gap: 10px; border: 1px solid var(--rule); background: #fdfcf9; padding: 8px 12px; font-family: var(--mono); font-size: 11.5px; }
+  .queue-item .qname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-family: var(--serif); font-size: 13.5px; }
+  .queue-item .qstate { text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .queue-item.pending .qstate { color: var(--ink-soft); }
+  .queue-item.working .qstate { color: var(--accent); }
+  .queue-item.done .qstate { color: var(--accent); }
+  .queue-item.failed .qstate { color: var(--warn); }
+
+  @media (max-width: 600px) {
+    .sheet { padding: 24px 16px 60px; }
+    header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .dropzone { padding: 32px 16px; }
+    .toolbar button { flex: 1 1 auto; }
+    table.fields td.flabel { width: 42%; }
+    .recent-item, .queue-item { flex-direction: column; gap: 2px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <h1>Docparse</h1>
+    <span class="tag">PDF &middot; image &middot; excel</span>
+  </header>
+
+  <p class="lede">Drop in a document (or several at once) to get readable text with tables and layout kept intact, plus an automatic best-guess list of labeled fields (like "Contract Number" or "To:"). Runs entirely in this browser — English and Chinese supported. Only the OCR models (~30 MB) download over the network, once; your documents never leave this computer.</p>
+
+  <div id="recentSection">
+    <h3>Recent <button id="clearHistoryBtn" type="button">Clear</button></h3>
+    <div id="recentList"></div>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="glyph">[ + ]</div>
+    <h2>Drop a file here</h2>
+    <p>or click to browse &mdash; PDF, image, Excel, email (.msg/.eml), or web archive (.mht) &mdash; drop several at once for batch processing</p>
+    <p style="margin-top:6px">Classic Outlook: drag a mail straight in, no need to save it first. New Outlook: save it as .eml first, then drop that.</p>
+    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp,.xlsx,.xlsm,.xlsb,.xls,.xlt,.xltx,.xltm,.xlw,.ods,.fods,.et,.ett,.numbers,.csv,.dif,.slk,.dbf,.msg,.eml,.mht,.mhtml" multiple>
+  </div>
+
+  <div id="fileInfoCard">
+    <div class="row"><span>Name</span><span id="infoName"></span></div>
+    <div class="row"><span>Type</span><span id="infoType"></span></div>
+    <div class="row"><span>Size</span><span id="infoSize"></span></div>
+  </div>
+
+  <div id="queueSection">
+    <h3>Queue</h3>
+    <div id="queueList"></div>
+  </div>
+
+  <button id="runBtn">Read document</button>
+
+  <div id="status">
+    <span id="statusText">Reading document&hellip;</span>
+    <div class="bar"><span></span></div>
+  </div>
+
+  <div id="error"></div>
+
+  <div id="fieldsSection">
+    <h3>Detected fields</h3>
+    <p class="hint">Best-effort guess based on layout — always double-check against the full text below. Click a value to correct it.</p>
+    <table class="fields" id="fieldsTable"></table>
+    <div class="toolbar">
+      <button id="copyFieldsBtn">Copy fields</button>
+      <button id="downloadFieldsBtn">Download fields .csv</button>
+      <button id="downloadFieldsJsonBtn">Download fields .json</button>
+    </div>
+  </div>
+
+  <div id="results">
+    <h3 id="resultsHeading">Full text</h3>
+    <div id="resultTabs"></div>
+    <div id="resultBody"></div>
+    <div class="toolbar">
+      <button id="aiExtractBtn" class="primary">Smart extract</button>
+      <button id="copyBtn">Copy text</button>
+      <button id="downloadTxtBtn">Download .txt</button>
+    </div>
+  </div>
+
+  <footer>Reading and OCR happen entirely on this computer. Files are only sent over the network if you choose to use "Smart extract".</footer>
+</div>
+
+<script src="pdf.min.js"></script>
+<script src="xlsx.full.min.js"></script>
+<!-- PaddleOCR (bundled locally, wraps the official PaddlePaddle/PaddleOCR
+     PP-OCRv6 models via ppu-paddle-ocr). The OCR *models* (~30 MB) download
+     over the network from a CDN on first use, then are cached by the browser. -->
+<script src="paddle-ocr.min.js"></script>
+<!-- Outlook .msg reader (vendored @kenjiuno/msgreader, bundled for the browser). -->
+<script src="msgreader.min.js"></script>
+<!-- .eml (MIME) reader (vendored postal-mime, bundled for the browser). -->
+<script src="postal-mime.min.js"></script>
+<!-- The parsing engine. This page is a *viewer* for it: every parser
+     (PDF/OCR/Excel/.msg/.eml/field detection) lives in docparse-engine.js and
+     is shared with "PR Assistant App.html", so engine changes reach both
+     consumers. Everything below this point is presentation only. -->
+<script src="docparse-engine.js"></script>
+
+<script>
+  // Guard this: if pdf.min.js failed to load (wrong folder layout, blocked
+  // file), referencing pdfjsLib directly would throw and silently stop ALL
+  // the JS below from running — including the click handler on the dropzone.
+  // That's the #1 cause of "clicking does nothing."
+  let missingLibs = [];
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+  } else {
+    missingLibs.push('pdf.min.js (PDF support)');
+  }
+  if (typeof XLSX === 'undefined') {
+    missingLibs.push('xlsx.full.min.js (Excel support)');
+  }
+  if (typeof PpuPaddleOcr === 'undefined') {
+    missingLibs.push('paddle-ocr.min.js (OCR support)');
+  }
+  if (typeof DocparseEngine === 'undefined') {
+    missingLibs.push('docparse-engine.js (all document parsing)');
+  }
+
+  // Without this, dropping a file anywhere that isn't precisely inside the
+  // dropzone (even by a pixel) makes the browser open the file directly
+  // instead of handing it to our code.
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileInfoCard = document.getElementById('fileInfoCard');
+  const infoName = document.getElementById('infoName');
+  const infoType = document.getElementById('infoType');
+  const infoSize = document.getElementById('infoSize');
+  const runBtn = document.getElementById('runBtn');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+  const errorEl = document.getElementById('error');
+  const fieldsSection = document.getElementById('fieldsSection');
+  const fieldsTable = document.getElementById('fieldsTable');
+  const resultsEl = document.getElementById('results');
+  const resultTabs = document.getElementById('resultTabs');
+  const resultBody = document.getElementById('resultBody');
+  const copyBtn = document.getElementById('copyBtn');
+  const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+  const copyFieldsBtn = document.getElementById('copyFieldsBtn');
+  const downloadFieldsBtn = document.getElementById('downloadFieldsBtn');
+  const downloadFieldsJsonBtn = document.getElementById('downloadFieldsJsonBtn');
+  const queueSection = document.getElementById('queueSection');
+  const queueList = document.getElementById('queueList');
+  const recentSection = document.getElementById('recentSection');
+  const recentList = document.getElementById('recentList');
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+  if (missingLibs.length) {
+    errorEl.innerHTML = 'Could not load: ' + missingLibs.join(', ') +
+      '. Make sure pdf.min.js, pdf.worker.min.js, xlsx.full.min.js, and ' +
+      'docparse-engine.js are in the same folder as this index.html file, ' +
+      'then reopen this page.';
+    errorEl.classList.add('show');
+  }
+
+  let selectedFile = null;   // single-file mode
+  let selectedFiles = [];    // populated instead of selectedFile when 2+ files are chosen
+  let lastPlainText = "";
+  let lastHadOcr = false;
+  let lastFields = [];
+
+  // A mail dragged straight out of Outlook is not a file on disk -- it lives in
+  // the .ost/.pst or on Exchange, and Outlook offers it as a *virtual* file
+  // (CFSTR_FILEDESCRIPTORW). `dataTransfer.files` is therefore EMPTY for it,
+  // which is why dropping a mail here used to do nothing at all, silently.
+  // Chrome 76+ and Edge do carry the mail, but only through
+  // `DataTransferItem.webkitGetAsEntry()`, whose `.file()` materialises the
+  // .msg bytes we can already parse.
+  //
+  // Order matters: `files` first, so an ordinary drop from Explorer takes the
+  // exact path it always did and this cannot regress it; entries only when
+  // `files` came back empty.
+  //
+  // Everything that touches the DataTransfer here MUST run synchronously. The
+  // object is neutered the moment the drop handler yields, so one `await`
+  // before this loop loses the drop entirely -- hence the split return: the
+  // synchronous half reads the DataTransfer, the promise half resolves later.
+  //
+  // Twin of the same function in ../PR Assistant App.html. The two apps share
+  // docparse-engine.js but nothing else, and Docparse takes no new required
+  // files, so a fix here has to be made there too.
+  // Everything the engine has a parser for.
+  // The spreadsheet half comes from the engine (DocparseEngine.SHEET_EXTS), so
+  // this page accepts exactly the formats the engine can read -- and the App's
+  // own copy of this block, which outlook-drop.test.js pins against it, stays
+  // in step for free.
+  const DROP_PARSABLE_EXTS = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp',
+    ...DocparseEngine.SHEET_EXTS, 'msg', 'eml', 'mht', 'mhtml'];
+
+  function collectDroppedFiles(dataTransfer) {
+    const direct = dataTransfer.files ? Array.from(dataTransfer.files) : [];
+    if (direct.length) return { files: Promise.resolve(direct), emptyMessage: '' };
+
+    const items = dataTransfer.items ? Array.from(dataTransfer.items) : [];
+    const entries = [];
+    for (const item of items) {
+      if (item.kind !== 'file') continue;
+      const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
+      // Directories are skipped rather than walked: dropping a folder was never
+      // supported here and this change is not the place to start.
+      if (entry && entry.isFile) entries.push(entry);
+    }
+
+    // One message, not two. This used to branch on whether the drag also carried
+    // text/html or text/plain, and put the Outlook guidance only on the branch
+    // that did -- on the assumption that a mail always brings its body along.
+    // A real drag out of the new Outlook proved that wrong: it took the other
+    // branch, and the user got a dead end that told them nothing. The useful
+    // thing to say does not depend on what else was on the clipboard.
+    return {
+      files: Promise.all(entries.map(readEntryAsFile)).then(list => list.filter(Boolean)),
+      emptyMessage:
+        'That drop carried no file. Classic Outlook hands a mail to Chrome and ' +
+        'Edge; the new Outlook for Windows does not pass mails to a browser at ' +
+        'all. Drag the mail onto your desktop, or open it and use More actions → ' +
+        'Save as — new Outlook saves .eml, classic saves .msg — then drop that ' +
+        'file here. Both are read the same way.',
+    };
+  }
+
+  function readEntryAsFile(entry) {
+    return new Promise(resolve => {
+      // Callback-style on purpose: FileSystemFileEntry.file() has no promise form,
+      // and one rejected entry must not sink its siblings in Promise.all.
+      entry.file(file => resolve(nameForParsing(file, entry.name)), () => resolve(null));
+    });
+  }
+
+  // The engine routes on file extension alone. Outlook usually hands over
+  // "<subject>.msg", but an item with no extension would be turned away as
+  // unsupported when it is in fact a mail we can read.
+  //
+  // Tested against the real list rather than against anything extension-shaped,
+  // because an Outlook item is named after its subject: "Quote for site A.1"
+  // ends in something that looks like an extension, and guessing would send the
+  // engine a ".1" it has no parser for instead of the mail it can read.
+  function nameForParsing(file, entryName) {
+    const name = (file && file.name) || entryName || 'Outlook mail';
+    const ext = String(name.split('.').pop() || '').toLowerCase();
+    const named = DROP_PARSABLE_EXTS.indexOf(ext) !== -1 ? name : name + '.msg';
+    if (file && named === file.name) return file;
+    // Renaming needs a new File. Where the constructor is unavailable (the node
+    // test harness), the original is still better than nothing.
+    if (typeof File !== 'function') return file;
+    return new File([file], named, { type: (file && file.type) || 'application/vnd.ms-outlook' });
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    const drop = collectDroppedFiles(e.dataTransfer);
+    drop.files.then((files) => {
+      if (files.length) { selectFiles(files); return; }
+      errorEl.textContent = drop.emptyMessage;
+      errorEl.classList.add('show');
+    });
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) selectFiles(fileInput.files);
+  });
+
+  function selectFiles(fileList) {
+    const list = Array.from(fileList);
+    if (!list.length) return;
+
+    errorEl.classList.remove('show');
+    resultsEl.classList.remove('show');
+    fieldsSection.classList.remove('show');
+    queueSection.classList.remove('show');
+    resultTabs.classList.remove('show');
+    fileInfoCard.classList.remove('show');
+
+    if (list.length === 1) {
+      selectedFile = list[0];
+      selectedFiles = [];
+      infoName.textContent = selectedFile.name;
+      infoType.textContent = selectedFile.name.split('.').pop().toUpperCase();
+      infoSize.textContent = formatBytes(selectedFile.size);
+      fileInfoCard.classList.add('show');
+      runBtn.textContent = 'Read document';
+    } else {
+      selectedFile = null;
+      selectedFiles = list;
+      runBtn.textContent = `Read ${list.length} documents`;
+    }
+    runBtn.classList.add('show');
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function setStatus(msg, pct) {
+    statusText.textContent = msg;
+    const bar = document.querySelector('#status .bar');
+    const barSpan = bar.querySelector('span');
+    if (typeof pct === 'number') {
+      bar.classList.add('determinate');
+      barSpan.style.width = pct + '%';
+    } else {
+      bar.classList.remove('determinate');
+      barSpan.style.width = '';
+    }
+  }
+
+  runBtn.addEventListener('click', async () => {
+    if (!selectedFile && !selectedFiles.length) return;
+    runBtn.disabled = true;
+    statusEl.classList.add('show');
+    errorEl.classList.remove('show');
+    resultsEl.classList.remove('show');
+    fieldsSection.classList.remove('show');
+    resultBody.innerHTML = '';
+    resultTabs.innerHTML = '';
+    resultTabs.classList.remove('show');
+    fieldsTable.innerHTML = '';
+    document.querySelector('#fieldsSection h3').textContent = 'Detected fields';
+    document.querySelector('#fieldsSection p.hint').textContent =
+      'Best-effort guess based on layout \u2014 always double-check against the full text below. Click a value to correct it.';
+
+    try {
+      if (selectedFiles.length > 1) {
+        await runBatch();
+      } else {
+        const file = selectedFile;
+        const result = await DocparseEngine.parseFile(file, setStatus);
+        renderResults(result);
+        saveHistoryEntry(file.name, { plainText: lastPlainText, fields: lastFields });
+      }
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = 'Error: ' + err.message;
+      errorEl.classList.add('show');
+    } finally {
+      runBtn.disabled = false;
+      statusEl.classList.remove('show');
+    }
+  });
+
+  // ---------- Rendering ----------
+  // Everything below only draws. The engine already produced the plain text,
+  // the detected fields and the OCR flag, so this page never re-derives them —
+  // that's what let the two copies of the parser drift apart before.
+  //
+  // Which drawing function to use is decided by the *shape* of result.pages,
+  // which the engine fills differently per file type:
+  //   [{pageNum, blocks, ocr}]           -- PDF / image
+  //   [{pageNum, sheetName, html, csv}]  -- Excel / CSV
+  //   [{label, ...}]                     -- email (.msg / .eml)
+
+  // Draws a PDF/image result's pages (tables + paragraphs) into `container`.
+  function appendDocPages(pageBlocksList, container) {
+    pageBlocksList.forEach(({ pageNum, blocks, ocr }) => {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'page-block';
+      const h4 = document.createElement('h4');
+      h4.textContent = `Page ${pageNum}` + (ocr ? ' (OCR)' : '');
+      pageDiv.appendChild(h4);
+
+      blocks.forEach(block => {
+        if (block.type === 'table') {
+          const table = document.createElement('table');
+          table.className = 'doc-table';
+          block.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+              const td = document.createElement('td');
+              td.textContent = cell;
+              tr.appendChild(td);
+            });
+            table.appendChild(tr);
+          });
+          pageDiv.appendChild(table);
+        } else {
+          const p = document.createElement('div');
+          p.className = 'doc-para';
+          p.textContent = block.lines.join('\n');
+          pageDiv.appendChild(p);
+        }
+      });
+
+      container.appendChild(pageDiv);
+    });
+  }
+
+  // Draws an Excel/CSV result's sheets as real HTML tables.
+  function appendSheets(sheets, container) {
+    sheets.forEach(s => {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'page-block';
+      const h4 = document.createElement('h4');
+      h4.textContent = `Sheet: ${s.sheetName}`;
+      pageDiv.appendChild(h4);
+
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = s.html;
+      const table = wrapper.querySelector('table');
+      if (table) table.className = 'doc-table';
+      pageDiv.appendChild(wrapper);
+
+      container.appendChild(pageDiv);
+    });
+  }
+
+  // Draws an email result's pages: one entry for the body, then one per
+  // attachment. An attachment entry nests that attachment's own pages, so its
+  // shape decides which of the two functions above draws it — the layout
+  // matches what the attachment would look like opened on its own.
+  function appendEmailPages(pages, container) {
+    pages.forEach(page => {
+      const heading = document.createElement('div');
+      heading.className = 'page-block';
+      const h4 = document.createElement('h4');
+      h4.textContent = page.label;
+      heading.appendChild(h4);
+      container.appendChild(heading);
+
+      if (page.lines) {                       // the email body itself
+        const p = document.createElement('div');
+        p.className = 'doc-para';
+        p.textContent = page.lines.join('\n');
+        container.appendChild(p);
+      } else if (page.skipped) {              // unsupported / failed attachment
+        const p = document.createElement('div');
+        p.className = 'doc-para';
+        p.style.color = 'var(--warn)';
+        p.textContent = page.note;
+        container.appendChild(p);
+      } else if (page.pages && page.pages.length) {
+        if (page.pages[0].sheetName !== undefined) appendSheets(page.pages, container);
+        else appendDocPages(page.pages, container);
+      }
+    });
+  }
+
+  // Draws the structured records the engine extracts from an ATQ workbook (one
+  // per purchased item), above the raw document body.
+  function appendRecords(records, container) {
+    records.forEach((rec, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'page-block';
+      const h4 = document.createElement('h4');
+      h4.textContent = `Record ${i + 1}` + (rec.sourceFile ? ` — ${rec.sourceFile}` : '');
+      wrap.appendChild(h4);
+
+      const table = document.createElement('table');
+      table.className = 'fields';
+      renderFields(rec.fields, table);
+      wrap.appendChild(table);
+      container.appendChild(wrap);
+    });
+  }
+
+  // Single entry point: draws any engine result into `container`.
+  function appendResultBody(result, container) {
+    const pages = result.pages || [];
+    if (result.records && result.records.length) appendRecords(result.records, container);
+    if (pages.length && pages[0].label !== undefined) appendEmailPages(pages, container);
+    else if (pages.length && pages[0].sheetName !== undefined) appendSheets(pages, container);
+    else appendDocPages(pages, container);
+  }
+
+  function resultHeading(result) {
+    const pages = result.pages || [];
+    // A .mht shares the email page shape but is a saved web page, not a
+    // message -- pages[0].label ('Web Page' vs 'Email Body') is the only
+    // thing that tells them apart, and "email + 0 attachment(s)" read wrong.
+    if (pages.length && pages[0].label === 'Web Page') {
+      const n = pages.length - 1;
+      return n ? `Result — web page + ${n} embedded document(s)` : 'Result — web page';
+    }
+    if (pages.length && pages[0].label !== undefined) return `Result — email + ${pages.length - 1} attachment(s)`;
+    if (pages.length && pages[0].sheetName !== undefined) return `Result — ${pages.length} sheet(s)`;
+    return `Result — ${pages.length} page(s)`;
+  }
+
+  // Single-file mode: draw the result and publish it to the globals the
+  // toolbar (copy / download / smart extract) and history read from.
+  function renderResults(result) {
+    document.getElementById('resultsHeading').textContent = resultHeading(result);
+    appendResultBody(result, resultBody);
+    lastPlainText = result.plainText;
+    lastHadOcr = result.hadOcr;
+    lastFields = result.fields;
+    renderFields(lastFields);   // hides the panel by itself when there are none
+    resultsEl.classList.add('show');
+  }
+
+  // Shows the pane for file index `i` and hides every other pane, and syncs
+  // the active state of both the result tabs and the queue list.
+  function showResultPane(i) {
+    resultBody.querySelectorAll('.result-pane').forEach(p => p.classList.remove('show'));
+    const pane = document.getElementById('pane-' + i);
+    if (pane) pane.classList.add('show');
+    resultTabs.querySelectorAll('button').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  }
+
+  // Processes every queued file in sequence, keeping one bad file from
+  // sinking the whole batch. Each file gets its own tab + pane (real HTML
+  // tables, same rendering as single-file mode) instead of stacking every
+  // file's content on one long page; detected fields from all files are
+  // combined into one table with a File column.
+  async function runBatch() {
+    queueList.innerHTML = '';
+    resultTabs.innerHTML = '';
+    resultTabs.classList.add('show');
+    selectedFiles.forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'queue-item pending';
+      item.id = 'qitem-' + i;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'qname';
+      nameSpan.textContent = f.name;
+      const stateSpan = document.createElement('span');
+      stateSpan.className = 'qstate';
+      stateSpan.textContent = 'Pending';
+      item.appendChild(nameSpan);
+      item.appendChild(stateSpan);
+      queueList.appendChild(item);
+
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      tabBtn.textContent = f.name;
+      tabBtn.title = f.name;
+      tabBtn.addEventListener('click', () => showResultPane(i));
+      resultTabs.appendChild(tabBtn);
+    });
+    queueSection.classList.add('show');
+    document.getElementById('resultsHeading').textContent = `Result — ${selectedFiles.length} file(s)`;
+
+    const combinedFields = [];
+    const textParts = [];
+    let anyOk = false;
+    let firstOkIndex = -1;
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const qitem = document.getElementById('qitem-' + i);
+      const tabBtn = resultTabs.children[i];
+      qitem.className = 'queue-item working';
+      qitem.querySelector('.qstate').textContent = 'Reading…';
+      setStatus(`Reading ${file.name} (${i + 1}/${selectedFiles.length})…`);
+
+      const pane = document.createElement('div');
+      pane.className = 'result-pane';
+      pane.id = 'pane-' + i;
+      resultBody.appendChild(pane);
+
+      try {
+        const result = await DocparseEngine.parseFile(
+          file,
+          (msg, pct) => setStatus(`${file.name} (${i + 1}/${selectedFiles.length}): ${msg}`, pct)
+        );
+        appendResultBody(result, pane);
+
+        result.fields.forEach(f => combinedFields.push({ file: file.name, label: f.label, value: f.value }));
+        textParts.push(`=== ${file.name} ===\n\n${result.plainText}`);
+        saveHistoryEntry(file.name, result);
+
+        qitem.className = 'queue-item done';
+        qitem.querySelector('.qstate').textContent = 'Done';
+        if (firstOkIndex === -1) firstOkIndex = i;
+        anyOk = true;
+      } catch (err) {
+        console.error(err);
+        const errP = document.createElement('div');
+        errP.className = 'doc-para';
+        errP.style.color = 'var(--warn)';
+        errP.textContent = 'Error: ' + err.message;
+        pane.appendChild(errP);
+        textParts.push(`=== ${file.name} ===\n\n[Error: ${err.message}]`);
+        qitem.className = 'queue-item failed';
+        qitem.querySelector('.qstate').textContent = 'Failed';
+        tabBtn.classList.add('failed');
+      }
+
+      qitem.addEventListener('click', () => showResultPane(i));
+      qitem.style.cursor = 'pointer';
+    }
+
+    lastPlainText = textParts.join('\n\n\n');
+    lastHadOcr = false;
+    lastFields = combinedFields;
+    renderFields(lastFields);
+    if (anyOk) {
+      showResultPane(firstOkIndex);
+      resultsEl.classList.add('show');
+    } else {
+      errorEl.textContent = 'All files failed — see queue above for details.';
+      errorEl.classList.add('show');
+    }
+  }
+
+  // `fields` is rendered into fieldsTable (the live "Detected fields" panel)
+  // by default, in which case values are click-to-edit and mutate the field
+  // objects in place so exports reflect corrections. Pass a different
+  // `targetTable` to render a read-only view instead.
+  // If any field carries a `.file` property (batch mode), an extra column
+  // shows which file it came from.
+  function renderFields(fields, targetTable) {
+    const table = targetTable || fieldsTable;
+    const editable = table === fieldsTable;
+    table.innerHTML = '';
+    if (!fields.length) {
+      if (editable) fieldsSection.classList.remove('show');
+      return;
+    }
+    const hasFileCol = fields.some(f => f.file);
+    fields.forEach(f => {
+      const tr = document.createElement('tr');
+      if (hasFileCol) {
+        const tdFile = document.createElement('td');
+        tdFile.className = 'flabel';
+        tdFile.style.width = '20%';
+        tdFile.textContent = f.file || '';
+        tr.appendChild(tdFile);
+      }
+      const tdLabel = document.createElement('td');
+      tdLabel.className = 'flabel';
+      tdLabel.textContent = f.label;
+      const tdValue = document.createElement('td');
+      tdValue.className = 'fvalue';
+      tdValue.textContent = f.value;
+      if (editable) {
+        tdValue.contentEditable = 'true';
+        tdValue.spellcheck = false;
+        tdValue.addEventListener('blur', () => { f.value = tdValue.textContent.trim(); });
+      }
+      tr.appendChild(tdLabel);
+      tr.appendChild(tdValue);
+      table.appendChild(tr);
+    });
+    if (editable) fieldsSection.classList.add('show');
+  }
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(lastPlainText);
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => (copyBtn.textContent = 'Copy text'), 1200);
+  });
+
+  // ---------- Smart extraction ----------
+  // The Cloudflare Worker in the worker/ folder holds the shared Gemini key
+  // server-side; every user's request goes through SMART_ENDPOINT.
+  const SMART_ENDPOINT = 'https://docparse-ai.f6v9zfjpcs.workers.dev/';
+  const AI_MAX_PAGES = 15;
+  const PDF_INLINE_MAX_BYTES = 15 * 1024 * 1024; // stay under Gemini's ~20MB inline request limit
+  const aiExtractBtn = document.getElementById('aiExtractBtn');
+
+  async function fileToBase64(file) {
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunkSize = 0x8000; // avoid call-stack limits on String.fromCharCode
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  async function renderDocumentAsImages(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      const buf = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+      const pages = Math.min(doc.numPages, AI_MAX_PAGES);
+      const images = [];
+      for (let i = 1; i <= pages; i++) {
+        const page = await doc.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        images.push(canvas.toDataURL('image/jpeg', 0.85));
+      }
+      return images;
+    }
+    // plain image file
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('Could not read image file'));
+      r.readAsDataURL(file);
+    });
+    return [dataUrl];
+  }
+
+  async function smartExtract() {
+    if (!selectedFile) {
+      if (selectedFiles.length > 1) {
+        errorEl.textContent = 'Smart extract works on one document at a time — not available for a batch.';
+        errorEl.classList.add('show');
+      }
+      return;
+    }
+    aiExtractBtn.disabled = true;
+    statusEl.classList.add('show');
+    setStatus('Running smart extraction\u2026');
+    errorEl.classList.remove('show');
+
+    try {
+      const ext = selectedFile.name.split('.').pop().toLowerCase();
+      const parts = [{
+        text: 'You are a document data extractor. Extract every labeled field and key data point from this document ' +
+              '(e.g. To, Date, Ref, contract numbers, totals, payment terms). ' +
+              'Return ONLY a JSON array where each item is {"label": string, "value": string}. ' +
+              'Use the document\u2019s own wording and language for labels. Do not invent values. ' +
+              'Include monetary totals and reference numbers. No markdown, no explanations \u2014 JSON only.'
+      }];
+
+      if (DocparseEngine.SHEET_EXTS.includes(ext)) {
+        parts.push({ text: 'Document content (spreadsheet as CSV):\n' + lastPlainText.slice(0, 200000) });
+      } else if (ext === 'pdf' && selectedFile.size <= PDF_INLINE_MAX_BYTES) {
+        // Gemini reads PDFs natively (layout, tables, and all pages at once) —
+        // sending the file directly beats rendering each page to a JPEG first.
+        const base64 = await fileToBase64(selectedFile);
+        parts.push({ inline_data: { mime_type: 'application/pdf', data: base64 } });
+      } else {
+        // Large PDFs (over the inline size limit) and plain image files fall
+        // back to page-by-page images.
+        const images = await renderDocumentAsImages(selectedFile);
+        for (const dataUrl of images) {
+          const m = dataUrl.match(/^data:(image\/[a-z]+);base64,(.*)$/s);
+          parts.push({ inline_data: { mime_type: m[1], data: m[2] } });
+        }
+      }
+
+      const res = await fetch(SMART_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }] }),
+      });
+
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const j = await res.json();
+          // The Worker's own errors are { error: "string" }; upstream Gemini
+          // errors it forwards verbatim are { error: { message: "..." } } —
+          // handle both shapes so either kind reaches the user.
+          detail = j.error?.message || (typeof j.error === 'string' ? j.error : '');
+        } catch (e) {}
+        if (res.status === 413) throw new Error('This document is too large for smart extraction. ' + detail);
+        if (res.status === 403) throw new Error('Smart extract is unavailable right now (server-side problem) \u2014 reloading will not help; please report this. ' + detail);
+        if (res.status === 429) throw new Error('Too many requests \u2014 wait a moment and try again. ' + detail);
+        if (res.status === 400) throw new Error('This document could not be sent for smart extraction. ' + detail);
+        throw new Error('Smart extraction failed (' + res.status + '). ' + detail);
+      }
+
+      const data = await res.json();
+      const text = (data.candidates?.[0]?.content?.parts || [])
+        .map(p => p.text || '').join('').replace(/```json|```/g, '').trim();
+      let items = JSON.parse(text);
+      if (!Array.isArray(items)) items = items.fields || items.data || [];
+
+      const fields = items
+        .filter(it => it && it.label && it.value != null)
+        .map(it => ({ label: String(it.label), value: String(it.value) }));
+
+      if (!fields.length) throw new Error('No fields found \u2014 see the full text below instead.');
+
+      lastFields = fields;
+      renderFields(fields);
+      document.querySelector('#fieldsSection h3').textContent = 'Detected fields \u2014 smart';
+      document.querySelector('#fieldsSection p.hint').textContent =
+        'Smart extraction result \u2014 verify critical numbers against the full text below.';
+      fieldsSection.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = err.message;
+      errorEl.classList.add('show');
+    } finally {
+      aiExtractBtn.disabled = false;
+      statusEl.classList.remove('show');
+    }
+  }
+
+  aiExtractBtn.addEventListener('click', smartExtract);
+
+  downloadTxtBtn.addEventListener('click', () => {
+    downloadBlob(lastPlainText, 'document.txt', 'text/plain');
+  });
+
+  copyFieldsBtn.addEventListener('click', () => {
+    const text = lastFields
+      .map(f => (f.file ? `[${f.file}] ` : '') + `${f.label}: ${f.value}`)
+      .join('\n');
+    navigator.clipboard.writeText(text);
+    copyFieldsBtn.textContent = 'Copied';
+    setTimeout(() => (copyFieldsBtn.textContent = 'Copy fields'), 1200);
+  });
+
+  downloadFieldsBtn.addEventListener('click', () => {
+    const hasFile = lastFields.some(f => f.file);
+    const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+    const header = (hasFile ? 'File,' : '') + 'Label,Value\n';
+    const csv = header + lastFields
+      .map(f => (hasFile ? esc(f.file || '') + ',' : '') + esc(f.label) + ',' + esc(f.value))
+      .join('\n');
+    downloadBlob(csv, 'fields.csv', 'text/csv');
+  });
+
+  downloadFieldsJsonBtn.addEventListener('click', () => {
+    downloadBlob(JSON.stringify(lastFields, null, 2), 'fields.json', 'application/json');
+  });
+
+  function downloadBlob(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Recent files (session history) ----------
+  // Stores extracted text + fields (not the original file) in localStorage
+  // so a closed tab doesn't lose yesterday's results. Capped in both count
+  // and per-entry text size to stay well under typical localStorage quotas.
+  const HISTORY_KEY = 'docparse_history';
+  const HISTORY_MAX = 12;
+  const HISTORY_TEXT_CAP = 200000;
+
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistoryEntry(name, result) {
+    if (!result) return;
+    try {
+      const hist = loadHistory();
+      hist.unshift({
+        name,
+        time: Date.now(),
+        plainText: (result.plainText || '').slice(0, HISTORY_TEXT_CAP),
+        fields: (result.fields || []).map(f => ({ label: f.label, value: f.value })),
+      });
+      while (hist.length > HISTORY_MAX) hist.pop();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    } catch (e) {
+      // Storage full/unavailable (private browsing, quota) -- history is a
+      // nice-to-have, so fail silently rather than interrupting the user.
+    }
+    renderRecentList();
+  }
+
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  function renderRecentList() {
+    const hist = loadHistory();
+    recentList.innerHTML = '';
+    if (!hist.length) {
+      recentSection.classList.remove('show');
+      return;
+    }
+    hist.forEach((entry, i) => {
+      const item = document.createElement('div');
+      item.className = 'recent-item';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'rname';
+      nameSpan.textContent = entry.name;
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'rmeta';
+      metaSpan.textContent = timeAgo(entry.time);
+      item.appendChild(nameSpan);
+      item.appendChild(metaSpan);
+      item.addEventListener('click', () => loadHistoryEntry(i));
+      recentList.appendChild(item);
+    });
+    recentSection.classList.add('show');
+  }
+
+  function loadHistoryEntry(i) {
+    const entry = loadHistory()[i];
+    if (!entry) return;
+
+    selectedFile = null;
+    selectedFiles = [];
+    fileInfoCard.classList.remove('show');
+    queueSection.classList.remove('show');
+    errorEl.classList.remove('show');
+    runBtn.classList.remove('show');
+
+    document.getElementById('resultsHeading').textContent = entry.name + ' (from history)';
+    resultBody.innerHTML = '';
+    resultTabs.innerHTML = '';
+    resultTabs.classList.remove('show');
+    const p = document.createElement('div');
+    p.className = 'doc-para';
+    p.textContent = entry.plainText;
+    resultBody.appendChild(p);
+
+    lastPlainText = entry.plainText;
+    lastHadOcr = false;
+    lastFields = entry.fields.map(f => ({ label: f.label, value: f.value }));
+    document.querySelector('#fieldsSection h3').textContent = 'Detected fields';
+    document.querySelector('#fieldsSection p.hint').textContent =
+      'From history — re-open the original file for the full formatted view. Click a value to correct it.';
+    renderFields(lastFields);
+    resultsEl.classList.add('show');
+    resultsEl.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  clearHistoryBtn.addEventListener('click', () => {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    renderRecentList();
+  });
+
+  renderRecentList();
+</script>
+</body>
+</html>

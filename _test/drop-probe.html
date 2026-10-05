@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Drop probe — what does this drag actually carry?</title>
+<style>
+  /* Three sizes only: 26px heading, 16px prose, 13px monospace readout. The
+     readout is a different register rather than a smaller step in the same
+     one, which is why it may sit close to the prose size. */
+  body { font: 16px/1.55 system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #1c1a18; background: #faf8f5; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; }
+  .lede { color: #5f5952; margin: 0 0 24px; }
+  #zone { border: 2px dashed #b9b0a5; border-radius: 6px; padding: 64px 24px; text-align: center; background: #fff; font-weight: 600; color: #7a736a; }
+  #zone.over { border-color: #b4622f; background: #fdf3ec; color: #b4622f; }
+  pre { background: #fff; border: 1px solid #e3ddd4; border-radius: 6px; padding: 16px 18px; overflow-x: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+  .note { border-left: 3px solid #b4622f; background: #fdf3ec; padding: 12px 16px; margin: 24px 0; }
+  code { background: #f0ebe4; padding: 1px 4px; border-radius: 3px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>Drop probe</h1>
+<p class="lede">Drag one mail out of Outlook and drop it below. This reports the
+<em>shape</em> of what the browser received, so we can tell whether new Outlook hands
+a file over at all.</p>
+
+<div class="note">
+  <strong>It never shows the content of anything.</strong> Only names, sizes, MIME
+  types and character counts are printed — never the text of a mail, a field or an
+  attachment. That is deliberate: the report is safe to read out or screenshot
+  without leaking a real document. This file lives in <code>_test/</code> and is
+  gitignored; it is not part of either app.
+</div>
+
+<div id="zone">Drop a mail here</div>
+<pre id="out">(waiting for a drop)</pre>
+
+<script>
+(function () {
+  var zone = document.getElementById('zone');
+  var out = document.getElementById('out');
+
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', function () { zone.classList.remove('over'); });
+
+  zone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    zone.classList.remove('over');
+    var dt = e.dataTransfer;
+    var lines = [];
+    function say(s) { lines.push(s); out.textContent = lines.join('\n'); }
+
+    say('browser: ' + navigator.userAgent);
+    say('');
+
+    // Everything below must be read synchronously: the DataTransfer is dead the
+    // moment this handler returns.
+    var types = dt.types ? Array.prototype.slice.call(dt.types) : [];
+    say('dataTransfer.types  = ' + JSON.stringify(types));
+    say('dataTransfer.files  = ' + (dt.files ? dt.files.length : 'null') + ' file(s)');
+    for (var i = 0; dt.files && i < dt.files.length; i++) {
+      var f = dt.files[i];
+      say('   [' + i + '] name=' + JSON.stringify(f.name) + '  size=' + f.size + '  type=' + JSON.stringify(f.type));
+    }
+
+    var items = dt.items ? Array.prototype.slice.call(dt.items) : [];
+    say('dataTransfer.items  = ' + items.length + ' item(s)');
+
+    var entries = [];
+    items.forEach(function (item, i) {
+      say('   [' + i + '] kind=' + item.kind + '  type=' + JSON.stringify(item.type));
+      if (item.kind !== 'file') return;
+
+      var asFile = null;
+      try { asFile = item.getAsFile(); } catch (err) { say('        getAsFile() threw: ' + err.message); }
+      say('        getAsFile()        -> ' + (asFile ? ('name=' + JSON.stringify(asFile.name) + ' size=' + asFile.size) : 'null'));
+
+      var entry = null;
+      try { entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null; }
+      catch (err2) { say('        webkitGetAsEntry() threw: ' + err2.message); }
+      if (!entry) {
+        say('        webkitGetAsEntry() -> null');
+      } else {
+        say('        webkitGetAsEntry() -> name=' + JSON.stringify(entry.name) +
+            ' isFile=' + entry.isFile + ' isDirectory=' + entry.isDirectory);
+        if (entry.isFile) entries.push(entry);
+      }
+    });
+
+    // String payloads: length only, never the text itself.
+    types.forEach(function (t) {
+      if (t === 'Files') return;
+      var data = '';
+      try { data = dt.getData(t) || ''; } catch (err) { data = ''; }
+      say('getData(' + JSON.stringify(t) + ') -> ' + data.length + ' characters (content deliberately not shown)');
+    });
+
+    say('');
+    if (!entries.length) {
+      say('VERDICT: no file entry reached the page.');
+      say('   If dataTransfer.files was also 0, this drag carried no file at all —');
+      say('   which is what new Outlook is reported to do. The fallback is to drag');
+      say('   the mail to the desktop first (new Outlook saves .eml) and drop that.');
+      return;
+    }
+
+    say('Reading ' + entries.length + ' virtual file(s)…');
+    entries.forEach(function (entry) {
+      entry.file(function (file) {
+        say('   MATERIALISED: name=' + JSON.stringify(file.name) + '  size=' + file.size +
+            '  type=' + JSON.stringify(file.type));
+        say('   VERDICT: the mail DID come through. The app can read this.');
+      }, function (err) {
+        say('   entry.file() FAILED: ' + (err && err.message ? err.message : String(err)));
+        say('   VERDICT: an entry appeared but its bytes could not be read.');
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

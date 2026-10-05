@@ -1,7 +1,8 @@
 /* master-page-btbtype.test.js -- Verification for BTB / Non-BTB column showing admin_btbtype
    -----------------------------------------------------------------------------------------
    Verifies that Master page_21-Sep-2026.html correctly maps table "admin_btb_lis_excel_datas"
-   column "admin_btbtype" to the table column "BTB / NON-BTB" (BTBType).
+   column "admin_btbtype" to the table column "BTB / NON-BTB" (BTBType) and that the Manage
+   modal opens cleanly.
 */
 const fs = require("fs");
 const path = require("path");
@@ -30,6 +31,9 @@ ok("Edit modal carries edit-btb select field",
 ok("FIELD_ID_TO_RECORD_KEY maps edit-btb to BTBType",
   HTML.includes("'edit-btb': 'BTBType'"));
 
+ok("Actions column has Manage button calling openEditModal",
+  HTML.includes("openEditModal") && HTML.includes(">Manage</button>"));
+
 // 2. Logic execution in sandbox
 const scriptMatch = HTML.match(/<script>([\s\S]*?)<\/script>[\s\S]*?<\/body>/);
 if (!scriptMatch) {
@@ -57,30 +61,49 @@ const mockWebApi = {
   }
 };
 
+const domElements = new Map();
+function getMockElement(id) {
+  if (!domElements.has(id)) {
+    domElements.set(id, {
+      id,
+      innerText: "",
+      value: id === "edit-currency" ? "HKD" : (id === "edit-pramount" ? "100" : ""),
+      classList: {
+        classes: new Set(),
+        remove(...cls) { cls.forEach(c => this.classes.delete(c)); },
+        add(...cls) { cls.forEach(c => this.classes.add(c)); },
+        contains(c) { return this.classes.has(c); }
+      },
+      style: {},
+      setAttribute() {},
+      removeAttribute() {},
+      appendChild() {},
+      removeChild() {},
+      querySelector: () => null,
+      closest: () => ({ querySelector: () => ({ appendChild: () => {}, querySelector: () => null }) })
+    });
+  }
+  return domElements.get(id);
+}
+
 const sandbox = {
   console,
   setTimeout, clearTimeout,
   TextEncoder, Uint8Array,
-  window: { addEventListener() {}, localStorage: { getItem: () => null, setItem: () => {} } },
+  window: { addEventListener() {}, localStorage: { getItem: () => null, setItem: () => {} }, history: { pushState: () => {} }, location: { search: "" } },
   document: {
     addEventListener() {},
-    getElementById: (id) => ({
-      id,
-      innerText: "",
-      value: "",
-      classList: { remove() {}, add() {}, contains: () => false },
-      appendChild: () => {},
-      removeChild: () => {},
-      querySelector: () => null
-    }),
+    getElementById: (id) => getMockElement(id),
     querySelector: () => ({ innerHTML: "" }),
     querySelectorAll: () => [],
     createElement: () => ({ setAttribute() {}, appendChild() {}, remove: () => {}, click() {}, style: {} }),
     body: { appendChild() {}, removeChild() {} },
   },
+  location: { search: "" },
+  history: { pushState: () => {} },
+  URLSearchParams: function() { return { set: () => {}, get: () => "", delete: () => "", toString: () => "" }; },
+  URL: function() { return { href: "" }; },
   parent: { Xrm: { WebApi: mockWebApi } },
-  URL: { createObjectURL: () => "blob:fake", revokeObjectURL: () => {} },
-  Blob: function(parts, opts) { this.parts = parts; this.opts = opts; },
   Date,
   Math,
   String,
@@ -99,6 +122,7 @@ EXPORTS.DV_COLUMN_MAP = DV_COLUMN_MAP;
 EXPORTS.loadData = loadData;
 EXPORTS.getBtbTag = getBtbTag;
 EXPORTS.FIELD_ID_TO_RECORD_KEY = FIELD_ID_TO_RECORD_KEY;
+EXPORTS.openEditModal = openEditModal;
 EXPORTS.persistRecordToDataverse = typeof persistRecordToDataverse === 'function' ? persistRecordToDataverse : null;
 `;
 
@@ -150,7 +174,18 @@ ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
   eq("Record 6 with admin_btbtype=null maps to BTBType=''", records[5].BTBType, "");
   eq("Record 7 with admin_btbtype='' maps to BTBType=''", records[6].BTBType, "");
 
-  // 6. Test Dataverse persistence if persistRecordToDataverse exists
+  // 6. Test openEditModal execution (Manage button click)
+  let modalOpenError = null;
+  try {
+    X.openEditModal("REC-BTB-1");
+  } catch (err) {
+    modalOpenError = err;
+  }
+  eq("openEditModal('REC-BTB-1') executed without throwing", modalOpenError, null);
+  const editModalEl = getMockElement("editModal");
+  ok("openEditModal unhid editModal element", !editModalEl.classList.contains("hidden") && editModalEl.classList.contains("flex"));
+
+  // 7. Test Dataverse persistence if persistRecordToDataverse exists
   if (X.persistRecordToDataverse) {
     await X.persistRecordToDataverse({
       Id: "REC-BTB-1",
@@ -163,7 +198,7 @@ ok("getBtbTag('') returns Unset", unsetTagEmpty.includes("Unset"));
   }
 
   if (failures === 0) {
-    console.log("\nALL CHECKS PASSED: BTB / Non-BTB column correctly shows admin_btbtype value.");
+    console.log("\nALL CHECKS PASSED: BTB / Non-BTB column correctly shows admin_btbtype and Manage button works.");
     process.exit(0);
   } else {
     console.error(`\n${failures} check(s) failed.`);

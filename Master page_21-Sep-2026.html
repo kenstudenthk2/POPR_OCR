@@ -514,7 +514,7 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">BTB Type</label>
-                                    <select id="edit-btb" onchange="handleFormInputChange()" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <select id="edit-btb" onchange="handlePRAmount()" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                         <option value="">-- Select --</option>
                                         <option value="BTB">BTB</option>
                                         <option value="NON-BTB">NON-BTB</option>
@@ -2020,7 +2020,7 @@
                             td.textContent = item.HandledBy || '';
                             break;
                         case 'Actions':
-                            td.innerHTML = `<button type="button" onclick="openEditModal('${item.Id}')"
+                            td.innerHTML = `<button type="button" onclick="openEditModal('${escapeHtml(String(item.Id))}')"
                                 class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">Manage</button>`;
                             break;
                         default:
@@ -4147,7 +4147,6 @@
         }
 
         function handleFormInputChange() {
-            handlePRAmount();
             updateTrackerVisual();
         }
 
@@ -4304,7 +4303,7 @@
         }
 
         function openEditModal(id) {
-            const item = state.allData.find(d => d.Id === id);
+            const item = state.allData.find(d => d.Id === id || String(d.Id) === String(id));
             if (!item) return;
 
             state.currentRecord = { ...item };

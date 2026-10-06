@@ -158,8 +158,10 @@
             content: " " attr(data-approval);
         }
 
-        .currency-convert_hkd:not([data-currency-type="HKD"])::after {
-            content: "HKD: " attr(data-currency-hkd) " (1" attr(data-currency-type) "→" attr(data-currency-rate) "HKD)";
+        .currency-convert_hkd {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
         }
 
         [data-z-offset] {
@@ -1442,7 +1444,7 @@
                 PRIssuedMonth?: string;         // PR Issued Month (admin_prx0020issuedx0020month)
                 Currency?: string;              // unknown dataverse column
                 PRAmount?: number;              // admin_hkd. TODO: but in masster list the currency can be anything
-                // Missing: Buyer: string;
+                Buyer?: string;                 // Buyer (admin_buyer)
                 InvoiceDNNo?: string;           // Invoice # / DN # (admin_invoicex0020x0023x0020x00)
                 InvoiceDNDate?: string;         // Invoice / DN Date (admin_invoicex0020x002fx0020dnx)
                 USDOthers?: string;             // USD / Others (admin_usdx0020x002fx0020others)
@@ -1460,7 +1462,7 @@
                 POAmount?: number;              // PO Amount HK$ (admin_pox0020amountx0020hkx0024)
                 DeliveryNote: string;           // (admin_deliverynote)
                 ReceiptNum: string;             // (admin_receiptnum)
-                MarkReceiptDate: string;        // 
+                MarkReceiptDate?: string;       // Mark Receipt Date (admin_markreceivedate) 
 
                 YN?: string;                    // Urgent (Y/N) / Y / N (admin_yx0020x002fx0020n)
                 Flagged?: boolean;              // Flagged (admin_flagged)
@@ -1573,6 +1575,9 @@
             { key: "Status", label: "Status", visible: false, sortable: true },
             { key: "StatusRemark", label: "Status Remark", visible: false, sortable: true },
             { key: "Flagged", label: "Flagged", visible: false, sortable: true },
+            { key: "Buyer", label: "Buyer", visible: false, sortable: true },
+            { key: "ItemNo", label: "Item No.", visible: false, sortable: true },
+            { key: "MarkReceiptDate", label: "Mark Receipt Date", visible: false, sortable: true },
             { key: "Actions", label: "Actions", visible: true, sortable: false, locked: true },
         ];
 
@@ -3708,11 +3713,9 @@
             "admin_usdx0020x002fx0020others"    : "USDOthers",
 
             "admin_sbmtceorder"                 : "SBMTCEOrder", 
-            // "admin_itemno" column does not exist in Dataverse table admin_btb_lis_excel_datas
-            // missing UMVerified
-            // missing PRApproved
-            // missing POReady
-            // missing Buyer
+            "admin_itemno"                      : "ItemNo",
+            "admin_buyer"                       : "Buyer",
+            "admin_markreceivedate"             : "MarkReceiptDate",
             "admin_sellingamounthkd"            : "SellingAmountHKD",
             "admin_ratioofoverallcostx002dreve" : "CostRevenueRatio",
             "admin_ratioofoverallswappingx002d" : "SwappingRevenueRatio",
@@ -3785,7 +3788,8 @@
                         "admin_ratioofoverallswappingx002d", "admin_deliverynote", "admin_receiptnum",
                         "admin_pocurrency", "admin_approvaldate", "admin_reviewdate", "admin_brand",
                         "admin_model", "admin_licensereceivedate", "admin_pramount", "admin_pramounthkd",
-                        "admin_pramountusd", "admin_usdx0020x002fx0020others"
+                        "admin_pramountusd", "admin_usdx0020x002fx0020others", "admin_itemno",
+                        "admin_buyer", "admin_markreceivedate"
                     ];
                     const coreQuery = "?$select=" + coreCols.join(",") + "&$top=5000";
                     const coreResponse = await api.retrieveMultipleRecords(loadedEntityName, coreQuery);
@@ -4598,17 +4602,25 @@
         }
 
         function handlePOAmount() {
-            const poCurrency = /** @type {HTMLInputElement} */ (document.getElementById("edit-pocurrency"));
+            const poCurrency = /** @type {HTMLSelectElement} */ (document.getElementById("edit-pocurrency"));
             const poAmount = /** @type {HTMLInputElement} */ (document.getElementById("edit-poamount"));
 
-            const hkdAmount = convertToHKD(poCurrency.value, poAmount.value) || 0;
+            const curr = poCurrency ? poCurrency.value : "HKD";
+            const cleanStr = String(poAmount ? poAmount.value : "").replace(/,/g, "").trim();
+            const numVal = cleanStr !== "" ? parseFloat(cleanStr) : NaN;
+            const { prAmountHkd, prAmountUsd } = convertPrAmount(numVal, curr);
+
             const poAmountInHKD = document.getElementById("po-amount-convert_hkd");
-            if(!poAmountInHKD) {
-                return 
+            if (!poAmountInHKD) return;
+            if (!isNaN(numVal) && numVal !== null) {
+                if (curr === "USD") {
+                    poAmountInHKD.textContent = `HKD: ${Number(prAmountHkd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD → 7.9 HKD)`;
+                } else {
+                    poAmountInHKD.textContent = `USD: ${Number(prAmountUsd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD : 7.9 HKD)`;
+                }
+            } else {
+                poAmountInHKD.textContent = "";
             }
-            poAmountInHKD.setAttribute("data-currency-type", hkdAmount.currency);
-            poAmountInHKD.setAttribute("data-currency-rate", hkdAmount.rate);
-            poAmountInHKD.setAttribute("data-currency-hkd", hkdAmount.hkd.toFixed(2));
         }
 
         
@@ -5254,7 +5266,9 @@
                     if (record.AccountCode !== undefined) payload.admin_accountx0020code = record.AccountCode || null;
                     if (record.InvoiceDNNo !== undefined) payload.admin_invoicex0020x0023x0020x00 = record.InvoiceDNNo || null;
                     if (record.SBMTCEOrder !== undefined) payload.admin_sbmtceorder = record.SBMTCEOrder || null;
-                    // admin_itemno is omitted because it does not exist in Dataverse schema
+                    if (record.ItemNo !== undefined) payload.admin_itemno = record.ItemNo || null;
+                    if (record.Buyer !== undefined) payload.admin_buyer = record.Buyer || null;
+                    if (record.MarkReceiptDate !== undefined) payload.admin_markreceivedate = record.MarkReceiptDate ? formatDateForInput(record.MarkReceiptDate) : null;
                     if (record.SellingAmountHKD !== undefined) payload.admin_sellingamounthkd = (record.SellingAmountHKD != null && record.SellingAmountHKD !== "") ? String(record.SellingAmountHKD) : null;
                     if (record.CostRevenueRatio !== undefined) payload.admin_ratioofoverallcostx002dreve = (record.CostRevenueRatio != null && record.CostRevenueRatio !== "") ? String(record.CostRevenueRatio) : null;
                     if (record.SwappingRevenueRatio !== undefined) payload.admin_ratioofoverallswappingx002d = (record.SwappingRevenueRatio != null && record.SwappingRevenueRatio !== "") ? String(record.SwappingRevenueRatio) : null;

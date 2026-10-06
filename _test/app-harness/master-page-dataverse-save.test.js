@@ -3,7 +3,7 @@
  * fields to Dataverse table admin_btb_lis_excel_datas:
  *  - Float columns (PO Amount HK$, No.) are numbers or null, never strings or empty strings
  *  - Date-only column (PR Issued Month) is formatted as YYYY-MM-01, never 2-digit month
- *  - Non-existent column admin_itemno is omitted from payload
+ *  - admin_itemno, admin_buyer, admin_markreceivedate are mapped in DV_COLUMN_MAP and saved
  *  - admin_sbreportgenrated is included from SBReportGenerated
  *  - PR_Status choice values are 1-based (Completed = 1, Pending = 2, Cancel = 3, Return = 4, Duplicate = 5)
  *  - edit-pr-remark maps to Remarks / PRRemarks
@@ -139,7 +139,9 @@ try {
 const X = sandbox.EXPORTS;
 
 (async () => {
-  ok("DV_COLUMN_MAP does not include admin_itemno", X.DV_COLUMN_MAP.admin_itemno === undefined);
+  eq("DV_COLUMN_MAP maps admin_itemno to ItemNo", X.DV_COLUMN_MAP.admin_itemno, "ItemNo");
+  eq("DV_COLUMN_MAP maps admin_buyer to Buyer", X.DV_COLUMN_MAP.admin_buyer, "Buyer");
+  eq("DV_COLUMN_MAP maps admin_markreceivedate to MarkReceiptDate", X.DV_COLUMN_MAP.admin_markreceivedate, "MarkReceiptDate");
 
   // 3. Test convertPrAmount helper
   const hkdConv = X.convertPrAmount(16000, "HKD");
@@ -165,13 +167,18 @@ const X = sandbox.EXPORTS;
     SBReportGenerated: "2026-10-06",
     PRRemarks: "Special discount applied",
     CustomerName: "Test Customer",
-    Vendor: "Test Vendor"
+    Vendor: "Test Vendor",
+    ItemNo: "ITM-99",
+    Buyer: "Chan, Peter",
+    MarkReceiptDate: "2026-10-10"
   });
 
   eq("updateRecord was called once in bulk mode", updatedRecords.length, 1);
   const pHkd = updatedRecords[0].payload;
 
-  eq("admin_itemno is omitted from payload", pHkd.admin_itemno, undefined);
+  eq("admin_itemno is included in payload", pHkd.admin_itemno, "ITM-99");
+  eq("admin_buyer is included in payload", pHkd.admin_buyer, "Chan, Peter");
+  eq("admin_markreceivedate is included in payload", pHkd.admin_markreceivedate, "2026-10-10");
   eq("PO Amount HK$ is numeric Float", pHkd.admin_pox0020amountx0020hkx0024, 12500.50);
   eq("PO_Amount text copy is String", pHkd.admin_poamount, "12500.5");
   eq("No. is numeric Float", pHkd.admin_nox002e, 42);

@@ -39,7 +39,7 @@ function eq(label, actual, expected) {
     app.FEATURES.supplierRemarkLookup === true);
 }
 
-/* ---------- 2. getRowCcc and getRowRemark helpers ---------- */
+/* ---------- 2. getRowCcc, getRowRemark, and cleanRichTextToPlainText helpers ---------- */
 {
   // Lowercase properties from Dataverse OData
   const dvRow = { admin_ccc: 'C716', admin_reamrk: 'Test remark from Dataverse' };
@@ -56,9 +56,29 @@ function eq(label, actual, expected) {
   eq('getRowCcc reads C900', app.getRowCcc(cleanRow), 'C900');
   eq('getRowRemark reads admin_remark', app.getRowRemark(cleanRow), 'Clean remark');
 
+  // SharePoint / Dataverse Rich Text HTML cleaning
+  const richHtml = '<div class="ExternalClass6FFF849ED4F74276886A19202FBF7462">' +
+    '<div style="font-family&#58;Calibri;font-size&#58;11pt;">' +
+    '<span style="font-size&#58;12pt;">NON-BTB Mtce Case, Cost absorbed by COS</span></div>' +
+    '<p style="margin&#58;0cm;font-family&#58;&quot;Times New Roman&quot;;">' +
+    '<span lang="EN-US">1)</span>' +
+    '<span>&#160;&#160;&#160;&#160;Item line</span></p></div>';
+
+  const cleaned = app.cleanRichTextToPlainText(richHtml);
+  ok('cleanRichTextToPlainText removes ExternalClass div and tags', !cleaned.includes('ExternalClass') && !cleaned.includes('<div'));
+  ok('cleanRichTextToPlainText keeps first line', cleaned.includes('NON-BTB Mtce Case, Cost absorbed by COS'));
+  ok('cleanRichTextToPlainText keeps second line with line break', cleaned.includes('1)    Item line'));
+  ok('cleanRichTextToPlainText decodes &#58; and &#160;', !cleaned.includes('&#58;') && !cleaned.includes('&#160;'));
+
+  // getRowRemark automatically cleans rich text
+  const richRow = { admin_ccc: 'C665', admin_reamrk: richHtml };
+  const remarkFromRow = app.getRowRemark(richRow);
+  ok('getRowRemark cleans rich HTML into plain text', !remarkFromRow.includes('<') && remarkFromRow.includes('NON-BTB Mtce Case'));
+
   // Null/empty handling
   eq('getRowCcc handles null', app.getRowCcc(null), '');
   eq('getRowRemark handles null', app.getRowRemark(null), '');
+  eq('cleanRichTextToPlainText handles null', app.cleanRichTextToPlainText(null), '');
 }
 
 /* ---------- 3. interpolateRemark ---------- */

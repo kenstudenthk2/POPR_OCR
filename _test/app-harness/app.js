@@ -96,6 +96,7 @@ const EXPORTS = [
   // the two remark sentences, and the month count the dev Period line prints
   'buildToSupplierRemark', 'monthsBetween', 'interpolateRemark',
   'fetchSupplierRemarkRows', 'DEMO_SUPPLIER_REMARKS', 'getRowCcc', 'getRowRemark',
+  'cleanRichTextToPlainText',
   'buildBtbRemark', 'BTB_ADMIN_NAMES', 'BTB_ADMINS', 'adminIssuedBy', 'BTB_SALES_CONTACTS',
   'FEATURES', 'DATAVERSE_SCHEMAS', 'SCHEMA', 'mapPayload', 'buildLisStartPayload', 'btbTypeOf',
   'localIsoDay', 'localIsoTomorrow',

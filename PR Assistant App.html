@@ -941,7 +941,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.27.1";
+const APP_VERSION = "5.27.2";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -9384,20 +9384,97 @@ function getRowCcc(row) {
   return "";
 }
 
-// Case-insensitive helper to read the Remark column from a Dataverse row or mock object
-function getRowRemark(row) {
-  if (!row || typeof row !== "object") return "";
-  if (row.admin_reamrk != null) return String(row.admin_reamrk);
-  if (row.admin_Reamrk != null) return String(row.admin_Reamrk);
-  if (row.admin_remark != null) return String(row.admin_remark);
-  if (row.admin_Remark != null) return String(row.admin_Remark);
-  for (const k of Object.keys(row)) {
-    const lk = k.toLowerCase();
-    if (lk === "admin_reamrk" || lk === "admin_remark" || lk === "reamrk" || lk === "remark") {
-      return String(row[k] != null ? row[k] : "");
+// Converts SharePoint / Dataverse Rich Text (HTML with tags, ExternalClass divs,
+// decimal entities like &#58;, &#160;, &quot;) into clean, multi-line plain text.
+function cleanRichTextToPlainText(html) {
+  if (!html) return "";
+  let s = String(html);
+  // Fast path if string is already plain text
+  if (!/<[a-z][\s\S]*>/i.test(s) && !/&[#a-z0-9]+;/i.test(s)) {
+    return s;
+  }
+
+  // Convert line breaks and block element closings to newlines
+  s = s.replace(/<(?:br|hr)\s*\/?>/gi, "\n");
+  s = s.replace(/<\/(?:p|div|li|tr|h[1-6]|blockquote)>/gi, "\n");
+  s = s.replace(/<(?:p|div|li|tr|h[1-6]|blockquote)[^>]*>/gi, "\n");
+
+  // Strip remaining HTML tags (span, font, b, i, a, etc.)
+  s = s.replace(/<[^>]+>/g, "");
+
+  // Decimal numeric entities (&#58; -> :, &#160; -> space, etc.)
+  s = s.replace(/&#(\d+);/g, (_, dec) => {
+    const code = parseInt(dec, 10);
+    return code === 160 ? " " : String.fromCharCode(code);
+  });
+
+  // Hex numeric entities (&#x3A; -> :, etc.)
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+    const code = parseInt(hex, 16);
+    return (code === 160 || code === 0xA0) ? " " : String.fromCharCode(code);
+  });
+
+  // Named HTML entities
+  const namedEntities = {
+    "&nbsp;": " ",
+    "&quot;": '"',
+    "&apos;": "'",
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+  };
+  s = s.replace(/&(?:nbsp|quot|apos|amp|lt|gt);/gi, m => namedEntities[m.toLowerCase()] || m);
+
+  // In real browser, decode any other residual entities through textarea if available
+  if (typeof document !== "undefined" && typeof document.createElement === "function") {
+    try {
+      const ta = document.createElement("textarea");
+      if (ta && "innerHTML" in ta) {
+        ta.innerHTML = s;
+        if (typeof ta.value === "string") s = ta.value;
+      }
+    } catch (_e) { /* ignore */ }
+  }
+
+  // Replace any residual non-breaking spaces (\u00A0) with normal spaces
+  s = (s || "").replace(/\u00A0/g, " ");
+
+  // Normalize line breaks: trim trailing whitespace on each line, collapse excess blank lines
+  const lines = s.split(/\r?\n/).map(l => l.trimEnd());
+  const out = [];
+  let blankCount = 0;
+  for (const line of lines) {
+    if (line.trim() === "") {
+      blankCount++;
+      if (blankCount <= 1 && out.length > 0) out.push("");
+    } else {
+      blankCount = 0;
+      out.push(line);
     }
   }
-  return "";
+
+  return out.join("\n").trim();
+}
+
+// Case-insensitive helper to read the Remark column from a Dataverse row or mock object,
+// automatically cleaning SharePoint / Dataverse rich text into normal multi-line plain text.
+function getRowRemark(row) {
+  if (!row || typeof row !== "object") return "";
+  let raw = "";
+  if (row.admin_reamrk != null) raw = String(row.admin_reamrk);
+  else if (row.admin_Reamrk != null) raw = String(row.admin_Reamrk);
+  else if (row.admin_remark != null) raw = String(row.admin_remark);
+  else if (row.admin_Remark != null) raw = String(row.admin_Remark);
+  else {
+    for (const k of Object.keys(row)) {
+      const lk = k.toLowerCase();
+      if (lk === "admin_reamrk" || lk === "admin_remark" || lk === "reamrk" || lk === "remark") {
+        raw = String(row[k] != null ? row[k] : "");
+        break;
+      }
+    }
+  }
+  return cleanRichTextToPlainText(raw);
 }
 
 // Reads supplier remark options and templates from admin_btb_supplier_remark.

@@ -11641,7 +11641,7 @@ function ProcessingPage({ status, pct, error, retry, goVerify }) {
 }
 
 /**
- * @param {Blob} blob 
+ * @param {Blob} blob
  * @returns {Promise<string>} - base64 string representation of the blob
  */
 function blobToBase64(blob) {
@@ -11654,28 +11654,205 @@ function blobToBase64(blob) {
         return;
       }
       const base64 = result.substring(result.indexOf(",") + 1); // Remove the data URL prefix
-      resolve(base64)
+      resolve(base64);
     };
     reader.readAsDataURL(blob);
   });
 }
 
+
+/** 
+  @typedef {{
+      filename: string,
+      base64: string
+    }} ISerializedFile
+
+  @typedef {{
+    recordId: string,
+    action: 'chunk' | 'finish' | 'purge-folder' | undefined, 
+  }} IBaseSaveAttachmentPayload
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: undefined,
+    attachments: ISerializedFile[]
+  }} ISimpleSaveAttachmentPayload
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: 'chunk',
+    attachments: ISerializedFile[]
+  }} IChunkedSaveAttachmentUploadPayload
+
+  @typedef {{
+    filename:string, 
+    chunks: string[]
+  }} IChunkManifestItem 
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: 'finish',
+    "chunk-manifest": IChunkManifestItem[]
+  }} IChunkedSaveAttachmentFinishPayload
+
+  @typedef {
+    | ISimpleSaveAttachmentPayload
+    | IChunkedSaveAttachmentUploadPayload
+    | IChunkedSaveAttachmentFinishPayload
+  } ISaveAttachmentPayload
+*/
+
+class Semaphore {
+  /** @type {(()=>any)[]} */
+  queue = [];
+  currentCount = 0;
+
+  /**
+   * @param {number} maxConcurrency
+   */
+  constructor(maxConcurrency) {
+    this.maxConcurrency = maxConcurrency;
+  }
+
+  queueNext() {
+    let notified = false;
+    this.currentCount++;
+    const notifyNext = () => {
+      if (notified) return;
+      notified = true;
+      this.currentCount--;
+      if (this.queue.length > 0) {
+        const nextResolve = this.queue.shift();
+        nextResolve?.();
+      }
+    };
+    const resolvers = /** @type {PromiseWithResolvers<() => void>} */ (Promise.withResolvers());
+    if (this.currentCount < this.maxConcurrency) {
+      this.currentCount++;
+      resolvers.resolve(notifyNext);
+    } else {
+      this.queue.push(() => resolvers.resolve(notifyNext));
+    }
+
+    return resolvers.promise;
+  }
+}
+
+// const N8N_SAVE_ONEDRIVE_URL = "";
 const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
+const GROUP_RATIO = 0.7;
+
 /**
- * Send Email and attachments to PowerFlow (through n8n flow)
+ * @param {ISerializedFile[]} serializedFiles
+ * @param {number} chunkSize
+ */
+function sliceFiles(serializedFiles, chunkSize) {
+  /** @type {IChunkManifestItem[]} */
+  const chunkManifest = [];
+  /** @type {ISerializedFile[][]} */
+  const reqList = [];
+  let reqAttachments = [];
+  let reqSize = 0;
+  for (const file of serializedFiles) {
+    /** @type {IChunkManifestItem} */
+    const chunkManifestItem = {
+      filename: file.filename,
+      chunks: [],
+    };
+    let fileHead = 0;
+    let chunkIndex = 0;
+    while (fileHead < file.base64.length) {
+      const chunkName = `${file.filename}.chunk-${chunkIndex}`;
+      const remainingSize = chunkSize - reqSize;
+      const chunk = file.base64.slice(fileHead, fileHead + remainingSize);
+      fileHead += chunk.length;
+      chunkIndex++;
+
+      reqAttachments.push({
+        filename: chunkName,
+        base64: chunk,
+      });
+      reqSize += chunk.length;
+      chunkManifestItem.chunks.push(chunkName);
+
+      if (reqSize >= chunkSize * GROUP_RATIO) {
+        reqList.push(reqAttachments);
+        reqAttachments = [];
+        reqSize = 0;
+      }
+      // reuse request when chunk utilization is below GROUP_RATIO
+    }
+    chunkManifest.push(chunkManifestItem);
+  }
+  if (reqAttachments.length > 0) {
+    reqList.push(reqAttachments);
+    reqAttachments = [];
+    reqSize = 0;
+  }
+
+  return {
+    reqList,
+    chunkManifests: chunkManifest,
+  };
+}
+
+/**
+ *
+ * @param {ISerializedFile[]} serializedFiles
+ * @param {string} recordId
+ * @param {number} chunkSize
+ */
+async function splitUpload(serializedFiles, recordId, chunkSize) {
+  const semaphore = new Semaphore(5);
+
+  const { reqList, chunkManifests } = sliceFiles(serializedFiles, chunkSize);
+  /** @type {IChunkedSaveAttachmentFinishPayload} */
+  const finishPostObj = {
+    recordId,
+    action: "finish",
+    "chunk-manifest": chunkManifests,
+  };
+
+  const requests = reqList.map(async (files)=>{
+    const notify = await semaphore.queueNext();
+    try {
+      /** @type {IChunkedSaveAttachmentUploadPayload}*/
+      const chunkReqObject = {
+        recordId,
+        action: "chunk",
+        attachments: files,
+      }
+
+      const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+        method: "POST",
+        body: JSON.stringify(chunkReqObject)
+      });
+      return response;
+    } finally {
+      notify();
+    }
+  })
+
+
+  await Promise.all(requests);
+  const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+    method: "POST",
+    body: JSON.stringify(finishPostObj),
+  });
+  return response;
+}
+
+/**
+ * 
  * @param {string} recordId 
- * @param {import("./types/AttachmentRecord").IAttachments} attachments 
+ * @param {import("../../lib/interfaces/AttachmentRecord").IAttachments} attachments 
  */
 async function saveAttachmentToPowerFlow(recordId, attachments){
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
-  /** @type {{recordId: string, attachments: {filename: string; base64: string}[]}} */
-  const postObj = {
-    recordId,
-    attachments: []
-  }
+  // const postObj = {
+  //   recordId,
+  //   attachments: []
+  // }
   const emailFile = attachments["Vendor Quotation"].fileObj
 
   const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {
@@ -11686,16 +11863,20 @@ async function saveAttachmentToPowerFlow(recordId, attachments){
       })
     }
   )
-  promises.push(blobToBase64(emailFile).then((base64)=>({
-    filename: emailFile.name,
-    base64
-  })))
+  if (emailFile){
+    promises.push(blobToBase64(emailFile).then((base64)=>({
+      filename: emailFile.name,
+      base64
+    })))
+  }
   const base64Files = (await Promise.allSettled(promises)).filter(res=> res.status === 'fulfilled')
-  postObj.attachments = base64Files.map((res) => res.value)
-  const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
-    method: "POST",
-    body: JSON.stringify(postObj), 
-  })
+  const response = await splitUpload(base64Files.map(res=>res.value), recordId, 1024*1024)
+  
+  // postObj.attachments = base64Files.map((res) => res.value)
+  // const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+  //   method: "POST",
+  //   body: JSON.stringify(postObj), 
+  // })
   return response
 }
 

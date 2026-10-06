@@ -3258,7 +3258,7 @@ function seedFieldsFromLisRows(fields, values) {
 function buildLisExcelPayload(values, recordId, remark) {
   const v = key => ((values && values[key]) || "").trim();
   // const prAmountNum = parseDecimal(v("prAmount"));
-  const prAmountNum = ]v("prAmount");
+  const prAmountNum = v("prAmount");
   const rawCurrency = v("currency") || v("prCurrency");
   const prCurrency = rawCurrency
     ? (rawCurrency.toUpperCase() === "USD" ? "USD" : "HKD")

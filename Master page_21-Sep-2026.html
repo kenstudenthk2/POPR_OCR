@@ -3711,7 +3711,7 @@
             "admin_usdx0020x002fx0020others"    : "USDOthers",
 
             "admin_sbmtceorder"                 : "SBMTCEOrder", 
-            "admin_itemno"                      : "ItemNo",
+            // "admin_itemno" column does not exist in Dataverse table admin_btb_lis_excel_datas
             // missing UMVerified
             // missing PRApproved
             // missing POReady
@@ -3774,7 +3774,7 @@
                         "admin_title", "admin_customerx0020name", "admin_vendor", "admin_hkd",
                         "admin_hkdusd",
                         "admin_contractx0020nox002e", "admin_contractstartdate", "admin_contractenddate",
-                        "admin_prx0020reference", "admin_uidx0020x0023", "admin_issuex0020by",
+                        "admin_prx0020reference", "admin_prx0020description", "admin_uidx0020x0023", "admin_issuex0020by",
                         "admin_chargex0020ccc", "admin_worksx0020orderx0020code", "admin_accountx0020code",
                         "admin_prx0020issuedx0020on", "admin_prx0020nox002e", "admin_handledx0020byx0020",
                         "admin_iptx0020unitx0020mgr", "admin_quotationstartdates", "admin_quotationenddates",
@@ -3783,7 +3783,11 @@
                         "admin_pox0020amountx0020hkx0024", "admin_umx002fmgr", "admin_prx0020issuedx0020month",
                         "admin_yx0020x002fx0020n", "admin_remarks", "admin_invoicex0020x0023x0020x00",
                         "admin_invoicex0020x002fx0020dnx", "admin_producttype", "admin_prstatus",
-                        "admin_flagged", "admin_statusremark", "admin_quotationexpirydate"
+                        "admin_flagged", "admin_statusremark", "admin_quotationexpirydate",
+                        "admin_sbmtceorder", "admin_sellingamounthkd", "admin_ratioofoverallcostx002dreve",
+                        "admin_ratioofoverallswappingx002d", "admin_deliverynote", "admin_receiptnum",
+                        "admin_pocurrency", "admin_approvaldate", "admin_reviewdate", "admin_brand",
+                        "admin_model", "admin_licensereceivedate"
                     ];
                     const coreQuery = "?$select=" + coreCols.join(",") + "&$top=5000";
                     const coreResponse = await api.retrieveMultipleRecords(loadedEntityName, coreQuery);
@@ -3826,6 +3830,11 @@
                         switch (masterKey){
                             // numeric fields
                             //case "TotalRevenue":
+                            case "No": {
+                                const numValue = Number(item[dvColumnKey]);
+                                masterRecord[masterKey] = (!isNaN(numValue) && item[dvColumnKey] !== null && item[dvColumnKey] !== "") ? numValue : item[dvColumnKey];
+                                break;
+                            }
                             case "PRAmount": 
                             case "POAmount":
                             case "SellingAmountHKD":
@@ -3833,6 +3842,21 @@
                             case "SwappingRevenueRatio": {
                                 const numValue = Number(item[dvColumnKey]);
                                 masterRecord[masterKey] = !isNaN(numValue) ? numValue : undefined;
+                                break;
+                            }
+                            // choice fields
+                            case "Status": {
+                                const rawStatus = item[dvColumnKey];
+                                masterRecord.Status = PR_STATUS_CHOICES[rawStatus] || rawStatus || "";
+                                break;
+                            }
+                            case "PRIssuedMonth": {
+                                const rawMonth = item[dvColumnKey];
+                                if (rawMonth && /^\d{4}-\d{2}/.test(String(rawMonth))) {
+                                    masterRecord.PRIssuedMonth = String(rawMonth).slice(5, 7);
+                                } else {
+                                    masterRecord.PRIssuedMonth = rawMonth ? String(rawMonth) : "";
+                                }
                                 break;
                             }
                             // date fields
@@ -4869,7 +4893,10 @@
                 if (CHECKBOX_FIELD_IDS.has(fieldId)) {
                     el.checked = Boolean(item[recordKey]);
                 } else {
-                    const val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    let val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    if (!val && (fieldId === 'edit-pr-remark' || fieldId === 'edit-pr-remarks') && item.Remarks) {
+                        val = String(item.Remarks);
+                    }
                     if (el.tagName === 'SELECT' && val && el.options && ![...el.options].some(o => o.value === val)) {
                         const opt = document.createElement('option');
                         opt.value = val;
@@ -4966,11 +4993,14 @@
                     item[recordKey] = el.checked;
                 } else {
                     switch (recordKey) {
-                        // TODO: add other numeric fields
                         case 'PRAmount':
                         case 'POAmount':
                         case 'TotalRevenue':
-                            item[recordKey] = el.value ? parseFloat(el.value) : null;
+                        case 'SellingAmountHKD':
+                        case 'CostRevenueRatio':
+                        case 'SwappingRevenueRatio':
+                        case 'No':
+                            item[recordKey] = (el.value !== "" && !isNaN(parseFloat(el.value))) ? parseFloat(el.value) : null;
                             break;
                         case 'PRNo':
                         case 'PONo':
@@ -4994,23 +5024,36 @@
 
             return true;
         }
-const PR_STATUS_MAP = {
-    "Completed": 0,
-    "Pending": 1,
-    "Cancel": 2,
-    "Return": 3,
-    "Duplicate": 4
-};
 
-const PROCESS_STATUS_MAP = {
-    "Complete": 0,
-    "Cancelled": 1,
-    "PR No. Ready": 2,
-    "UM Verified": 3,
-    "LIS System Approved": 4,
-    "PO No. Ready": 5
-};
+        const PR_STATUS_CHOICES = {
+            1: "Completed",
+            2: "Pending",
+            3: "Cancel",
+            4: "Return",
+            5: "Duplicate"
+        };
 
+        const PR_STATUS_MAP = {
+            "Completed": 1,
+            "Pending": 2,
+            "Cancel": 3,
+            "Return": 4,
+            "Duplicate": 5,
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 4,
+            5: 5
+        };
+
+        const PROCESS_STATUS_MAP = {
+            "Complete": 0,
+            "Cancelled": 1,
+            "PR No. Ready": 2,
+            "UM Verified": 3,
+            "LIS System Approved": 4,
+            "PO No. Ready": 5
+        };
 
         async function persistRecordToDataverse(record) {
             const api = getDataverseWebApi();
@@ -5034,6 +5077,8 @@ const PROCESS_STATUS_MAP = {
 
                 if (existingId) {
                     const payload = {};
+
+                    // 1. Identity / Primary Text Fields
                     if (record.BTBType !== undefined) {
                         payload.admin_btbtype = record.BTBType || null;
                     }
@@ -5041,232 +5086,126 @@ const PROCESS_STATUS_MAP = {
                     if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
                     if (record.PRNo !== undefined) payload.admin_prx0020nox002e = record.PRNo || null;
                     if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
-                    if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? String(record.PRAmount) : null;
-                    if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? String(record.POAmount) : null;
-if (record.ProcessStatus !== undefined)
-    payload.admin_processstatus =
-        PROCESS_STATUS_MAP[
-            record.ProcessStatus
-        ];
-        
-if (record.Status !== undefined)
-    payload.admin_prstatus =
-PR_STATUS_MAP[
-record.Status
-];
 
-if (record.RecordDate)
-    payload.admin_recx0027dx0020datex0020 =
-        record.RecordDate;
+                    // 2. Numeric / Float Columns (Dataverse Float requires number, not string or empty string)
+                    if (record.POAmount !== undefined) {
+                        const poNum = (record.POAmount !== null && record.POAmount !== "" && !isNaN(Number(record.POAmount))) ? Number(record.POAmount) : null;
+                        payload.admin_pox0020amountx0020hkx0024 = poNum;
+                        payload.admin_poamount = poNum !== null ? String(poNum) : null;
+                    }
+                    if (record.No !== undefined) {
+                        const noNum = (record.No !== null && record.No !== "" && !isNaN(Number(record.No))) ? Number(record.No) : null;
+                        payload.admin_nox002e = noNum;
+                    }
 
-if (record.IssueBy !== undefined)
-    payload.admin_issuex0020by =
-        record.IssueBy;
+                    // 3. PR Amount & Currency
+                    if (record.PRAmount !== undefined) {
+                        const prStr = (record.PRAmount !== null && record.PRAmount !== "") ? String(record.PRAmount) : null;
+                        payload.admin_hkd = prStr;
+                        payload.admin_pramount = prStr;
+                        if (record.Currency === 'USD') {
+                            payload.admin_pramountusd = prStr;
+                            if (prStr !== null) {
+                                payload.admin_pramounthkd = (Number(record.PRAmount) * 7.9).toFixed(2);
+                            }
+                        } else {
+                            payload.admin_pramounthkd = prStr;
+                        }
+                    }
+                    if (record.Currency !== undefined) payload.admin_hkdusd = record.Currency || null;
 
-if (record.Brand !== undefined)
-    payload.admin_brand =
-        record.Brand;
+                    // 4. Choice & Status Columns
+                    if (record.Status !== undefined && PR_STATUS_MAP[record.Status] !== undefined) {
+                        payload.admin_prstatus = PR_STATUS_MAP[record.Status];
+                    }
+                    if (record.ProcessStatus !== undefined && PROCESS_STATUS_MAP[record.ProcessStatus] !== undefined) {
+                        payload.admin_processstatus = PROCESS_STATUS_MAP[record.ProcessStatus];
+                    }
+                    if (record.ProcessStatus !== undefined) {
+                        payload.admin_previousprocessstatus = record.ProcessStatus || null;
+                    }
 
-if (record.Model !== undefined)
-    payload.admin_model =
-        record.Model;
+                    // 5. Date-only columns in Dataverse
+                    if (record.RecordDate !== undefined) {
+                        payload.admin_recx0027dx0020datex0020 = record.RecordDate ? formatDateForInput(record.RecordDate) : null;
+                    }
+                    if (record.InvoiceDNDate !== undefined) {
+                        payload.admin_invoicex0020x002fx0020dnx = record.InvoiceDNDate ? formatDateForInput(record.InvoiceDNDate) : null;
+                    }
+                    if (record.PRIssuedOn !== undefined) {
+                        payload.admin_prx0020issuedx0020on = record.PRIssuedOn ? formatDateForInput(record.PRIssuedOn) : null;
+                    }
+                    // admin_prx0020issuedx0020month is Date-only in Dataverse; format as YYYY-MM-01
+                    if (record.PRIssuedOn && /^\d{4}-\d{2}/.test(record.PRIssuedOn)) {
+                        payload.admin_prx0020issuedx0020month = record.PRIssuedOn.slice(0, 7) + '-01';
+                    } else if (record.PRIssuedMonth && /^\d{4}-\d{2}/.test(record.PRIssuedMonth)) {
+                        payload.admin_prx0020issuedx0020month = record.PRIssuedMonth.slice(0, 7) + '-01';
+                    }
 
-if (record.ProductType !== undefined)
-    payload.admin_producttype =
-        record.ProductType;
+                    // 6. Text-based Date Fields in Dataverse
+                    if (record.SBReportGenerated !== undefined) payload.admin_sbreportgenrated = record.SBReportGenerated || null;
+                    if (record.QuotationStartDate !== undefined) payload.admin_quotationstartdates = record.QuotationStartDate || null;
+                    if (record.QuotationEndDate !== undefined) payload.admin_quotationenddates = record.QuotationEndDate || null;
+                    if (record.QuotationExpiryDate !== undefined) payload.admin_quotationexpirydate = record.QuotationExpiryDate || null;
+                    if (record.StartDate !== undefined) payload.admin_contractstartdate = record.StartDate || null;
+                    if (record.EndDate !== undefined) payload.admin_contractenddate = record.EndDate || null;
+                    if (record.LicenseReceiveDate !== undefined) payload.admin_licensereceivedate = record.LicenseReceiveDate || null;
+                    if (record.PODate !== undefined) payload.admin_pox0020date = record.PODate || null;
+                    if (record.POReceiptDate !== undefined) payload.admin_receiptx0020date = record.POReceiptDate || null;
+                    if (record.ApprovalDate !== undefined) payload.admin_approvaldate = record.ApprovalDate || null;
+                    if (record.ReviewDate !== undefined) payload.admin_reviewdate = record.ReviewDate || null;
 
-if (record.HandledBy !== undefined)
-    payload.admin_handledx0020byx0020 =
-        record.HandledBy;
+                    // 7. General Text Fields
+                    if (record.IssueBy !== undefined) payload.admin_issuex0020by = record.IssueBy || null;
+                    if (record.Brand !== undefined) payload.admin_brand = record.Brand || null;
+                    if (record.Model !== undefined) payload.admin_model = record.Model || null;
+                    if (record.ProductType !== undefined) payload.admin_producttype = record.ProductType || null;
+                    if (record.HandledBy !== undefined) payload.admin_handledx0020byx0020 = record.HandledBy || null;
+                    if (record.IPTUnitMgr !== undefined) payload.admin_iptx0020unitx0020mgr = record.IPTUnitMgr || null;
+                    if (record.UID !== undefined) payload.admin_uidx0020x0023 = record.UID || null;
+                    if (record.Remarks !== undefined || record.PRRemarks !== undefined) {
+                        payload.admin_remarks = record.Remarks || record.PRRemarks || null;
+                    }
+                    if (record.PRReference !== undefined) payload.admin_prx0020reference = record.PRReference || null;
+                    if (record.PRDescription !== undefined) payload.admin_prx0020description = record.PRDescription || null;
+                    if (record.ContractNo !== undefined) payload.admin_contractx0020nox002e = record.ContractNo || null;
+                    if (record.TotalRevenue !== undefined) payload.admin_totalrevenue = (record.TotalRevenue != null && record.TotalRevenue !== "") ? String(record.TotalRevenue) : null;
+                    if (record.UMMgr !== undefined) payload.admin_umx002fmgr = record.UMMgr || null;
+                    if (record.ChargeCCC !== undefined) payload.admin_chargex0020ccc = record.ChargeCCC || null;
+                    if (record.WorksOrderCode !== undefined) payload.admin_worksx0020orderx0020code = record.WorksOrderCode || null;
+                    if (record.AccountCode !== undefined) payload.admin_accountx0020code = record.AccountCode || null;
+                    if (record.InvoiceDNNo !== undefined) payload.admin_invoicex0020x0023x0020x00 = record.InvoiceDNNo || null;
+                    if (record.SBMTCEOrder !== undefined) payload.admin_sbmtceorder = record.SBMTCEOrder || null;
+                    // admin_itemno is omitted because it does not exist in Dataverse schema
+                    if (record.SellingAmountHKD !== undefined) payload.admin_sellingamounthkd = (record.SellingAmountHKD != null && record.SellingAmountHKD !== "") ? String(record.SellingAmountHKD) : null;
+                    if (record.CostRevenueRatio !== undefined) payload.admin_ratioofoverallcostx002dreve = (record.CostRevenueRatio != null && record.CostRevenueRatio !== "") ? String(record.CostRevenueRatio) : null;
+                    if (record.SwappingRevenueRatio !== undefined) payload.admin_ratioofoverallswappingx002d = (record.SwappingRevenueRatio != null && record.SwappingRevenueRatio !== "") ? String(record.SwappingRevenueRatio) : null;
+                    if (record.DeliveryNote !== undefined) payload.admin_deliverynote = record.DeliveryNote || null;
+                    if (record.ReceiptNum !== undefined) payload.admin_receiptnum = record.ReceiptNum || null;
+                    if (record.POCurrency !== undefined) payload.admin_pocurrency = record.POCurrency || null;
 
-if (record.IPTUnitMgr !== undefined)
-    payload.admin_iptx0020unitx0020mgr =
-        record.IPTUnitMgr;
-
-if (record.UID !== undefined)
-    payload.admin_uidx0020x0023 =
-        record.UID;
-
-if (record.Remarks !== undefined)
-    payload.admin_remarks =
-        record.Remarks;
-
-if (record.QuotationStartDate)
-    payload.admin_quotationstartdates =
-        record.QuotationStartDate;
-
-if (record.QuotationEndDate)
-    payload.admin_quotationenddates =
-        record.QuotationEndDate;
-
-if (record.QuotationExpiryDate)
-    payload.admin_quotationexpirydate =
-        record.QuotationExpiryDate;
-
-if (record.PRReference !== undefined)
-    payload.admin_prx0020reference =
-        record.PRReference;
-
-if (record.PRDescription !== undefined)
-    payload.admin_prx0020description =
-        record.PRDescription;
-
-if (record.ContractNo !== undefined)
-    payload.admin_contractx0020nox002e =
-        record.ContractNo;
-
-if (record.StartDate)
-    payload.admin_contractstartdate =
-        record.StartDate;
-
-if (record.EndDate)
-    payload.admin_contractenddate =
-        record.EndDate;
-
-if (record.TotalRevenue !== undefined)
-    payload.admin_totalrevenue =
-        record.TotalRevenue != null
-            ? String(record.TotalRevenue)
-            : null;
-
-if (record.UMMgr !== undefined)
-    payload.admin_umx002fmgr =
-        record.UMMgr;
-
-if (record.LicenseReceiveDate)
-    payload.admin_licensereceivedate =
-        record.LicenseReceiveDate;
-
-if (record.ChargeCCC !== undefined)
-    payload.admin_chargex0020ccc =
-        record.ChargeCCC;
-
-if (record.WorksOrderCode !== undefined)
-    payload.admin_worksx0020orderx0020code =
-        record.WorksOrderCode;
-
-if (record.AccountCode !== undefined)
-    payload.admin_accountx0020code =
-        record.AccountCode;
-
-if (record.PRIssuedOn)
-    payload.admin_prx0020issuedx0020on =
-        record.PRIssuedOn;
-
-if (record.PRIssuedMonth !== undefined)
-    payload.admin_prx0020issuedx0020month =
-        record.PRIssuedMonth;
-
-if (record.Currency !== undefined)
-    payload.admin_hkdusd =
-        record.Currency;
-
-if (record.No !== undefined)
-    payload.admin_nox002e =
-        record.No;
-
-if (record.InvoiceDNNo !== undefined)
-    payload.admin_invoicex0020x0023x0020x00 =
-        record.InvoiceDNNo;
-
-if (record.InvoiceDNDate)
-    payload.admin_invoicex0020x002fx0020dnx =
-        record.InvoiceDNDate;
-
-if (record.SBMTCEOrder !== undefined)
-    payload.admin_sbmtceorder =
-        record.SBMTCEOrder;
-
-if (record.ItemNo !== undefined)
-    payload.admin_itemno =
-        record.ItemNo;
-
-if (record.SellingAmountHKD !== undefined)
-    payload.admin_sellingamounthkd =
-        record.SellingAmountHKD;
-
-if (record.CostRevenueRatio !== undefined)
-    payload.admin_ratioofoverallcostx002dreve =
-        record.CostRevenueRatio;
-
-if (record.SwappingRevenueRatio !== undefined)
-    payload.admin_ratioofoverallswappingx002d =
-        record.SwappingRevenueRatio;
-
-if (record.PODate)
-    payload.admin_pox0020date =
-        record.PODate;
-
-if (record.POReceiptDate)
-    payload.admin_receiptx0020date =
-        record.POReceiptDate;
-
-if (record.DeliveryNote !== undefined)
-    payload.admin_deliverynote =
-        record.DeliveryNote;
-
-if (record.ReceiptNum !== undefined)
-    payload.admin_receiptnum =
-        record.ReceiptNum;
-
-if (record.UrgentFlag !== undefined)
-    payload.admin_flagged =
-        !!record.UrgentFlag;
-
-if (record.POCurrency !== undefined)
-    payload.admin_pocurrency =
-        record.POCurrency;
-
-if (record.ApprovalDate)
-    payload.admin_approvaldate =
-        record.ApprovalDate;
-
-if (record.ReviewDate)
-    payload.admin_reviewdate =
-        record.ReviewDate;
-
-if (record.UrgentFlag !== undefined)
-    payload.admin_yx0020x002fx0020n =
-        record.UrgentFlag ? "Y" : "N";
+                    // 8. Booleans / Flags
+                    if (record.UrgentFlag !== undefined) {
+                        payload.admin_flagged = !!record.UrgentFlag;
+                        payload.admin_yx0020x002fx0020n = record.UrgentFlag ? "Y" : "N";
+                    }
+                    if (record.StatusRemark !== undefined) payload.admin_statusremark = record.StatusRemark || null;
 
                     if (Object.keys(payload).length > 0) {
-                        Object.entries(payload)
-    .forEach(([k, v]) => {
-        console.log(
-            k,
-            typeof v,
-            v
-        );
-    });
-                        //await api.updateRecord(entityName, existingId, payload);
-for (const [key, value] of Object.entries(payload)) {
-
-    try {
-
-        await api.updateRecord(
-            entityName,
-            existingId,
-            { [key]: value }
-        );
-
-        console.log(
-            "SUCCESS",
-            key,
-            value
-        );
-
-    } catch (err) {
-
-        console.error(
-            "FAILED FIELD",
-            key,
-            value,
-            err
-        );
-
-        break;
-    }
-}
+                        try {
+                            await api.updateRecord(entityName, existingId, payload);
+                            console.log("[MasterRecords] Successfully updated record in Dataverse:", title);
+                        } catch (bulkErr) {
+                            console.warn("[MasterRecords] Bulk update failed, trying per-field update:", bulkErr);
+                            for (const [key, value] of Object.entries(payload)) {
+                                try {
+                                    await api.updateRecord(entityName, existingId, { [key]: value });
+                                    console.log("[MasterRecords] SUCCESS:", key, value);
+                                } catch (fieldErr) {
+                                    console.error("[MasterRecords] FAILED FIELD:", key, value, fieldErr);
+                                }
+                            }
+                        }
                     }
                 }
             } catch (err) {
@@ -5439,7 +5378,8 @@ for (const [key, value] of Object.entries(payload)) {
             'edit-selling-amount-hkd': 'SellingAmountHKD',
             'edit-ratio-cost-revenue': 'CostRevenueRatio',
             'edit-ratio-swapping-revenue': 'SwappingRevenueRatio',
-            'edit-pr-remarks': 'Remarks',
+            'edit-pr-remark': 'PRRemarks',
+            'edit-pr-remarks': 'PRRemarks',
 
             'edit-um-verified': 'UMVerified',
             'edit-pr-approved': 'PRRequestApproved',

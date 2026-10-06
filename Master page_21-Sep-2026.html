@@ -3827,7 +3827,7 @@
                         // TODO: handle special cases for certain fields
                         switch (masterKey){
                             // numeric fields
-                            case "TotalRevenue":
+                            //case "TotalRevenue":
                             case "PRAmount": 
                             case "POAmount":
                             case "SellingAmountHKD":
@@ -5017,8 +5017,8 @@ const PROCESS_STATUS_MAP = {
                     if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
                     if (record.PRNo !== undefined) payload.admin_prx0020nox002e = record.PRNo || null;
                     if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
-                    if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? Number(record.PRAmount) : null;
-                    if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? Number(record.POAmount) : null;
+                    if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? String(record.PRAmount) : null;
+                    if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? String(record.POAmount) : null;
 if (record.ProcessStatus !== undefined)
     payload.admin_processstatus =
         PROCESS_STATUS_MAP[
@@ -5031,7 +5031,7 @@ PR_STATUS_MAP[
 record.Status
 ];
 
-if (record.RecordDate !== undefined)
+if (record.RecordDate)
     payload.admin_recx0027dx0020datex0020 =
         record.RecordDate;
 
@@ -5067,15 +5067,15 @@ if (record.Remarks !== undefined)
     payload.admin_remarks =
         record.Remarks;
 
-if (record.QuotationStartDate !== undefined)
+if (record.QuotationStartDate)
     payload.admin_quotationstartdates =
         record.QuotationStartDate;
 
-if (record.QuotationEndDate !== undefined)
+if (record.QuotationEndDate)
     payload.admin_quotationenddates =
         record.QuotationEndDate;
 
-if (record.QuotationExpiryDate !== undefined)
+if (record.QuotationExpiryDate)
     payload.admin_quotationexpirydate =
         record.QuotationExpiryDate;
 
@@ -5091,23 +5091,25 @@ if (record.ContractNo !== undefined)
     payload.admin_contractx0020nox002e =
         record.ContractNo;
 
-if (record.StartDate !== undefined)
+if (record.StartDate)
     payload.admin_contractstartdate =
         record.StartDate;
 
-if (record.EndDate !== undefined)
+if (record.EndDate)
     payload.admin_contractenddate =
         record.EndDate;
 
 if (record.TotalRevenue !== undefined)
     payload.admin_totalrevenue =
-        record.TotalRevenue;
+        record.TotalRevenue != null
+            ? String(record.TotalRevenue)
+            : null;
 
 if (record.UMMgr !== undefined)
     payload.admin_umx002fmgr =
         record.UMMgr;
 
-if (record.LicenseReceiveDate !== undefined)
+if (record.LicenseReceiveDate)
     payload.admin_licensereceivedate =
         record.LicenseReceiveDate;
 
@@ -5123,7 +5125,7 @@ if (record.AccountCode !== undefined)
     payload.admin_accountx0020code =
         record.AccountCode;
 
-if (record.PRIssuedOn !== undefined)
+if (record.PRIssuedOn)
     payload.admin_prx0020issuedx0020on =
         record.PRIssuedOn;
 
@@ -5143,7 +5145,7 @@ if (record.InvoiceDNNo !== undefined)
     payload.admin_invoicex0020x0023x0020x00 =
         record.InvoiceDNNo;
 
-if (record.InvoiceDNDate !== undefined)
+if (record.InvoiceDNDate)
     payload.admin_invoicex0020x002fx0020dnx =
         record.InvoiceDNDate;
 
@@ -5167,11 +5169,11 @@ if (record.SwappingRevenueRatio !== undefined)
     payload.admin_ratioofoverallswappingx002d =
         record.SwappingRevenueRatio;
 
-if (record.PODate !== undefined)
+if (record.PODate)
     payload.admin_pox0020date =
         record.PODate;
 
-if (record.POReceiptDate !== undefined)
+if (record.POReceiptDate)
     payload.admin_receiptx0020date =
         record.POReceiptDate;
 
@@ -5191,11 +5193,11 @@ if (record.POCurrency !== undefined)
     payload.admin_pocurrency =
         record.POCurrency;
 
-if (record.ApprovalDate !== undefined)
+if (record.ApprovalDate)
     payload.admin_approvaldate =
         record.ApprovalDate;
 
-if (record.ReviewDate !== undefined)
+if (record.ReviewDate)
     payload.admin_reviewdate =
         record.ReviewDate;
 
@@ -5204,7 +5206,43 @@ if (record.UrgentFlag !== undefined)
         record.UrgentFlag ? "Y" : "N";
 
                     if (Object.keys(payload).length > 0) {
-                        await api.updateRecord(entityName, existingId, payload);
+                        Object.entries(payload)
+    .forEach(([k, v]) => {
+        console.log(
+            k,
+            typeof v,
+            v
+        );
+    });
+                        //await api.updateRecord(entityName, existingId, payload);
+for (const [key, value] of Object.entries(payload)) {
+
+    try {
+
+        await api.updateRecord(
+            entityName,
+            existingId,
+            { [key]: value }
+        );
+
+        console.log(
+            "SUCCESS",
+            key,
+            value
+        );
+
+    } catch (err) {
+
+        console.error(
+            "FAILED FIELD",
+            key,
+            value,
+            err
+        );
+
+        break;
+    }
+}
                     }
                 }
             } catch (err) {

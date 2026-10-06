@@ -510,6 +510,7 @@
 </script>
 
 <script type="text/babel-jsx" id="app-src">
+
 const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
 // ── Which web resource is this? ──────────────────────────────────────────
@@ -2944,10 +2945,10 @@ function localIsoDay(d) {
   return t.getFullYear() + "-" + pad(t.getMonth() + 1) + "-" + pad(t.getDate());
 }
 
-function localIsoTomorrow(d) {
+function localIsoTomorrow(d, offsetDays = 1) {
   const t = d ? new Date(d) : new Date();
   if (isNaN(t.getTime())) return null;
-  t.setDate(t.getDate() + 1);
+  t.setDate(t.getDate() + offsetDays);
   return localIsoDay(t);
 }
 
@@ -10361,10 +10362,12 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // of "today" for the same reason.
   const todayIsoDate = localIsoDay();
   const tomorrowIsoDate = localIsoTomorrow();
+  const future3IsoDate = localIsoTomorrow(new Date(), 3);
   const quotationExpiryIso = normDate(quotationExpiryShown);
   const quotationExpired = !!(quotationExpiryIso && quotationExpiryIso < todayIsoDate);
   const quotationExpiresToday = !!(quotationExpiryIso && quotationExpiryIso === todayIsoDate);
-  const quotationExpiresTomorrow = !!(quotationExpiryIso && quotationExpiryIso === tomorrowIsoDate);
+  const quotationExpiresSoon = !!(quotationExpiryIso && new Date(quotationExpiryIso).valueOf() <= new Date(future3IsoDate).valueOf());
+  // const quotationExpiresTomorrow = !!(quotationExpiryIso && new Date(quotationExpiryIso).valueOf() <= Date(tomorrowIsoDate).valueOf());
   // The row's treatment is keyed off ONE pair of tests, and the row is matched
   // by `key` rather than by `id` so the two spellings cannot drift. `lisOnly`
   // rows draw in two different branches (n8n mode and document mode), and the
@@ -10377,7 +10380,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   const isQuotationExpiryRow = row => row.key === "quotationExpireDate";
   const rowExpired = row => quotationExpired && isQuotationExpiryRow(row);
   const rowUrgent = row => quotationExpiresToday && isQuotationExpiryRow(row);
-  const rowWarning = row => quotationExpiresTomorrow && isQuotationExpiryRow(row);
+  const rowWarning = row => quotationExpiresSoon && isQuotationExpiryRow(row);
   // Urgent is drawn in the SAME red as Expired, at the user's request -- it was
   // amber. What still tells the two apart is the wording in the row ("Expired"
   // against "Urgent - expires today !!!") and the disabled button, not a hue.
@@ -10427,7 +10430,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
             ? `This quotation expired on ${quotationExpiryShown}. Continue to save is off until the vendor re-issues it — then correct the date in the box above.`
             : rowUrgent(row)
               ? `Urgent !!! This quotation expires today (${quotationExpiryShown}). It is still valid, so you can continue to save — but it has to be done today.`
-              : `Urgent !!! The quotation expires tomorrow (${quotationExpiryShown}). The quotation was expiry on Tomorrow, please process it Urgently.`}
+              : `Urgent !!! The quotation expires soon (${quotationExpiryShown}). The quotation is expiring soon, please process it Urgently.`}
         </td>
       </tr>
     );
@@ -10650,7 +10653,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
               </div>
             </div>
           )}
-          {quotationExpiresTomorrow && (
+          {quotationExpiresSoon && (
             <div className="w-full flex gap-2 px-4 py-3 bg-[#FED7AA] border-l-4 border-[var(--orange)] rounded-lg">
               <div className="flex-1 fs-13-19 leading-5 text-[#3D3D3D]">
                 <span className="font-bold text-[var(--orange-dark)]">Urgent !!! The quotation expires tomorrow.</span>{" "}

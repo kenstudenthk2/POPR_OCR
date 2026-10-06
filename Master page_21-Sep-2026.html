@@ -593,7 +593,14 @@
                                     <input type="text" id="edit-customer" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
-                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Product Type</label>
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-[12px] font-semibold text-[var(--muted)]">Product Type</label>
+                                        <button type="button" onclick="runProductTypePair()"
+                                            title="Look this Product Type up in the coding table and fill Charge CCC / Account Code / Issue By / Works Order Code"
+                                            class="ui-transition pressable inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--orange)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--orange-dark)] bg-white hover:bg-[#FFF3E2] active:scale-95 shadow-sm">
+                                            Pair
+                                        </button>
+                                    </div>
                                     <input type="text" id="edit-product-type" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
@@ -604,6 +611,48 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">IPT Unit Mgr</label>
                                     <input type="text" id="edit-ipt-unit-mgr" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
+
+                                <!-- Product Type Coding & Pair Section (At Red Rectangle in Workflow) -->
+                                <div class="col-span-1 md:col-span-2 rounded-xl border border-[var(--line)] bg-[#FBF6EF]/70 p-4 flex flex-col gap-3 shadow-sm">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)]/60 pb-2.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[13px] font-bold text-[var(--ink)] flex items-center gap-1.5">
+                                                <span>🔗</span> Product Type Coding
+                                            </span>
+                                            <button type="button" id="btn-pair-codes" onclick="runProductTypePair()"
+                                                title="Look this Product Type up in the coding table and fill Charge CCC / Account Code / Issue By / Works Order Code"
+                                                class="ui-transition pressable inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--orange)] px-3 py-1 text-[12px] font-semibold text-[var(--orange-dark)] bg-white hover:bg-[#FFF3E2] active:scale-95 shadow-sm">
+                                                Pair
+                                            </button>
+                                        </div>
+                                        <div id="pair-status-msg" class="text-[12px] font-medium hidden"></div>
+                                    </div>
+
+                                    <!-- The 3 Coding Fields: Charge CCC, Account Code, Works Order Code -->
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div class="flex flex-col gap-1">
+                                            <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
+                                            <input type="text" id="edit-pair-charge-ccc" oninput="syncPairChargeCcc(this.value)" placeholder="—"
+                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
+                                            <input type="text" id="edit-pair-account-code" oninput="syncPairAccountCode(this.value)" placeholder="—"
+                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <label class="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-between">
+                                                <span>Works Order Code</span>
+                                                <span id="wo-options-hint" class="text-[11px] text-[var(--orange-dark)] font-normal hidden"></span>
+                                            </label>
+                                            <div id="wo-code-container">
+                                                <input type="text" id="edit-pair-works-order-code" oninput="syncPairWorksOrderCode(this.value)" placeholder="—"
+                                                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">UID #</label>
                                     <input type="text" id="edit-uid" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
@@ -691,15 +740,15 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
-                                    <input type="text" id="edit-charge-ccc" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-charge-ccc" oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Works Order Code</label>
-                                    <input type="text" id="edit-works-order-code" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-works-order-code" oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5 md:col-span-2">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
-                                    <input type="text" id="edit-account-code" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-account-code" oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                             </div>
                         </div>
@@ -2128,6 +2177,360 @@
             return null;
         }
 
+        /* --- Product Type -> Coding Lookup & "Pair" Functionality --- */
+        const CCC_LOOKUP_CONFIG = {
+            entity: "admin_btb_ccc_wocode_accode",
+            select: [
+                "admin_producttype2",
+                "admin_ccc2",
+                "admin_accountcode2",
+                "admin_worksordercode2",
+                "admin_admin2",
+                "admin_description2"
+            ],
+            fields: {
+                productType: "admin_producttype2",
+                chargeCcc: "admin_ccc2",
+                accountCode: "admin_accountcode2",
+                worksOrderCode: "admin_worksordercode2",
+                issueBy: "admin_admin2",
+                description: "admin_description2"
+            }
+        };
+
+        const DEMO_CCC_LOOKUP_ROWS = [
+            {
+                admin_producttype2: "Security - Firewall",
+                admin_ccc2: "C716",
+                admin_accountcode2: "512100",
+                admin_worksordercode2: "WO-SEC-01",
+                admin_admin2: "Lee, Mandy MY",
+                admin_description2: "Firewall & Security Maintenance"
+            },
+            {
+                admin_producttype2: "Security - Firewall",
+                admin_ccc2: "C716",
+                admin_accountcode2: "512100",
+                admin_worksordercode2: "WO-SEC-02",
+                admin_admin2: "Lee, Mandy MY",
+                admin_description2: "Security Appliance Upgrade"
+            },
+            {
+                admin_producttype2: "UCBV AV Equipment",
+                admin_ccc2: "CCC-01",
+                admin_accountcode2: "0012",
+                admin_worksordercode2: "WO-100",
+                admin_admin2: "Chan, Mary",
+                admin_description2: "Maintenance of UCBV"
+            },
+            {
+                admin_producttype2: "UCBV AV Equipment",
+                admin_ccc2: "CCC-01",
+                admin_accountcode2: "0012",
+                admin_worksordercode2: "WO-200",
+                admin_admin2: "Chan, Mary",
+                admin_description2: "Audio Visual Support"
+            },
+            {
+                admin_producttype2: "Logger",
+                admin_ccc2: "CCC-77",
+                admin_accountcode2: "0099",
+                admin_worksordercode2: "WO-900",
+                admin_admin2: "Lee, Peter",
+                admin_description2: "Logger Support"
+            },
+            {
+                admin_producttype2: "Networking & Security",
+                admin_ccc2: "C801",
+                admin_accountcode2: "511200",
+                admin_worksordercode2: "WO-NET-01",
+                admin_admin2: "Chow, Alice SW",
+                admin_description2: "Network Equipment Maintenance"
+            }
+        ];
+
+        function normCodeKey(value) {
+            return String(value == null ? "" : value).trim().replace(/\s+/g, " ").toLowerCase();
+        }
+
+        function pairCodesFromLookup(rows, productType, fields = CCC_LOOKUP_CONFIG.fields) {
+            const wanted = normCodeKey(productType);
+            if (!wanted || !fields) return null;
+
+            const cell = (row, key) => {
+                const column = fields[key];
+                if (!column) return "";
+                const v = row && row[column];
+                return v == null ? "" : String(v).trim();
+            };
+
+            const matched = (rows || []).filter(r => normCodeKey(cell(r, "productType")) === wanted);
+            if (!matched.length) return null;
+
+            const distinct = key => {
+                const seen = [];
+                matched.forEach(r => {
+                    const v = cell(r, key);
+                    if (v && seen.indexOf(v) === -1) seen.push(v);
+                });
+                return seen;
+            };
+
+            const cccs = distinct("chargeCcc");
+            const accounts = distinct("accountCode");
+            const admins = distinct("issueBy");
+
+            const woDescMap = {};
+            matched.forEach(r => {
+                const code = cell(r, "worksOrderCode");
+                const desc = cell(r, "description");
+                if (code && !woDescMap[code] && desc) {
+                    woDescMap[code] = desc;
+                }
+            });
+
+            const woCodes = distinct("worksOrderCode");
+            const woOptions = woCodes.map(code => ({
+                code: code,
+                description: woDescMap[code] || ""
+            }));
+
+            return {
+                chargeCcc: cccs[0] || "",
+                accountCode: accounts[0] || "",
+                issueBy: admins[0] || "",
+                worksOrderCodes: woCodes,
+                worksOrderOptions: woOptions,
+                conflict: cccs.length > 1 || accounts.length > 1 || admins.length > 1,
+                matchedCount: matched.length
+            };
+        }
+
+        async function fetchCccLookupRows() {
+            const source = CCC_LOOKUP_CONFIG;
+            const api = getDataverseWebApi();
+            if (api) {
+                try {
+                    const query = "?$select=" + source.select.join(",");
+                    const response = await api.retrieveMultipleRecords(source.entity, query);
+                    return (response && response.entities) || [];
+                } catch (err) {
+                    console.warn("[MasterRecords] Failed to read " + source.entity + " from Dataverse:", err);
+                    throw err;
+                }
+            }
+            console.warn("[MasterRecords] WebApi not present, using local fallback lookup rows.");
+            return DEMO_CCC_LOOKUP_ROWS;
+        }
+
+        function syncPairChargeCcc(val) {
+            const el = document.getElementById('edit-charge-ccc');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.ChargeCCC = val;
+        }
+
+        function syncPairAccountCode(val) {
+            const el = document.getElementById('edit-account-code');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.AccountCode = val;
+        }
+
+        function syncPairWorksOrderCode(val) {
+            const el = document.getElementById('edit-works-order-code');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.WorksOrderCode = val;
+        }
+
+        function syncTab3ChargeCcc(val) {
+            const el = document.getElementById('edit-pair-charge-ccc');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.ChargeCCC = val;
+        }
+
+        function syncTab3AccountCode(val) {
+            const el = document.getElementById('edit-pair-account-code');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.AccountCode = val;
+        }
+
+        function syncTab3WorksOrderCode(val) {
+            const el = document.getElementById('edit-pair-works-order-code');
+            if (el) el.value = val;
+            if (state.currentRecord) state.currentRecord.WorksOrderCode = val;
+        }
+
+        function renderWorksOrderInput(val = '') {
+            const container = document.getElementById('wo-code-container');
+            const hint = document.getElementById('wo-options-hint');
+            if (hint) hint.classList.add('hidden');
+            if (!container) return;
+            container.innerHTML = `
+                <input type="text" id="edit-pair-works-order-code" oninput="syncPairWorksOrderCode(this.value)"
+                    value="${escapeHtml(val)}" placeholder="—"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+            `;
+            const input = document.getElementById('edit-pair-works-order-code');
+            if (input) input.value = val;
+        }
+
+        function renderWorksOrderDropdown(options, selectedVal = '') {
+            const container = document.getElementById('wo-code-container');
+            const hint = document.getElementById('wo-options-hint');
+            if (hint) {
+                hint.innerText = `(${options.length} options)`;
+                hint.classList.remove('hidden');
+            }
+            if (!container) return;
+            let html = `
+                <select id="edit-pair-works-order-code" onchange="handlePairWorksOrderSelect(this.value)"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-[#FFF9F0] rounded-lg border-[1.5px] border-[var(--orange)] focus:ring-2 focus:ring-[#FFE2B0] cursor-pointer">
+                    <option value="">-- Select Works Order Code --</option>
+            `;
+            options.forEach(opt => {
+                const code = opt.code || opt.value || opt;
+                const desc = opt.description ? ` (${opt.description})` : '';
+                const isSel = String(code) === String(selectedVal) ? 'selected' : '';
+                html += `<option value="${escapeHtml(code)}" ${isSel}>${escapeHtml(code)}${escapeHtml(desc)}</option>`;
+            });
+            html += `</select>`;
+            container.innerHTML = html;
+            const select = document.getElementById('edit-pair-works-order-code');
+            if (select) select.value = selectedVal;
+        }
+
+        function handlePairWorksOrderSelect(val) {
+            syncPairWorksOrderCode(val);
+        }
+
+        function showPairMessage(msg, type) {
+            const msgEl = document.getElementById('pair-status-msg');
+            if (!msgEl) return;
+            msgEl.classList.remove('hidden', 'text-[var(--red)]', 'text-[#B45309]', 'text-[var(--green)]', 'text-[var(--muted)]');
+            if (type === 'error' || type === 'none') {
+                msgEl.classList.add('text-[var(--red)]');
+            } else if (type === 'warning') {
+                msgEl.classList.add('text-[#B45309]');
+            } else if (type === 'success') {
+                msgEl.classList.add('text-[var(--green)]');
+            } else {
+                msgEl.classList.add('text-[var(--muted)]');
+            }
+            msgEl.innerText = msg;
+        }
+
+        function resetProductTypePairUI(item) {
+            const pairMsg = document.getElementById('pair-status-msg');
+            if (pairMsg) {
+                pairMsg.className = 'text-[12px] font-medium hidden';
+                pairMsg.innerText = '';
+            }
+            const pairBtn = document.getElementById('btn-pair-codes');
+            if (pairBtn) {
+                pairBtn.disabled = false;
+                pairBtn.innerText = 'Pair';
+            }
+            const cccVal = item ? (item.ChargeCCC || '') : (document.getElementById('edit-charge-ccc')?.value || '');
+            const accVal = item ? (item.AccountCode || '') : (document.getElementById('edit-account-code')?.value || '');
+            const woVal = item ? (item.WorksOrderCode || '') : (document.getElementById('edit-works-order-code')?.value || '');
+
+            const pairCcc = document.getElementById('edit-pair-charge-ccc');
+            if (pairCcc) pairCcc.value = cccVal;
+
+            const pairAcc = document.getElementById('edit-pair-account-code');
+            if (pairAcc) pairAcc.value = accVal;
+
+            renderWorksOrderInput(woVal);
+        }
+
+        async function runProductTypePair() {
+            const ptInput = document.getElementById('edit-product-type');
+            const productType = ptInput ? ptInput.value.trim() : '';
+            const pairBtn = document.getElementById('btn-pair-codes');
+
+            if (!productType) {
+                showPairMessage('No Product Type to pair on — fill the Product Type field first.', 'error');
+                return;
+            }
+
+            if (pairBtn) {
+                pairBtn.disabled = true;
+                pairBtn.innerText = 'Pairing…';
+            }
+            showPairMessage('Reading the coding table…', 'info');
+
+            let rows;
+            try {
+                rows = await fetchCccLookupRows();
+            } catch (e) {
+                showPairMessage('Could not read the coding table: ' + (e && e.message ? e.message : String(e)), 'error');
+                if (pairBtn) {
+                    pairBtn.disabled = false;
+                    pairBtn.innerText = 'Pair';
+                }
+                return;
+            }
+
+            if (rows === null) {
+                showPairMessage('No coding table or Dataverse connection available.', 'error');
+                if (pairBtn) {
+                    pairBtn.disabled = false;
+                    pairBtn.innerText = 'Pair';
+                }
+                return;
+            }
+
+            const found = pairCodesFromLookup(rows, productType, CCC_LOOKUP_CONFIG.fields);
+            if (!found) {
+                showPairMessage(`“${productType}” is not in the coding table.`, 'none');
+                if (pairBtn) {
+                    pairBtn.disabled = false;
+                    pairBtn.innerText = 'Pair';
+                }
+                return;
+            }
+
+            // Set Charge CCC
+            const pairCcc = document.getElementById('edit-pair-charge-ccc');
+            if (pairCcc) pairCcc.value = found.chargeCcc;
+            syncPairChargeCcc(found.chargeCcc);
+
+            // Set Account Code
+            const pairAcc = document.getElementById('edit-pair-account-code');
+            if (pairAcc) pairAcc.value = found.accountCode;
+            syncPairAccountCode(found.accountCode);
+
+            // Set Issue By
+            const issueByEl = document.getElementById('edit-issue-by');
+            if (issueByEl && found.issueBy) {
+                issueByEl.value = found.issueBy;
+                if (state.currentRecord) state.currentRecord.IssueBy = found.issueBy;
+            }
+
+            // Set Works Order Code
+            if (found.worksOrderCodes.length > 1) {
+                renderWorksOrderDropdown(found.worksOrderOptions);
+                syncPairWorksOrderCode('');
+            } else {
+                const singleWo = found.worksOrderCodes[0] || '';
+                renderWorksOrderInput(singleWo);
+                syncPairWorksOrderCode(singleWo);
+            }
+
+            // Status message
+            if (found.conflict) {
+                showPairMessage(`Warning: ${found.matchedCount} rows for this Product Type disagree on CCC / Account Code / Issue By. First row used — check them.`, 'warning');
+            } else if (found.worksOrderCodes.length > 1) {
+                showPairMessage('Charge CCC, Account Code and Issue By filled. Pick a Works Order Code below.', 'success');
+            } else {
+                showPairMessage('Charge CCC, Account Code, Issue By and Works Order Code filled.', 'success');
+            }
+
+            if (pairBtn) {
+                pairBtn.disabled = false;
+                pairBtn.innerText = 'Pair';
+            }
+        }
+
         /**
          * Handles direct toggling of the SB Report Generated checkbox on a table row
          * @param {Event} event
@@ -3329,6 +3732,11 @@
             "admin_statusremark"                : "StatusRemark",
             "admin_reviewapproval"              : "Approver",
             "admin_processstatus"               : "ProcessStatus"
+            "admin_pocurrency" : "POCurrency",
+
+"admin_approvaldate" : "ApprovalDate",
+
+"admin_reviewdate" : "ReviewDate",
         });
         /** @typedef {typeof DV_COLUMN_MAP} IDVColumnMap */
 
@@ -3343,7 +3751,12 @@
             }
 
             // Dataverse logical attribute names from live schema
-            const primaryCols = Object.keys(DV_COLUMN_MAP);
+            const primaryCols = [
+    "admin_btb_lis_excel_datasid",
+    ...Object.keys(
+        DV_COLUMN_MAP
+    )
+];
 
             /** @type {{[RecordKey in keyof IDVColumnMap]: IRecord[IDVColumnMap[RecordKey]]}[]} */
             let entities = [];
@@ -4407,6 +4820,7 @@
             if (!item) return;
 
             state.currentRecord = { ...item };
+            document.getElementById("edit-id").value = item.Id;
             state.isPREditing = false;
             const prInput = document.getElementById('edit-prno');
             const prEditBtn = document.getElementById('btn-edit-prno');
@@ -4458,6 +4872,7 @@
             updateQuotationExpiryDisplay();
             updateTrackerVisual();
             clearRequiredFieldErrors();
+            resetProductTypePairUI(item);
 
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
@@ -4493,6 +4908,7 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             state.currentRecord = null;
+            resetProductTypePairUI(null);
                         
             const param = new URLSearchParams(location.search);
             param.delete("record");
@@ -4510,6 +4926,14 @@
             const id = document.getElementById('edit-id').value;
             const item = state.allData.find(d => d.Id == id);
             if (!item) return false;
+
+            // Flush pair coding fields from Tab 1 display to Tab 3 inputs so they persist
+            const pairCcc = document.getElementById('edit-pair-charge-ccc');
+            if (pairCcc && pairCcc.value !== undefined) syncPairChargeCcc(pairCcc.value);
+            const pairAcc = document.getElementById('edit-pair-account-code');
+            if (pairAcc && pairAcc.value !== undefined) syncPairAccountCode(pairAcc.value);
+            const pairWo = document.getElementById('edit-pair-works-order-code');
+            if (pairWo && pairWo.value !== undefined) syncPairWorksOrderCode(pairWo.value);
 
             Object.entries(FIELD_ID_TO_RECORD_KEY).forEach(([fieldId, recordKey]) => {
                 const el = /** @type {HTMLInputElement} */(document.getElementById(fieldId));
@@ -4546,6 +4970,13 @@
 
             return true;
         }
+const PR_STATUS_MAP = {
+    "Completed": 0,
+    "Pending": 1,
+    "Cancel": 2,
+    "Return": 3,
+    "Duplicate": 4
+};
 
 const PROCESS_STATUS_MAP = {
     "Complete": 0,
@@ -4596,7 +5027,9 @@ if (record.ProcessStatus !== undefined)
         
 if (record.Status !== undefined)
     payload.admin_prstatus =
-        record.Status;
+PR_STATUS_MAP[
+record.Status
+];
 
 if (record.RecordDate !== undefined)
     payload.admin_recx0027dx0020datex0020 =
@@ -4753,6 +5186,18 @@ if (record.ReceiptNum !== undefined)
 if (record.UrgentFlag !== undefined)
     payload.admin_flagged =
         !!record.UrgentFlag;
+
+if (record.POCurrency !== undefined)
+    payload.admin_pocurrency =
+        record.POCurrency;
+
+if (record.ApprovalDate !== undefined)
+    payload.admin_approvaldate =
+        record.ApprovalDate;
+
+if (record.ReviewDate !== undefined)
+    payload.admin_reviewdate =
+        record.ReviewDate;
 
 if (record.UrgentFlag !== undefined)
     payload.admin_yx0020x002fx0020n =

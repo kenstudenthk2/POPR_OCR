@@ -7,6 +7,8 @@
  *  - admin_sbreportgenrated is included from SBReportGenerated
  *  - PR_Status choice values are 1-based (Completed = 1, Pending = 2, Cancel = 3, Return = 4, Duplicate = 5)
  *  - edit-pr-remark maps to Remarks / PRRemarks
+ *  - PR Amount handling matches PR Assistant App dev side buildLisExcelPayload (1 USD : 7.9 HKD rate,
+ *    admin_pramount, admin_pramounthkd, admin_pramountusd, admin_hkd, admin_usdx0020x002fx0020others)
  *  - Fallback field-by-field update saves all valid fields without aborting
  */
 
@@ -60,6 +62,7 @@ function getMockElement(id) {
       value: "",
       innerText: "",
       innerHTML: "",
+      textContent: "",
       disabled: false,
       checked: false,
       dataset: {},
@@ -75,7 +78,9 @@ function getMockElement(id) {
       querySelector: () => null,
       appendChild: () => {},
       addEventListener: () => {},
-      removeEventListener: () => {}
+      removeEventListener: () => {},
+      setAttribute: function(k, v) { this[k] = v; },
+      removeAttribute: function(k) { delete this[k]; }
     };
   }
   return domStore[id];
@@ -117,6 +122,9 @@ EXPORTS.FIELD_ID_TO_RECORD_KEY = FIELD_ID_TO_RECORD_KEY;
 EXPORTS.PR_STATUS_MAP = PR_STATUS_MAP;
 EXPORTS.PR_STATUS_CHOICES = PR_STATUS_CHOICES;
 EXPORTS.formatDateForInput = formatDateForInput;
+EXPORTS.convertPrAmount = convertPrAmount;
+EXPORTS.handlePRAmount = handlePRAmount;
+EXPORTS.getDualApprovers = getDualApprovers;
 EXPORTS.state = state;
 `;
 
@@ -133,11 +141,22 @@ const X = sandbox.EXPORTS;
 (async () => {
   ok("DV_COLUMN_MAP does not include admin_itemno", X.DV_COLUMN_MAP.admin_itemno === undefined);
 
-  // 3. Test persistRecordToDataverse formatting
+  // 3. Test convertPrAmount helper
+  const hkdConv = X.convertPrAmount(16000, "HKD");
+  eq("HKD conversion hkd text", hkdConv.prAmountHkd, "16000");
+  eq("HKD conversion usd text at 7.9", hkdConv.prAmountUsd, "2025.32");
+
+  const usdConv = X.convertPrAmount(2000, "USD");
+  eq("USD conversion usd text", usdConv.prAmountUsd, "2000");
+  eq("USD conversion hkd text at 7.9", usdConv.prAmountHkd, "15800");
+
+  // 4. Test persistRecordToDataverse formatting for HKD
   updatedRecords.length = 0;
   await X.persistRecordToDataverse({
     Title: "REC-TEST-1",
     dataverseId: "guid-rec-1",
+    PRAmount: 16000,
+    Currency: "HKD",
     POAmount: 12500.50,
     No: "42",
     PRIssuedOn: "2026-10-15",
@@ -150,21 +169,47 @@ const X = sandbox.EXPORTS;
   });
 
   eq("updateRecord was called once in bulk mode", updatedRecords.length, 1);
-  const p = updatedRecords[0].payload;
+  const pHkd = updatedRecords[0].payload;
 
-  eq("admin_itemno is omitted from payload", p.admin_itemno, undefined);
-  eq("PO Amount HK$ is numeric Float", p.admin_pox0020amountx0020hkx0024, 12500.50);
-  eq("PO_Amount text copy is String", p.admin_poamount, "12500.5");
-  eq("No. is numeric Float", p.admin_nox002e, 42);
-  eq("PR Issued Month is formatted as YYYY-MM-01", p.admin_prx0020issuedx0020month, "2026-10-01");
-  eq("PR Status choice is 1 for Completed", p.admin_prstatus, 1);
-  eq("SB Report Generated is included", p.admin_sbreportgenrated, "2026-10-06");
-  eq("PRRemarks is saved to admin_remarks", p.admin_remarks, "Special discount applied");
+  eq("admin_itemno is omitted from payload", pHkd.admin_itemno, undefined);
+  eq("PO Amount HK$ is numeric Float", pHkd.admin_pox0020amountx0020hkx0024, 12500.50);
+  eq("PO_Amount text copy is String", pHkd.admin_poamount, "12500.5");
+  eq("No. is numeric Float", pHkd.admin_nox002e, 42);
+  eq("PR Issued Month is formatted as YYYY-MM-01", pHkd.admin_prx0020issuedx0020month, "2026-10-01");
+  eq("PR Status choice is 1 for Completed", pHkd.admin_prstatus, 1);
+  eq("SB Report Generated is included", pHkd.admin_sbreportgenrated, "2026-10-06");
+  eq("PRRemarks is saved to admin_remarks", pHkd.admin_remarks, "Special discount applied");
 
-  // 4. Test fallback mode when bulk update throws
+  // HKD fields in payload
+  eq("HKD: admin_pramount is string", pHkd.admin_pramount, "16000");
+  eq("HKD: admin_hkd is numeric", pHkd.admin_hkd, 16000);
+  eq("HKD: admin_pramounthkd is string", pHkd.admin_pramounthkd, "16000");
+  eq("HKD: admin_pramountusd is converted string", pHkd.admin_pramountusd, "2025.32");
+  eq("HKD: admin_hkdusd is HKD", pHkd.admin_hkdusd, "HKD");
+  eq("HKD: admin_usdx0020x002fx0020others is null", pHkd.admin_usdx0020x002fx0020others, null);
+
+  // 5. Test persistRecordToDataverse formatting for USD
+  updatedRecords.length = 0;
+  await X.persistRecordToDataverse({
+    Title: "REC-TEST-1",
+    dataverseId: "guid-rec-1",
+    PRAmount: 2000,
+    Currency: "USD"
+  });
+
+  eq("updateRecord was called for USD", updatedRecords.length, 1);
+  const pUsd = updatedRecords[0].payload;
+
+  eq("USD: admin_pramount is string", pUsd.admin_pramount, "2000");
+  eq("USD: admin_hkd is null for USD", pUsd.admin_hkd, null);
+  eq("USD: admin_pramounthkd is converted string", pUsd.admin_pramounthkd, "15800");
+  eq("USD: admin_pramountusd is string", pUsd.admin_pramountusd, "2000");
+  eq("USD: admin_hkdusd is USD", pUsd.admin_hkdusd, "USD");
+  eq("USD: admin_usdx0020x002fx0020others is string", pUsd.admin_usdx0020x002fx0020others, "2000");
+
+  // 6. Test fallback mode when bulk update throws
   const fieldUpdates = [];
   sandbox.parent.Xrm.WebApi.updateRecord = async (entity, id, payload) => {
-    // If payload has multiple keys, simulate bulk failure
     if (Object.keys(payload).length > 1) {
       throw new Error("Bulk update failed in Dataverse");
     }

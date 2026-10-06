@@ -566,7 +566,7 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Request Status</label>
-                                    <input type="text" id="edit-request-status" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-request-status" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Rec'd Date</label>
@@ -696,7 +696,7 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Reference</label>
-                                    <input type="text" id="edit-prref" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-prref" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="col-span-1 md:col-span-2 flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Description</label>
@@ -732,7 +732,7 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">UM/Mgr</label>
-                                    <input type="text" id="edit-um-mgr" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-um-mgr" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">License Receive Date</label>
@@ -740,15 +740,15 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
-                                    <input type="text" id="edit-charge-ccc" oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-charge-ccc" disabled oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Works Order Code</label>
-                                    <input type="text" id="edit-works-order-code" oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-works-order-code" disabled oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5 md:col-span-2">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
-                                    <input type="text" id="edit-account-code" oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-account-code" disabled oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                             </div>
                         </div>
@@ -3732,11 +3732,9 @@
             "admin_statusremark"                : "StatusRemark",
             "admin_reviewapproval"              : "Approver",
             "admin_processstatus"               : "ProcessStatus",
-            "admin_pocurrency" : "POCurrency",
-
-"admin_approvaldate" : "ApprovalDate",
-
-"admin_reviewdate" : "ReviewDate",
+            "admin_pocurrency"                  : "POCurrency",
+            "admin_approvaldate"                : "ApprovalDate",
+            "admin_reviewdate"                  : "ReviewDate",
         });
         /** @typedef {typeof DV_COLUMN_MAP} IDVColumnMap */
 
@@ -4761,6 +4759,26 @@
             updateFieldLockingAndApprovalUI(activeStatus);
         }
 
+        const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
+            'edit-title',
+            'edit-request-status',
+            'edit-prref',
+            'edit-charge-ccc',
+            'edit-works-order-code',
+            'edit-account-code',
+            'edit-um-mgr'
+        ]);
+
+        function applyPermanentlyDisabledFields() {
+            PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.disabled = true;
+                    el.classList.add('cursor-not-allowed');
+                }
+            });
+        }
+
         function updateFieldLockingAndApprovalUI(currentStatus) {
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
@@ -4770,6 +4788,11 @@
                 // TODO: why are we unlocking the fields after completion?
                 const controls = container.querySelectorAll('input, select, textarea, button');
                 controls.forEach(control => {
+                    if (PERMANENTLY_DISABLED_FIELD_IDS.has(control.id)) {
+                        control.disabled = true;
+                        control.classList.add('cursor-not-allowed');
+                        return;
+                    }
                     control.disabled = false;
                     control.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-50');
                 });
@@ -4873,6 +4896,7 @@
             updateTrackerVisual();
             clearRequiredFieldErrors();
             resetProductTypePairUI(item);
+            applyPermanentlyDisabledFields();
 
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
@@ -5273,7 +5297,6 @@ if (record.UrgentFlag !== undefined)
                 { id: 'edit-btb', label: 'BTB Type' },
                 { id: 'edit-handledby', label: 'Case Handled By' },
                 { id: 'edit-ipt-unit-mgr', label: 'IPT Unit Mgr' },
-                { id: 'edit-prref', label: 'PR Reference' },
                 { id: 'edit-quotationexpiry', label: 'Quotation Expiry Date' },
                 { id: 'edit-pr-issued-on', label: 'PR Issued Date' },
                 { id: 'edit-pramount', label: 'PR Amount' },
@@ -5537,6 +5560,7 @@ if (record.UrgentFlag !== undefined)
                 const requiredFields = STAGE_REQUIRED_FIELDS[STAGES[idx]] || [];
                 requiredFields.forEach(field => {
                     const element = document.getElementById(field.id);
+                    if (element && element.disabled) return;
                     const value = getFieldValue(field);
 
                     const isPlaceholder = field.id === 'edit-btb' && value === '-- Select --';

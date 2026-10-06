@@ -23,20 +23,45 @@ function eq(label, actual, expected) {
   ok('dev schema names supplierRemark', !!devSchema.supplierRemark);
   eq('supplierRemark entity is admin_btb_supplier_remark',
     devSchema.supplierRemark.entity, 'admin_btb_supplier_remark');
-  ok('supplierRemark select includes admin_CCC',
-    devSchema.supplierRemark.select.includes('admin_CCC'));
-  ok('supplierRemark select includes admin_Reamrk',
-    devSchema.supplierRemark.select.includes('admin_Reamrk'));
-  eq('supplierRemark fields.ccc is admin_CCC',
-    devSchema.supplierRemark.fields.ccc, 'admin_CCC');
-  eq('supplierRemark fields.remark is admin_Reamrk',
-    devSchema.supplierRemark.fields.remark, 'admin_Reamrk');
+  ok('supplierRemark select includes admin_ccc (lowercase for Dataverse WebApi)',
+    devSchema.supplierRemark.select.includes('admin_ccc'));
+  ok('supplierRemark select includes admin_reamrk (lowercase for Dataverse WebApi)',
+    devSchema.supplierRemark.select.includes('admin_reamrk'));
+  eq('supplierRemark fields.ccc is admin_ccc',
+    devSchema.supplierRemark.fields.ccc, 'admin_ccc');
+  eq('supplierRemark fields.remark is admin_reamrk',
+    devSchema.supplierRemark.fields.remark, 'admin_reamrk');
+
+  ok('admin schema also names supplierRemark for consistency',
+    !!app.DATAVERSE_SCHEMAS.admin.supplierRemark);
 
   ok('supplierRemarkLookup is enabled on dev side',
     app.FEATURES.supplierRemarkLookup === true);
 }
 
-/* ---------- 2. interpolateRemark ---------- */
+/* ---------- 2. getRowCcc and getRowRemark helpers ---------- */
+{
+  // Lowercase properties from Dataverse OData
+  const dvRow = { admin_ccc: 'C716', admin_reamrk: 'Test remark from Dataverse' };
+  eq('getRowCcc reads lowercase admin_ccc', app.getRowCcc(dvRow), 'C716');
+  eq('getRowRemark reads lowercase admin_reamrk', app.getRowRemark(dvRow), 'Test remark from Dataverse');
+
+  // Upper/Mixed case properties from mock or legacy
+  const mockRow = { admin_CCC: 'C801', admin_Reamrk: 'Mock remark' };
+  eq('getRowCcc reads uppercase admin_CCC', app.getRowCcc(mockRow), 'C801');
+  eq('getRowRemark reads uppercase admin_Reamrk', app.getRowRemark(mockRow), 'Mock remark');
+
+  // Standard spelling admin_remark (no typo in column)
+  const cleanRow = { admin_ccc: 'C900', admin_remark: 'Clean remark' };
+  eq('getRowCcc reads C900', app.getRowCcc(cleanRow), 'C900');
+  eq('getRowRemark reads admin_remark', app.getRowRemark(cleanRow), 'Clean remark');
+
+  // Null/empty handling
+  eq('getRowCcc handles null', app.getRowCcc(null), '');
+  eq('getRowRemark handles null', app.getRowRemark(null), '');
+}
+
+/* ---------- 3. interpolateRemark ---------- */
 {
   const fields = {
     customerName: { value: 'Global Financial Services Ltd' },
@@ -113,7 +138,7 @@ function eq(label, actual, expected) {
     'User: Global Financial Services Ltd, Vendor: Cisco Systems HK, Desc: Firewall Hardware Upgrade');
 }
 
-/* ---------- 3. fetchSupplierRemarkRows ---------- */
+/* ---------- 4. fetchSupplierRemarkRows ---------- */
 {
   // Test fallback when no WebApi is present
   const promise = app.fetchSupplierRemarkRows();
@@ -121,10 +146,10 @@ function eq(label, actual, expected) {
 
   promise.then(rows => {
     ok('returns fallback rows when Xrm.WebApi is absent', Array.isArray(rows) && rows.length > 0);
-    ok('fallback includes C716', rows.some(r => r.admin_CCC === 'C716'));
-    ok('fallback includes Others', rows.some(r => r.admin_CCC === 'Others'));
+    ok('fallback includes C716', rows.some(r => app.getRowCcc(r) === 'C716'));
+    ok('fallback includes Others', rows.some(r => app.getRowCcc(r) === 'Others'));
 
-    /* ---------- 4. React render test for LisRemarkPage ---------- */
+    /* ---------- 5. React render test for LisRemarkPage ---------- */
     const { renderToStaticMarkup } = require('react-dom/server');
     const React = require('react');
     const reactApp = load({ react: true });

@@ -941,7 +941,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.27.0";
+const APP_VERSION = "5.27.1";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -8892,15 +8892,15 @@ const DATAVERSE_SCHEMAS = {
       },
     },
 
-    // Reference table for To Supplier Remark mapping (admin_btb_supplier_remark),
-    // dev side only. Columns are admin_CCC (case type/CCC code) and admin_Reamrk
-    // (remark text), read to populate the Case Type dropdown and To Supplier Remark.
+    // Reference table for To Supplier Remark mapping (admin_btb_supplier_remark).
+    // Columns are admin_ccc (case type/CCC code) and admin_reamrk (remark text),
+    // read to populate the Case Type dropdown and To Supplier Remark.
     supplierRemark: {
       entity: "admin_btb_supplier_remark",
-      select: ["admin_CCC", "admin_Reamrk"],
+      select: ["admin_ccc", "admin_reamrk"],
       fields: {
-        ccc: "admin_CCC",
-        remark: "admin_Reamrk",
+        ccc: "admin_ccc",
+        remark: "admin_reamrk",
       },
     },
   },
@@ -9140,6 +9140,14 @@ const DATAVERSE_SCHEMAS = {
         iptUnitMgr: "admin_iptunitmanager",
       },
     },
+    supplierRemark: {
+      entity: "admin_btb_supplier_remark",
+      select: ["admin_ccc", "admin_reamrk"],
+      fields: {
+        ccc: "admin_ccc",
+        remark: "admin_reamrk",
+      },
+    },
   },
 };
 
@@ -9334,11 +9342,22 @@ async function fetchCccLookupRows() {
 
 const DEMO_SUPPLIER_REMARKS = [
   {
+    admin_ccc: "C716",
     admin_CCC: "C716",
+    admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
     admin_Reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
   },
   {
+    admin_ccc: "Others",
     admin_CCC: "Others",
+    admin_reamrk: [
+      "Remarks: Pls refer att'd quotation & document for details information.",
+      "Please state below on PO:",
+      `a) The vendor should report fault log creation to ${OUR_COMPANY.label} helpdesk at ${OUR_COMPANY.helpdeskPhone}`,
+      `b) The vendor must update the recovery progress and the closing fault(s) to ${OUR_COMPANY.label} Helpdesk within 2 hours once completed.`,
+      "For Delivery Note/Invoice/Payment Arrangement, please refer to the attached PAYMENT INSTRUCTION GUIDELING (Particularly for this PO).",
+      "Attached quote for your reference only.",
+    ].join("\n"),
     admin_Reamrk: [
       "Remarks: Pls refer att'd quotation & document for details information.",
       "Please state below on PO:",
@@ -9350,12 +9369,44 @@ const DEMO_SUPPLIER_REMARKS = [
   },
 ];
 
-// Reads supplier remark options and templates from admin_btb_supplier_remark (dev side only).
-// Returns null when SCHEMA.supplierRemark is absent (admin side), or returns loaded rows.
+// Case-insensitive helper to read the CCC column from a Dataverse row or mock object
+function getRowCcc(row) {
+  if (!row || typeof row !== "object") return "";
+  if (row.admin_ccc != null && String(row.admin_ccc).trim()) return String(row.admin_ccc).trim();
+  if (row.admin_CCC != null && String(row.admin_CCC).trim()) return String(row.admin_CCC).trim();
+  for (const k of Object.keys(row)) {
+    const lk = k.toLowerCase();
+    if (lk === "admin_ccc" || lk === "ccc") {
+      const val = row[k] != null ? String(row[k]).trim() : "";
+      if (val) return val;
+    }
+  }
+  return "";
+}
+
+// Case-insensitive helper to read the Remark column from a Dataverse row or mock object
+function getRowRemark(row) {
+  if (!row || typeof row !== "object") return "";
+  if (row.admin_reamrk != null) return String(row.admin_reamrk);
+  if (row.admin_Reamrk != null) return String(row.admin_Reamrk);
+  if (row.admin_remark != null) return String(row.admin_remark);
+  if (row.admin_Remark != null) return String(row.admin_Remark);
+  for (const k of Object.keys(row)) {
+    const lk = k.toLowerCase();
+    if (lk === "admin_reamrk" || lk === "admin_remark" || lk === "reamrk" || lk === "remark") {
+      return String(row[k] != null ? row[k] : "");
+    }
+  }
+  return "";
+}
+
+// Reads supplier remark options and templates from admin_btb_supplier_remark.
+// Tries lowercase logical names (admin_ccc, admin_reamrk / admin_remark), handles singular
+// and plural entity names, and queries without $select if specific column selects fail.
 // Falls back to DEMO_SUPPLIER_REMARKS when running standalone / demo / no Xrm.WebApi.
 async function fetchSupplierRemarkRows() {
-  const source = SCHEMA.supplierRemark;
-  if (!source) return null;
+  const source = SCHEMA.supplierRemark || DATAVERSE_SCHEMAS.dev.supplierRemark;
+  if (!source) return DEMO_SUPPLIER_REMARKS;
   const webApi = (typeof parent !== "undefined" && parent && parent.Xrm && parent.Xrm.WebApi)
     || (typeof window !== "undefined" && window && window.Xrm && window.Xrm.WebApi)
     || null;
@@ -9363,13 +9414,51 @@ async function fetchSupplierRemarkRows() {
     console.warn("[PR Assistant] No Xrm.WebApi -- using fallback demo supplier remarks");
     return DEMO_SUPPLIER_REMARKS;
   }
+
+  async function queryEntity(entityName) {
+    // 1. Try lowercase logical names: admin_ccc, admin_reamrk
+    try {
+      const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_ccc,admin_reamrk");
+      if (res && res.entities && res.entities.length > 0) return res.entities;
+    } catch (_e1) { /* try next */ }
+
+    // 2. Try lowercase logical names: admin_ccc, admin_remark (in case remark has no typo in Dataverse)
+    try {
+      const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_ccc,admin_remark");
+      if (res && res.entities && res.entities.length > 0) return res.entities;
+    } catch (_e2) { /* try next */ }
+
+    // 3. Try query without $select (returns all columns, avoids column name mismatches)
+    try {
+      const res = await webApi.retrieveMultipleRecords(entityName, "");
+      if (res && res.entities && res.entities.length > 0) return res.entities;
+    } catch (_e3) { /* try next */ }
+
+    // 4. Try with source.select if defined
+    if (source.select && source.select.length) {
+      try {
+        const res = await webApi.retrieveMultipleRecords(entityName, "?$select=" + source.select.join(","));
+        if (res && res.entities && res.entities.length > 0) return res.entities;
+      } catch (_e4) { /* try next */ }
+    }
+    return null;
+  }
+
   try {
-    const response = await webApi.retrieveMultipleRecords(
-      source.entity, "?$select=" + source.select.join(","));
-    const entities = (response && response.entities) || [];
-    return entities.length > 0 ? entities : DEMO_SUPPLIER_REMARKS;
+    let entities = await queryEntity(source.entity);
+    if (!entities && !source.entity.endsWith("s")) {
+      entities = await queryEntity(source.entity + "s");
+    }
+    if (!entities && source.entity.endsWith("s")) {
+      entities = await queryEntity(source.entity.slice(0, -1));
+    }
+    if (entities && entities.length > 0) {
+      return entities;
+    }
+    console.warn("[PR Assistant] No rows returned from " + source.entity + ", using fallback demo supplier remarks");
+    return DEMO_SUPPLIER_REMARKS;
   } catch (err) {
-    console.warn("[PR Assistant] retrieveMultipleRecords failed for " + source.entity + ":", err);
+    console.warn("[PR Assistant] Failed to retrieve records for " + source.entity + ":", err);
     return DEMO_SUPPLIER_REMARKS;
   }
 }
@@ -11949,7 +12038,7 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
     const seen = new Set();
     const opts = [];
     (supplierRemarkRows || []).forEach(row => {
-      const ccc = (row.admin_CCC != null ? String(row.admin_CCC) : "").trim();
+      const ccc = getRowCcc(row);
       if (ccc && !seen.has(ccc)) {
         seen.add(ccc);
         opts.push({ value: ccc, label: ccc });
@@ -11965,9 +12054,9 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
       const charge = String(chargeCccVal || "").trim().toUpperCase();
       if (!charge) return "";
       const matched = (supplierRemarkRows || []).find(
-        r => String(r.admin_CCC || "").trim().toUpperCase() === charge
+        r => getRowCcc(r).toUpperCase() === charge
       );
-      return matched ? String(matched.admin_CCC || "").trim() : "";
+      return matched ? getRowCcc(matched) : "";
     }
     return FEATURES.caseTypeFromChargeCcc ? caseTypeForChargeCcc(chargeCccVal) : "";
   }, [supplierRemarkRows, chargeCccVal]);
@@ -11989,10 +12078,11 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
       if (!option) return "";
       const optStr = String(option).trim().toUpperCase();
       const matched = (supplierRemarkRows || []).find(
-        r => String(r.admin_CCC || "").trim().toUpperCase() === optStr
+        r => getRowCcc(r).toUpperCase() === optStr
       );
-      if (matched && matched.admin_Reamrk != null) {
-        return interpolateRemark(matched.admin_Reamrk, fields, contact, admin);
+      if (matched) {
+        const remark = getRowRemark(matched);
+        return interpolateRemark(remark, fields, contact, admin);
       }
       return "";
     }

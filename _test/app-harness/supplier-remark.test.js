@@ -1,0 +1,162 @@
+// Tests for To Supplier Remark "Case Type" dropdown and admin_btb_supplier_remark lookup.
+//
+//   node _test/app-harness/supplier-remark.test.js
+
+const assert = require('assert');
+const { load } = require('./app.js');
+const app = load();
+
+let passed = 0;
+const failures = [];
+
+function ok(label, cond, detail) {
+  if (cond) { passed++; return; }
+  failures.push(label + (detail === undefined ? '' : '\n      got: ' + JSON.stringify(detail).slice(0, 400)));
+}
+function eq(label, actual, expected) {
+  ok(label, actual === expected, { actual, expected });
+}
+
+/* ---------- 1. Schema and Feature verification ---------- */
+{
+  const devSchema = app.DATAVERSE_SCHEMAS.dev;
+  ok('dev schema names supplierRemark', !!devSchema.supplierRemark);
+  eq('supplierRemark entity is admin_btb_supplier_remark',
+    devSchema.supplierRemark.entity, 'admin_btb_supplier_remark');
+  ok('supplierRemark select includes admin_CCC',
+    devSchema.supplierRemark.select.includes('admin_CCC'));
+  ok('supplierRemark select includes admin_Reamrk',
+    devSchema.supplierRemark.select.includes('admin_Reamrk'));
+  eq('supplierRemark fields.ccc is admin_CCC',
+    devSchema.supplierRemark.fields.ccc, 'admin_CCC');
+  eq('supplierRemark fields.remark is admin_Reamrk',
+    devSchema.supplierRemark.fields.remark, 'admin_Reamrk');
+
+  ok('supplierRemarkLookup is enabled on dev side',
+    app.FEATURES.supplierRemarkLookup === true);
+}
+
+/* ---------- 2. interpolateRemark ---------- */
+{
+  const fields = {
+    customerName: { value: 'Global Financial Services Ltd' },
+    vendor: { value: 'Cisco Systems HK' },
+    poPrDescription: { value: 'Firewall Hardware Upgrade' },
+    quotationStartDate: { value: '2026-04-01' },
+    quotationEndDate: { value: '2027-03-31' },
+    quotation: { value: 'QT-2026-9901' },
+    contractNo: { value: 'AG-2026-0088' },
+    atqRefNo: { value: 'ATQ-202604-00555' },
+    hkd: { value: '250,000.00' },
+    chargeCcc: { value: 'C716' },
+  };
+
+  const contact = {
+    key: 'Chan, Abby NY',
+    title: 'Ms.',
+    name: 'Abby Chan',
+    phone: '2883 0385',
+  };
+
+  // Direct column value test (no placeholder tokens)
+  const rawRemark = 'Remarks: Pls refer att\'d quotation & document for details information.\nAttached quote for your reference only.';
+  eq('returns verbatim text when no tokens are present',
+    app.interpolateRemark(rawRemark, fields, contact, 'Lee, Mandy MY'),
+    rawRemark);
+
+  // Empty / null handling
+  eq('returns empty string for null template', app.interpolateRemark(null), '');
+  eq('returns empty string for empty template', app.interpolateRemark(''), '');
+
+  // Token interpolation
+  const templated = [
+    'PR Issued by {PR Issued by}',
+    '{Contact}',
+    'Enduser: {Enduser}',
+    'SI: {SI}',
+    'Period: {Period}',
+    'Purchase of {Purchase of}',
+    'Quotation: {Quotation No}',
+    'Contract: {Contract No}',
+    'Amount: {HKD}',
+    'CCC: {Charge CCC}',
+  ].join('\n');
+
+  const result = app.interpolateRemark(templated, fields, contact, 'Chow, Alice SW');
+
+  ok('interpolates {PR Issued by} with admin name and phone',
+    result.includes('PR Issued by Chow, Alice SW@28831026'), result);
+  ok('interpolates {Contact} line with title, name, phone',
+    result.includes('For case details, please contact Ms. Abby Chan at 2883 0385'), result);
+  ok('interpolates {Enduser} with Customer Name',
+    result.includes('Enduser: Global Financial Services Ltd'), result);
+  ok('interpolates {SI} with Vendor',
+    result.includes('SI: Cisco Systems HK'), result);
+  ok('interpolates {Period} with dates and calculated months',
+    result.includes('Period: 2026-04-01 to 2027-03-31 (12 Mths)'), result);
+  ok('interpolates {Purchase of} with description',
+    result.includes('Purchase of Firewall Hardware Upgrade'), result);
+  ok('interpolates {Quotation No}',
+    result.includes('Quotation: QT-2026-9901'), result);
+  ok('interpolates {Contract No}',
+    result.includes('Contract: AG-2026-0088'), result);
+  ok('interpolates {HKD}',
+    result.includes('Amount: 250,000.00'), result);
+  ok('interpolates {Charge CCC}',
+    result.includes('CCC: C716'), result);
+
+  // Case-insensitivity test for tokens
+  const lowerTemplated = 'User: {enduser}, Vendor: {vendor}, Desc: {description}';
+  const lowerResult = app.interpolateRemark(lowerTemplated, fields, contact);
+  eq('tokens are case-insensitive',
+    lowerResult,
+    'User: Global Financial Services Ltd, Vendor: Cisco Systems HK, Desc: Firewall Hardware Upgrade');
+}
+
+/* ---------- 3. fetchSupplierRemarkRows ---------- */
+{
+  // Test fallback when no WebApi is present
+  const promise = app.fetchSupplierRemarkRows();
+  ok('fetchSupplierRemarkRows returns a Promise', promise && typeof promise.then === 'function');
+
+  promise.then(rows => {
+    ok('returns fallback rows when Xrm.WebApi is absent', Array.isArray(rows) && rows.length > 0);
+    ok('fallback includes C716', rows.some(r => r.admin_CCC === 'C716'));
+    ok('fallback includes Others', rows.some(r => r.admin_CCC === 'Others'));
+
+    /* ---------- 4. React render test for LisRemarkPage ---------- */
+    const { renderToStaticMarkup } = require('react-dom/server');
+    const React = require('react');
+    const reactApp = load({ react: true });
+
+    const fields = reactApp.initialFormState();
+    const noop = () => {};
+    const lisRemarkProps = {
+      fields, lisRowValues: {}, attachments: reactApp.DEMO_ATTACHMENTS, itemIndex: 0, selectItem: noop,
+      goUpload: noop, goSave: noop, saving: false, savedRecordId: '', setField: noop,
+    };
+
+    const html = renderToStaticMarkup(React.createElement(reactApp.LisRemarkPage, lisRemarkProps));
+    ok('LisRemarkPage renders successfully', typeof html === 'string' && html.length > 0);
+    ok('Case Type label is present', html.includes('Case Type :'));
+    ok('Dropdown trigger for Case Type is rendered on dev side',
+      html.includes('— Select Case Type —') || html.includes('C716'));
+    ok('Remark fields for auto-match hint is displayed',
+      html.includes('Remark fields for auto-match:'));
+    ok('{Enduser} token is listed in the helper text',
+      html.includes('{Enduser}'));
+    ok('{SI} token is listed in the helper text',
+      html.includes('{SI}'));
+    ok('{Period} token is listed in the helper text',
+      html.includes('{Period}'));
+
+    console.log(passed + ' passed, ' + failures.length + ' failed');
+    if (failures.length) {
+      failures.forEach(f => console.error('  FAIL  ' + f));
+      process.exit(1);
+    }
+  }).catch(err => {
+    console.error('Unexpected error in fetchSupplierRemarkRows test:', err);
+    process.exit(1);
+  });
+}

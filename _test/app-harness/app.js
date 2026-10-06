@@ -94,7 +94,8 @@ const EXPORTS = [
   // one file, two web resources -- which side this copy is running as
   'SIDE_BY_RESOURCE', 'resolveSide', 'SIDE', 'IS_ADMIN', 'SIDE_READY', 'SIDE_LABEL',
   // the two remark sentences, and the month count the dev Period line prints
-  'buildToSupplierRemark', 'monthsBetween',
+  'buildToSupplierRemark', 'monthsBetween', 'interpolateRemark',
+  'fetchSupplierRemarkRows', 'DEMO_SUPPLIER_REMARKS',
   'buildBtbRemark', 'BTB_ADMIN_NAMES', 'BTB_ADMINS', 'adminIssuedBy', 'BTB_SALES_CONTACTS',
   'FEATURES', 'DATAVERSE_SCHEMAS', 'SCHEMA', 'mapPayload', 'buildLisStartPayload', 'btbTypeOf',
   'localIsoDay', 'localIsoTomorrow',

@@ -826,6 +826,8 @@ const FEATURES = {
   // PR Amount currency selector format on the Verify Table (HKD / USD dropdown
   // and approval matrix tooltip), dev side only.
   prAmountCurrency: !IS_ADMIN,
+  // Case Type dropdown on To Supplier Remark reading admin_btb_supplier_remark (dev side only).
+  supplierRemarkLookup: !IS_ADMIN,
 };
 
 /* ---------- Mock data ---------- */
@@ -939,7 +941,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.26.0";
+const APP_VERSION = "5.27.0";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -1445,6 +1447,83 @@ function buildToSupplierRemark(option, fields, contact = null, withPeriod = fals
   if (option === "Others") lines.push(...TO_SUPPLIER_OTHERS_INSERT);
   lines.push("Attached quote for your reference only.");
   return lines.join("\n");
+}
+
+// Replaces placeholder tokens in an admin_Reamrk string with current field values.
+// If the string contains no placeholders, returns it directly as stored (direct column value).
+// Supported tokens (case-insensitive):
+//   {Enduser} / {Customer Name}       -> Customer Name (fields.customerName)
+//   {SI} / {Vendor}                   -> Vendor / Distributor (fields.vendor)
+//   {Purchase of} / {Description}     -> (PO) PR Description (fields.poPrDescription)
+//   {PR Issued by}                    -> PR Issued by Name@phone
+//   {Admin Name} / {Admin}            -> Selected Admin Name
+//   {Contact} / {Sales Contact}       -> Sales contact full line (For case details, please contact...)
+//   {Contact Name}                    -> Sales contact title and name
+//   {Contact Phone}                   -> Sales contact phone
+//   {Period}                          -> Quotation validity period (e.g. 01/01/2026 to 31/12/2026 (12 Mths))
+//   {Quotation Start Date}            -> Quotation Start Date (fields.quotationStartDate)
+//   {Quotation End Date}              -> Quotation End Date (fields.quotationEndDate)
+//   {Quotation No} / {Quotation}      -> Quotation No. (fields.quotation)
+//   {Contract No}                     -> Contract / Agreement No. (fields.contractNo)
+//   {ATQ Ref No} / {ATQ}              -> ATQ Ref. No. (fields.atqRefNo)
+//   {HKD} / {Amount}                  -> HKD amount (fields.hkd)
+//   {Charge CCC} / {CCC}              -> Charge CCC code (chargeCcc)
+function interpolateRemark(template, fields = {}, contact = null, adminName = null) {
+  if (!template) return "";
+  const s = String(template);
+  if (!s.includes("{") || !s.includes("}")) return s;
+
+  const fVal = key => (fields[key] && fields[key].value) || "";
+  const months = monthsBetween(fVal("quotationStartDate"), fVal("quotationEndDate"));
+  const periodMths = months != null ? `${months} Mths` : "Mths";
+  const periodStr = (fVal("quotationStartDate") || fVal("quotationEndDate"))
+    ? `${fVal("quotationStartDate")} to ${fVal("quotationEndDate")} (${periodMths})`
+    : "";
+  const contactLine = contact
+    ? `For case details, please contact ${[contact.title, contact.name].filter(Boolean).join(" ")} at ${contact.phone}`
+    : "For case details, please contact";
+  const contactName = contact ? [contact.title, contact.name].filter(Boolean).join(" ") : "";
+  const contactPhone = contact ? (contact.phone || "") : "";
+  const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
+
+  const map = {
+    "enduser": fVal("customerName"),
+    "customer name": fVal("customerName"),
+    "customername": fVal("customerName"),
+    "si": fVal("vendor"),
+    "vendor": fVal("vendor"),
+    "purchase of": fVal("poPrDescription"),
+    "pr description": fVal("poPrDescription"),
+    "poprdescription": fVal("poPrDescription"),
+    "description": fVal("poPrDescription"),
+    "pr issued by": issuedBy,
+    "issued by": issuedBy,
+    "admin name": adminName || "",
+    "admin": adminName || "",
+    "contact": contactLine,
+    "sales contact": contactLine,
+    "contact name": contactName,
+    "contact phone": contactPhone,
+    "period": periodStr,
+    "quotation start date": fVal("quotationStartDate"),
+    "quotation end date": fVal("quotationEndDate"),
+    "quotation no": fVal("quotation"),
+    "quotation": fVal("quotation"),
+    "contract no": fVal("contractNo"),
+    "agreement number": fVal("contractNo"),
+    "atq ref no": fVal("atqRefNo"),
+    "atq": fVal("atqRefNo"),
+    "hkd": fVal("hkd"),
+    "total value": fVal("hkd"),
+    "amount": fVal("hkd"),
+    "charge ccc": fVal("chargeCcc"),
+    "ccc": fVal("chargeCcc"),
+  };
+
+  return s.replace(/\{([^}]+)\}/g, (match, key) => {
+    const k = key.trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(map, k) ? map[k] : match;
+  });
 }
 
 // Maps a Docparse-detected {label, value} onto one of the PR form fields.
@@ -8812,6 +8891,18 @@ const DATAVERSE_SCHEMAS = {
         description: "admin_description2",
       },
     },
+
+    // Reference table for To Supplier Remark mapping (admin_btb_supplier_remark),
+    // dev side only. Columns are admin_CCC (case type/CCC code) and admin_Reamrk
+    // (remark text), read to populate the Case Type dropdown and To Supplier Remark.
+    supplierRemark: {
+      entity: "admin_btb_supplier_remark",
+      select: ["admin_CCC", "admin_Reamrk"],
+      fields: {
+        ccc: "admin_CCC",
+        remark: "admin_Reamrk",
+      },
+    },
   },
 
   admin: {
@@ -9239,6 +9330,48 @@ async function fetchCccLookupRows() {
   const response = await webApi.retrieveMultipleRecords(
     source.entity, "?$select=" + source.select.join(","));
   return (response && response.entities) || [];
+}
+
+const DEMO_SUPPLIER_REMARKS = [
+  {
+    admin_CCC: "C716",
+    admin_Reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+  },
+  {
+    admin_CCC: "Others",
+    admin_Reamrk: [
+      "Remarks: Pls refer att'd quotation & document for details information.",
+      "Please state below on PO:",
+      `a) The vendor should report fault log creation to ${OUR_COMPANY.label} helpdesk at ${OUR_COMPANY.helpdeskPhone}`,
+      `b) The vendor must update the recovery progress and the closing fault(s) to ${OUR_COMPANY.label} Helpdesk within 2 hours once completed.`,
+      "For Delivery Note/Invoice/Payment Arrangement, please refer to the attached PAYMENT INSTRUCTION GUIDELING (Particularly for this PO).",
+      "Attached quote for your reference only.",
+    ].join("\n"),
+  },
+];
+
+// Reads supplier remark options and templates from admin_btb_supplier_remark (dev side only).
+// Returns null when SCHEMA.supplierRemark is absent (admin side), or returns loaded rows.
+// Falls back to DEMO_SUPPLIER_REMARKS when running standalone / demo / no Xrm.WebApi.
+async function fetchSupplierRemarkRows() {
+  const source = SCHEMA.supplierRemark;
+  if (!source) return null;
+  const webApi = (typeof parent !== "undefined" && parent && parent.Xrm && parent.Xrm.WebApi)
+    || (typeof window !== "undefined" && window && window.Xrm && window.Xrm.WebApi)
+    || null;
+  if (!webApi) {
+    console.warn("[PR Assistant] No Xrm.WebApi -- using fallback demo supplier remarks");
+    return DEMO_SUPPLIER_REMARKS;
+  }
+  try {
+    const response = await webApi.retrieveMultipleRecords(
+      source.entity, "?$select=" + source.select.join(","));
+    const entities = (response && response.entities) || [];
+    return entities.length > 0 ? entities : DEMO_SUPPLIER_REMARKS;
+  } catch (err) {
+    console.warn("[PR Assistant] retrieveMultipleRecords failed for " + source.entity + ":", err);
+    return DEMO_SUPPLIER_REMARKS;
+  }
 }
 
 // Whether "Continue to save" is about to duplicate an already-saved
@@ -11791,11 +11924,54 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   // race: the first render already has the right name and every btbTextFor /
   // supplierTextFor default picks it up.
   const adminName = adminNameOverride || autoAdminName || BTB_ADMIN_NAMES[0];
-  // Which Case Type pill the LIS row's Charge CCC column already answers
-  // (FEATURES.caseTypeFromChargeCcc), or "" -- see caseTypeForChargeCcc for why
-  // a blank column lights neither pill.
-  const autoSupplierOption = FEATURES.caseTypeFromChargeCcc
-    ? caseTypeForChargeCcc(valueOf("chargeCcc")) : "";
+
+  const [supplierRemarkRows, setSupplierRemarkRows] = useState(
+    FEATURES.supplierRemarkLookup ? DEMO_SUPPLIER_REMARKS : []
+  );
+
+  useEffect(() => {
+    if (!FEATURES.supplierRemarkLookup) return;
+    let cancelled = false;
+    fetchSupplierRemarkRows().then(rows => {
+      if (!cancelled && Array.isArray(rows) && rows.length > 0) {
+        setSupplierRemarkRows(rows);
+      }
+    }).catch(err => {
+      console.warn("[PR Assistant] Failed to load supplier remarks:", err);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const supplierCaseTypeOptions = useMemo(() => {
+    if (!FEATURES.supplierRemarkLookup) {
+      return TO_SUPPLIER_CASE_TYPES.map(opt => ({ value: opt, label: opt }));
+    }
+    const seen = new Set();
+    const opts = [];
+    (supplierRemarkRows || []).forEach(row => {
+      const ccc = (row.admin_CCC != null ? String(row.admin_CCC) : "").trim();
+      if (ccc && !seen.has(ccc)) {
+        seen.add(ccc);
+        opts.push({ value: ccc, label: ccc });
+      }
+    });
+    return [{ value: "", label: "— Select Case Type —" }, ...opts];
+  }, [supplierRemarkRows]);
+
+  const chargeCccVal = valueOf("chargeCcc");
+  // Which Case Type pill/dropdown option the LIS row's Charge CCC column already answers
+  const autoSupplierOption = useMemo(() => {
+    if (FEATURES.supplierRemarkLookup) {
+      const charge = String(chargeCccVal || "").trim().toUpperCase();
+      if (!charge) return "";
+      const matched = (supplierRemarkRows || []).find(
+        r => String(r.admin_CCC || "").trim().toUpperCase() === charge
+      );
+      return matched ? String(matched.admin_CCC || "").trim() : "";
+    }
+    return FEATURES.caseTypeFromChargeCcc ? caseTypeForChargeCcc(chargeCccVal) : "";
+  }, [supplierRemarkRows, chargeCccVal]);
+
   const supplierOption = supplierOptionPick != null ? supplierOptionPick : autoSupplierOption;
   // The one place that knows how this page builds the To Supplier text, so the
   // three call sites below cannot drift about which arguments it gets --
@@ -11808,9 +11984,21 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   // this side dropped.
   const btbTextFor = (contact, admin = adminName) =>
     buildBtbRemark(contact, admin, FEATURES.btbBuyerSignoff);
-  const supplierTextFor = (option, contact, admin = adminName) =>
-    buildToSupplierRemark(option, fields, contact, FEATURES.toSupplierPeriod,
+  const supplierTextFor = useCallback((option, contact, admin = adminName) => {
+    if (FEATURES.supplierRemarkLookup) {
+      if (!option) return "";
+      const optStr = String(option).trim().toUpperCase();
+      const matched = (supplierRemarkRows || []).find(
+        r => String(r.admin_CCC || "").trim().toUpperCase() === optStr
+      );
+      if (matched && matched.admin_Reamrk != null) {
+        return interpolateRemark(matched.admin_Reamrk, fields, contact, admin);
+      }
+      return "";
+    }
+    return buildToSupplierRemark(option, fields, contact, FEATURES.toSupplierPeriod,
       FEATURES.toSupplierIssuedBy ? admin : null);
+  }, [supplierRemarkRows, fields, adminName]);
   // One selection, two remarks. The picker sits on the To Supplier card now,
   // but it still drives the BTB sentence -- so both texts are rebuilt here
   // rather than each card owning its own copy of the choice.
@@ -11855,7 +12043,7 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
     const contact = salesContactOf(salesContactKey);
     if (contact) setBtbRemarkText(btbTextFor(contact, adminName));
     if (supplierOption) setSupplierRemarkText(supplierTextFor(supplierOption, contact, adminName));
-  }, [salesContactKey, adminName, supplierOption]);
+  }, [salesContactKey, adminName, supplierOption, supplierTextFor]);
 
   const renderExcelTable = (title, columns) => (
     <Card className="overflow-hidden">
@@ -12014,11 +12202,24 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
               on both cards there is a second control to be told apart from. The
               same selection still signs both sentences wherever it is drawn. */}
           {!FEATURES.buyerNameOnBtbCard && !FEATURES.remarkPickersAbove && buyerNamePicker}
-          <div className="col-span-6 fs-12-19 font-bold text-[var(--muted)]">Case Type</div>
-          <div className="col-span-6 flex gap-2">{TO_SUPPLIER_CASE_TYPES.map(opt => <button key={opt} onClick={() => selectSupplierOption(opt)}
-            className={`px-3.5 py-1.5 rounded-full border-[1.5px] fs-12-19 font-semibold ui-transition pressable ${supplierOption === opt ? "bg-[#FFF4DE] border-[var(--orange)] text-[var(--orange-dark)]" : "bg-[var(--surface-soft)] border-[var(--line)] text-[var(--muted)]"}`}>{opt}</button>)}</div>
+          <div className="col-span-6 fs-12-19 font-bold text-[var(--muted)]">Case Type :</div>
+          {FEATURES.supplierRemarkLookup ? (
+            <AnimatedSelect value={supplierOption} onChange={v => selectSupplierOption(v)}
+              placeholder="— Select Case Type —" fullWidth optionClassName="fs-13-19"
+              options={supplierCaseTypeOptions}
+              triggerClassName="col-span-6 w-full flex items-center justify-between gap-1.5 px-3 py-2 fs-14-19 text-[var(--ink)] rounded-xl border-[1.5px] border-[var(--line)] bg-white outline-none focus:border-[var(--orange)]" />
+          ) : (
+            <div className="col-span-6 flex gap-2">{TO_SUPPLIER_CASE_TYPES.map(opt => <button key={opt} onClick={() => selectSupplierOption(opt)}
+              className={`px-3.5 py-1.5 rounded-full border-[1.5px] fs-12-19 font-semibold ui-transition pressable ${supplierOption === opt ? "bg-[#FFF4DE] border-[var(--orange)] text-[var(--orange-dark)]" : "bg-[var(--surface-soft)] border-[var(--line)] text-[var(--muted)]"}`}>{opt}</button>)}</div>
+          )}
+          {FEATURES.supplierRemarkLookup && (
+            <div className="col-span-6 text-[11.5px] text-[var(--muted)] leading-relaxed">
+              <span className="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
+              <span>&#123;Enduser&#125;, &#123;SI&#125;, &#123;Period&#125;, &#123;Purchase of&#125;, &#123;PR Issued by&#125;, &#123;Contact&#125;, &#123;Quotation No&#125;</span>
+            </div>
+          )}
           <textarea value={supplierRemarkText} onChange={e => setSupplierRemarkText(e.target.value)} rows={11}
-            placeholder="Pick a case type above, or type the remark manually."
+            placeholder={FEATURES.supplierRemarkLookup ? "Pick a Case Type above, or type the remark manually." : "Pick a case type above, or type the remark manually."}
             className="col-span-6 w-full px-3 py-2 fs-14-19 text-[var(--ink)] rounded-xl border-[1.5px] border-[var(--line)] bg-white outline-none focus:border-[var(--orange)] resize-y" />
         </Card>
         <Card className="grid grid-cols-6 gap-2 p-3 text-sm">

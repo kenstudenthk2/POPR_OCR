@@ -564,7 +564,7 @@
                                         <option value="NON-BTB">NON-BTB</option>
                                     </select>
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Request Status</label>
                                     <input type="text" id="edit-request-status" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
@@ -694,7 +694,7 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Vendor</label>
                                     <input type="text" id="edit-vendor" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Reference</label>
                                     <input type="text" id="edit-prref" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
@@ -730,7 +730,7 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Total Revenue</label>
                                     <input type="number" step="0.01" id="edit-total-revenue" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">UM/Mgr</label>
                                     <input type="text" id="edit-um-mgr" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
@@ -738,15 +738,15 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">License Receive Date</label>
                                     <input type="date" id="edit-license-receive-date" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
                                     <input type="text" id="edit-charge-ccc" disabled oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Works Order Code</label>
                                     <input type="text" id="edit-works-order-code" disabled oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
-                                <div class="flex flex-col gap-1.5 md:col-span-2">
+                                <div class="flex flex-col gap-1.5 md:col-span-2 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
                                     <input type="text" id="edit-account-code" disabled oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>

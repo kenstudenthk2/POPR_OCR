@@ -32,6 +32,8 @@ const tabRequestHtml = tabRequestMatch ? tabRequestMatch[0] : "";
 ok("Tab Request Info has disabled edit-request-status field",
   /<input[^>]*id="edit-request-status"[^>]*disabled/i.test(tabRequestHtml) ||
   /<input[^>]*disabled[^>]*id="edit-request-status"/i.test(tabRequestHtml));
+ok("Tab Request Info has hidden container for Request Status",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-request-status"/i.test(tabRequestHtml));
 
 // Tab 2: Quotation Info -> PR Reference
 const tabQuotationMatch = HTML.match(/<div id="tab-quotation"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- TAB 3/);
@@ -40,6 +42,8 @@ const tabQuotationHtml = tabQuotationMatch ? tabQuotationMatch[0] : "";
 ok("Tab Quotation Info has disabled edit-prref field",
   /<input[^>]*id="edit-prref"[^>]*disabled/i.test(tabQuotationHtml) ||
   /<input[^>]*disabled[^>]*id="edit-prref"/i.test(tabQuotationHtml));
+ok("Tab Quotation Info has hidden container for PR Reference",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-prref"/i.test(tabQuotationHtml));
 
 // Tab 3: Contract Info -> Charge CCC, Works Order Code, Account Code, UM/Mgr
 const tabContractMatch = HTML.match(/<div id="tab-contract"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- TAB 4/);
@@ -49,18 +53,26 @@ const tabContractHtml = tabContractMatch ? tabContractMatch[0] : "";
 ok("Tab Contract Info has disabled edit-charge-ccc field",
   /<input[^>]*id="edit-charge-ccc"[^>]*disabled/i.test(tabContractHtml) ||
   /<input[^>]*disabled[^>]*id="edit-charge-ccc"/i.test(tabContractHtml));
+ok("Tab Contract Info has hidden container for Charge CCC",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-charge-ccc"/i.test(tabContractHtml));
 
 ok("Tab Contract Info has disabled edit-works-order-code field",
   /<input[^>]*id="edit-works-order-code"[^>]*disabled/i.test(tabContractHtml) ||
   /<input[^>]*disabled[^>]*id="edit-works-order-code"/i.test(tabContractHtml));
+ok("Tab Contract Info has hidden container for Works Order Code",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-works-order-code"/i.test(tabContractHtml));
 
 ok("Tab Contract Info has disabled edit-account-code field",
   /<input[^>]*id="edit-account-code"[^>]*disabled/i.test(tabContractHtml) ||
   /<input[^>]*disabled[^>]*id="edit-account-code"/i.test(tabContractHtml));
+ok("Tab Contract Info has hidden container for Account Code",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-account-code"/i.test(tabContractHtml));
 
 ok("Tab Contract Info has disabled edit-um-mgr field",
   /<input[^>]*id="edit-um-mgr"[^>]*disabled/i.test(tabContractHtml) ||
   /<input[^>]*disabled[^>]*id="edit-um-mgr"/i.test(tabContractHtml));
+ok("Tab Contract Info has hidden container for UM/Mgr",
+  /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-um-mgr"/i.test(tabContractHtml));
 
 // ── 2. Script execution & runtime locking verification ───────────────────────
 

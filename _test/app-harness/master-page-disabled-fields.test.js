@@ -25,7 +25,7 @@ const ok = (label, cond) => eq(label, !!cond, true);
 
 // ── 1. Static HTML verification across tabs ─────────────────────────────────
 
-// Tab 1: Request Info -> Request Status
+// Tab 1: Request Info -> Request Status, IPT Unit Mgr, Charge CCC, Account Code
 const tabRequestMatch = HTML.match(/<div id="tab-request"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- TAB 2/);
 ok("Found tab-request container in HTML", !!tabRequestMatch);
 const tabRequestHtml = tabRequestMatch ? tabRequestMatch[0] : "";
@@ -34,6 +34,17 @@ ok("Tab Request Info has disabled edit-request-status field",
   /<input[^>]*disabled[^>]*id="edit-request-status"/i.test(tabRequestHtml));
 ok("Tab Request Info has hidden container for Request Status",
   /<div[^>]*class="[^"]*\bhidden\b[^"]*"[^>]*>[\s\S]*?id="edit-request-status"/i.test(tabRequestHtml));
+ok("Tab Request Info has disabled edit-ipt-unit-mgr field",
+  /<input[^>]*id="edit-ipt-unit-mgr"[^>]*disabled/i.test(tabRequestHtml) ||
+  /<input[^>]*disabled[^>]*id="edit-ipt-unit-mgr"/i.test(tabRequestHtml));
+ok("Tab Request Info has disabled edit-pair-charge-ccc field",
+  /<input[^>]*id="edit-pair-charge-ccc"[^>]*disabled/i.test(tabRequestHtml) ||
+  /<input[^>]*disabled[^>]*id="edit-pair-charge-ccc"/i.test(tabRequestHtml));
+ok("Tab Request Info has disabled edit-pair-account-code field",
+  /<input[^>]*id="edit-pair-account-code"[^>]*disabled/i.test(tabRequestHtml) ||
+  /<input[^>]*disabled[^>]*id="edit-pair-account-code"/i.test(tabRequestHtml));
+ok("Tab Request Info has select dropdown for edit-pair-works-order-code",
+  /<select[^>]*id="edit-pair-works-order-code"/i.test(tabRequestHtml));
 
 // Tab 2: Quotation Info -> PR Reference
 const tabQuotationMatch = HTML.match(/<div id="tab-quotation"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>\s*<!-- TAB 3/);
@@ -195,6 +206,9 @@ ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-charge-ccc", disabledSet.has("e
 ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-works-order-code", disabledSet.has("edit-works-order-code"));
 ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-account-code", disabledSet.has("edit-account-code"));
 ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-um-mgr", disabledSet.has("edit-um-mgr"));
+ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-ipt-unit-mgr", disabledSet.has("edit-ipt-unit-mgr"));
+ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-pair-charge-ccc", disabledSet.has("edit-pair-charge-ccc"));
+ok("PERMANENTLY_DISABLED_FIELD_IDS contains edit-pair-account-code", disabledSet.has("edit-pair-account-code"));
 
 // Test applyPermanentlyDisabledFields
 exp.applyPermanentlyDisabledFields();
@@ -204,6 +218,9 @@ const chargeCcc = getMockElement("edit-charge-ccc");
 const woCode = getMockElement("edit-works-order-code");
 const accCode = getMockElement("edit-account-code");
 const umMgr = getMockElement("edit-um-mgr");
+const iptMgr = getMockElement("edit-ipt-unit-mgr");
+const pairCcc = getMockElement("edit-pair-charge-ccc");
+const pairAcc = getMockElement("edit-pair-account-code");
 
 ok("applyPermanentlyDisabledFields disables edit-request-status", reqStatus.disabled === true);
 ok("applyPermanentlyDisabledFields disables edit-prref", prRef.disabled === true);
@@ -211,6 +228,9 @@ ok("applyPermanentlyDisabledFields disables edit-charge-ccc", chargeCcc.disabled
 ok("applyPermanentlyDisabledFields disables edit-works-order-code", woCode.disabled === true);
 ok("applyPermanentlyDisabledFields disables edit-account-code", accCode.disabled === true);
 ok("applyPermanentlyDisabledFields disables edit-um-mgr", umMgr.disabled === true);
+ok("applyPermanentlyDisabledFields disables edit-ipt-unit-mgr", iptMgr.disabled === true);
+ok("applyPermanentlyDisabledFields disables edit-pair-charge-ccc", pairCcc.disabled === true);
+ok("applyPermanentlyDisabledFields disables edit-pair-account-code", pairAcc.disabled === true);
 
 // Test that complete status does not re-enable permanently disabled fields
 exp.updateFieldLockingAndApprovalUI("Complete");
@@ -220,6 +240,9 @@ ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-charge-ccc disabled",
 ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-works-order-code disabled", woCode.disabled === true);
 ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-account-code disabled", accCode.disabled === true);
 ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-um-mgr disabled", umMgr.disabled === true);
+ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-ipt-unit-mgr disabled", iptMgr.disabled === true);
+ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-pair-charge-ccc disabled", pairCcc.disabled === true);
+ok("updateFieldLockingAndApprovalUI('Complete') keeps edit-pair-account-code disabled", pairAcc.disabled === true);
 
 // STAGE_REQUIRED_FIELDS check
 const prReadyRequired = exp.STAGE_REQUIRED_FIELDS["PR No. Ready"] || [];

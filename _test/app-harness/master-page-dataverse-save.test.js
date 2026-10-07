@@ -170,11 +170,18 @@ const X = sandbox.EXPORTS;
     Vendor: "Test Vendor",
     ItemNo: "ITM-99",
     Buyer: "Chan, Peter",
-    MarkReceiptDate: "2026-10-10"
+    MarkReceiptDate: "2026-10-10",
+    ChargeCCC: "C716",
+    AccountCode: "512100",
+    WorksOrderCode: "WO-SEC-01"
   });
 
   eq("updateRecord was called once in bulk mode", updatedRecords.length, 1);
   const pHkd = updatedRecords[0].payload;
+
+  eq("admin_chargex0020ccc is saved in payload", pHkd.admin_chargex0020ccc, "C716");
+  eq("admin_accountx0020code is saved in payload", pHkd.admin_accountx0020code, "512100");
+  eq("admin_worksx0020orderx0020code is saved in payload", pHkd.admin_worksx0020orderx0020code, "WO-SEC-01");
 
   eq("admin_itemno is included in payload", pHkd.admin_itemno, "ITM-99");
   eq("admin_buyer is included in payload", pHkd.admin_buyer, "Chan, Peter");

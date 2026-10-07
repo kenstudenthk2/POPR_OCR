@@ -571,36 +571,14 @@ ok('no ternary has two identical branches -- the shape a flattened pair leaves',
     React.createElement(app.ExtractedFieldsPage, Object.assign({}, verifyTableProps,
       { dataverseVerify: { source: 'n8n', status: 'ready', rows: {} }, refreshDataverse: noop })));
 
-  // The "Pair" button (FEATURES.verifyCodePair) reads procurement's Product
-  // Type -> coding table and fills the three code rows from it.
-  //
-  // Asserted in BOTH modes, and that is the whole reason these four lines
-  // exist: the Verify Table's rows are drawn through two separate branches of
-  // one map, and the first cut of this feature put the button inline in the
-  // n8n branch only -- so it was missing from exactly the mode a reviewer is
-  // in before any Dataverse read has happened, while every test still passed.
-  ok('the Pair button is drawn beside Product Type', table.includes('>Pair</button>'));
-  ok('...in n8n mode too', n8nTable.includes('>Pair</button>'));
-  const pairIsBesideProductType = html =>
-    html.indexOf('>Pair</button>') > html.indexOf('>Product Type') &&
-    html.indexOf('>Pair</button>') - html.indexOf('>Product Type') < 900;
-  ok('...in the Product Type row, not some other row', pairIsBesideProductType(table));
-  ok('...in n8n mode too', pairIsBesideProductType(n8nTable));
-  // Only Product Type carries it. One button per page: a second would be a
-  // second answer to "what did the coding table say".
-  ok('exactly one Pair button on the page',
-    (table.match(/>Pair<\/button>/g) || []).length === 1);
-  // Before Pair has run, Works Order Code is a plain box -- it still shows what
-  // BTB_LIS_Excel_Datas held and can still be typed into by hand. The picker
-  // appears only once the lookup has answered, which needs state this harness
-  // cannot set (useEffect and event handlers never run under
-  // renderToStaticMarkup), so the picker itself is browser-only.
-  ok('Works Order Code starts as a typed box, not a picker',
-    table.includes('Works Order Code LIS value') &&
-    !table.includes('Select a Works Order Code'));
-  ok('...in n8n mode too',
-    n8nTable.includes('Works Order Code LIS value') &&
-    !n8nTable.includes('Select a Works Order Code'));
+  // The "Pair" button (FEATURES.verifyCodePair) and coding fields
+  // (Charge CCC, Account Code, Works Order Code) were removed from Verify Table.
+  ok('the Pair button is NOT drawn beside Product Type', !table.includes('>Pair</button>'));
+  ok('...in n8n mode too', !n8nTable.includes('>Pair</button>'));
+  ok('Charge CCC is removed from Verify Table', !table.includes('Charge CCC LIS value'));
+  ok('Account Code is removed from Verify Table', !table.includes('Account Code LIS value'));
+  ok('Works Order Code is removed from Verify Table', !table.includes('Works Order Code LIS value'));
+  ok('Issue By is removed from Verify Table', !table.includes('Issue By LIS value'));
 
   // The LIS column is the reviewer's own answer. The two buttons beside it are
   // shortcuts, so the cell itself has to take typing.

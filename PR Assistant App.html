@@ -763,41 +763,11 @@ const FEATURES = {
   // Master Records page draws its own "Demo Mode" button, which is a separate
   // control this flag deliberately does not cover.
   workbenchDemoToggle: IS_ADMIN,
-  // Charge CCC / Account Code / Works Order Code / Issue By as four extra
-  // Verify Table rows directly under IPT Unit Mgr, dev side only. Issue By
-  // joined the other three on 2026-09-25 -- same lookup table, same button,
-  // same write, so one flag and not a fourth of its own. No document ever states
-  // any of the three -- they are procurement's own coding, typed by hand --
-  // so they are `lisOnly` rows: the LIS Value box and nothing else, seeded
-  // with whatever BTB_LIS_Excel_Datas already holds and written back by
-  // "Continue to save".
-  //
-  // This one DOES have a write guard to pair with it, unlike every UI-only
-  // flag above: the four ids join LIS_EXCEL_ROW_IDS only while the flag is
-  // on, so the Admin side's "Continue to save" payload is byte-for-byte what
-  // it is today. The Admin side has its own columns
-  // (admin_chargex0020ccc4 and friends) and has not asked for the rows.
-  //
-  // ⚠️ Issue By is the one of the four whose LIS column, admin_issuex0020by,
-  // is spelled the SAME on both sides -- it is in both lis.write maps already.
-  // So the guard here is not "the Admin side would hit a missing column"; it is
-  // that the Admin side fills that column from its own LIS & Remark input and
-  // has not asked for a second writer of it.
-  verifyLisCodes: !IS_ADMIN,
-  // The "Pair" button beside Product Type, dev side only for now (the Admin
-  // side's own lookup table, admin_btb_ccc_wocode_accode4, exists but its
-  // columns have not been transcribed -- see DATAVERSE_SCHEMAS.admin, which
-  // deliberately has NO cccLookup rather than a guessed one).
-  //
-  // Two guards, same pairing as verifyLisCodes: this flag hides the button,
-  // and `pairCodesFromLookup` returns early when SCHEMA.cccLookup is absent.
-  // The read guard is the load-bearing one -- a query against an entity this
-  // side has no name for is not a blank result, it is a rejected request.
-  //
-  // It has no WRITE guard and needs none: the lookup table is read-only to
-  // this app (SCHEMA.cccLookup carries no `write` map at all), and the three
-  // values it fills are saved by the LIS path verifyLisCodes already guards.
-  verifyCodePair: !IS_ADMIN,
+  // Verify Table coding rows (Charge CCC / Account Code / Works Order Code / Issue By)
+  // removed at user request.
+  verifyLisCodes: false,
+  // The "Pair" button beside Product Type, removed on Verify Table at user request.
+  verifyCodePair: false,
   // Product Type and IPT Unit Mgr read the BTB_ATQ_Excel record ALONE, dev
   // side only. Every other `atqExcelValueKey` row prefers the workbook cell it
   // was extracted from and only falls back to Dataverse; these two are the
@@ -8316,18 +8286,6 @@ const VERIFY_TABLE_ROWS_ALL = [
   // (lisValueForRow -> lisCellValue) and is otherwise the reviewer's to type.
   // `devOnly`: the Admin side has its own three columns and has not asked for
   // the rows -- see FEATURES.verifyLisCodes.
-  // Issue By is an extra Verify Table row directly under IPT Unit Mgr, dev side only.
-  // Charge CCC, Account Code, and Works Order Code were removed from Verify Table at user request.
-  //
-  // The fourth value Pair filled, added 2026-09-25. It comes from the lookup
-  // table (admin_admin2) or existing LIS row (admin_issuex0020by).
-  //
-  // ⚠️ `key: "issueBy"` is also a FIELDS key -- buildRecordPayload writes
-  // `issueBy: getVal("issueBy")` from the LIS & Remark form, whose input is
-  // Admin-only. On dev that reads "" and mapPayload drops it, so Save cannot
-  // blank what was put here. If the dev side ever grows that input, the two
-  // writers of admin_issuex0020by have to be reconciled deliberately.
-  { id: "issueBy", key: "issueBy", label: "Issue By", lisOnly: true, devOnly: true },
   { id: "uid", key: "uid", label: "UID", special: "uid", crossCheckLabel: "Extract From Email Subject", sourceKind: "emailSubject" },
 ];
 
@@ -10543,11 +10501,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // value the row is showing -- see the write map's own note on productType.
   const LIS_EXCEL_ROW_IDS = ["customerName", "vendor", "contractNo", "prAmount",
     "contractStartDate", "contractEndDate", "quotationStartDate", "quotationEndDate",
-    "quotationExpireDate", "handledBy", "iptUnitMgr", "contractRevenue", "productType",
-    // FEATURES.verifyLisCodes' write half. issueBy is dev-only, so the
-    // id is appended only where the row exists -- the Admin payload is
-    // unchanged.
-    ...(FEATURES.verifyLisCodes ? ["issueBy"] : [])];
+    "quotationExpireDate", "handledBy", "iptUnitMgr", "contractRevenue", "productType"];
   const lisExcelValues = () => {
     const out = {};
     LIS_EXCEL_ROW_IDS.forEach(id => {

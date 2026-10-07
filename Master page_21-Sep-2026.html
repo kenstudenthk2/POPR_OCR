@@ -2977,6 +2977,26 @@
 
         const DEMO_SUPPLIER_REMARKS = [
             {
+                admin_ccc: "C600",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
+                admin_ccc: "CD37 & CB13",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
+                admin_ccc: "C556 Cisco",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
+                admin_ccc: "C665 IPT Cisco",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
+                admin_ccc: "C665 Non-Cisco",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
                 admin_ccc: "C716",
                 admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
             },
@@ -3227,13 +3247,54 @@
                 contractNo: { value: val('edit-contract', 'ContractNo') },
                 atqRefNo: { value: val('edit-title', 'Title') },
                 hkd: { value: val('edit-pramount', 'PRAmount') },
-                chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') },
+                chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') || val('edit-charge-ccc', 'ChargeCCC') },
                 handledBy: { value: val('edit-handledby', 'HandledBy') },
                 issueBy: { value: val('edit-issue-by', 'IssueBy') }
             };
         }
 
         let cachedSupplierRemarkRows = null;
+
+        const IGNORED_CCC_TOKENS = new Set([
+            "AND", "OR", "THE", "OF", "FOR", "IN", "TO", "A", "AN", "NIL", "NA", "N/A"
+        ]);
+
+        function extractCccTokens(str) {
+            if (!str) return [];
+            return String(str)
+                .toUpperCase()
+                .split(/[\s&(),;/]+/)
+                .map(t => t.trim().replace(/^[-_.]+|[-_.]+$/g, ''))
+                .filter(t => t.length > 0 && !IGNORED_CCC_TOKENS.has(t));
+        }
+
+        function matchCaseTypeForChargeCcc(chargeCcc, caseOpts) {
+            if (!chargeCcc || !Array.isArray(caseOpts) || caseOpts.length === 0) return "";
+            const chargeStr = String(chargeCcc).trim().toUpperCase();
+            if (!chargeStr) return "";
+
+            // 1. Exact match against an option
+            const exact = caseOpts.find(opt => String(opt).trim().toUpperCase() === chargeStr);
+            if (exact) return exact;
+
+            // 2. Extract CCC tokens from the record's Charge CCC (e.g. "C665" -> ["C665"])
+            const chargeTokens = extractCccTokens(chargeStr);
+            if (chargeTokens.length === 0) return "";
+
+            // 3. Match against Case Type options in dropdown order, returning the FIRST match.
+            // If the dropdown has multiple options matching the same CCC (e.g. "C665 IPT Cisco"
+            // and "C665 Non-Cisco" for "C665"), default to the first match and let the user select by themselves.
+            const matched = caseOpts.find(opt => {
+                const optTokens = extractCccTokens(opt);
+                return chargeTokens.some(ct => optTokens.includes(ct));
+            });
+            if (matched) return matched;
+
+            // 4. Fallback if no matching CCC found
+            if (chargeStr === "C716" && caseOpts.includes("C716")) return "C716";
+            if (caseOpts.includes("Others")) return "Others";
+            return caseOpts[0] || "";
+        }
 
         async function openRemarkModal() {
             const modal = document.getElementById('remarkModal');
@@ -3289,12 +3350,13 @@
                 caseSelect.innerHTML = `<option value="">— Select Case Type —</option>` +
                     caseOpts.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
-                // Auto-match case type from Charge CCC
-                const charge = String(fields.chargeCcc.value || '').trim().toUpperCase();
+                // Auto-match case type from Charge CCC:
+                // If there are multiple options matching the CCC (e.g. "C665 IPT Cisco" and "C665 Non-Cisco"),
+                // default to the FIRST match, letting the user select another option if desired.
+                const charge = String(fields.chargeCcc.value || '').trim();
                 let matchedCcc = "";
                 if (charge) {
-                    const matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === charge);
-                    matchedCcc = matchedRow ? getRowCcc(matchedRow) : (charge === "C716" ? "C716" : "Others");
+                    matchedCcc = matchCaseTypeForChargeCcc(charge, caseOpts);
                 }
                 if (matchedCcc) caseSelect.value = matchedCcc;
             }
@@ -3332,7 +3394,13 @@
             if (supplierTextarea) {
                 if (caseType) {
                     const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
-                    const matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === caseType.toUpperCase());
+                    let matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === caseType.toUpperCase());
+                    if (!matchedRow) {
+                        const matchedOpt = matchCaseTypeForChargeCcc(caseType, rows.map(r => getRowCcc(r)).filter(Boolean));
+                        if (matchedOpt) {
+                            matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === matchedOpt.toUpperCase());
+                        }
+                    }
                     if (matchedRow) {
                         const rawRemark = getRowRemark(matchedRow);
                         supplierTextarea.value = interpolateRemark(rawRemark, fields, contact, adminName);

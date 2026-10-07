@@ -210,6 +210,9 @@ EXPORTS.findSalesContact = findSalesContact;
 EXPORTS.findBtbAdminName = findBtbAdminName;
 EXPORTS.openRemarkModal = openRemarkModal;
 EXPORTS.applyRemarksToRecord = applyRemarksToRecord;
+EXPORTS.handleRemarkCaseTypeChange = handleRemarkCaseTypeChange;
+EXPORTS.matchCaseTypeForChargeCcc = matchCaseTypeForChargeCcc;
+EXPORTS.extractCccTokens = extractCccTokens;
 `;
 
 try {
@@ -478,6 +481,122 @@ assert(missMatch === null, "pairCodesFromLookup returns null for non-existent IP
 
   const interpResult = interpolateRemark("Enduser: {Enduser}, SI: {SI}", fields, contact, "Lee, Mandy MY");
   assert(interpResult === "Enduser: UNION HOSPITAL test, SI: Cisco Systems Ltd", "interpolateRemark replaces placeholders correctly");
+
+  // ── 10. To Supplier Remark Case Type Auto-Match Tests ───────────────────────
+  const matchCaseTypeForChargeCcc = sandbox.EXPORTS.matchCaseTypeForChargeCcc;
+  const extractCccTokens = sandbox.EXPORTS.extractCccTokens;
+
+  assert(typeof matchCaseTypeForChargeCcc === "function", "matchCaseTypeForChargeCcc is defined");
+  assert(typeof extractCccTokens === "function", "extractCccTokens is defined");
+
+  const dropdownOpts = [
+    "C600",
+    "CD37 & CB13",
+    "C556 Cisco",
+    "C665 IPT Cisco",
+    "C665 Non-Cisco",
+    "C716",
+    "Others",
+    "CD58",
+    "CD63",
+    "C674 & C88E (License)",
+    "C674 & C88E (Mtce Service)",
+    "CD57",
+    "CH09 & C88E (License)",
+    "CH09 & C88E (Mtce Service)"
+  ];
+
+  // 1. C665 has multiple matching options ("C665 IPT Cisco" and "C665 Non-Cisco"):
+  //    Default to the FIRST match ("C665 IPT Cisco")
+  assert(
+    matchCaseTypeForChargeCcc("C665", dropdownOpts) === "C665 IPT Cisco",
+    "C665 defaults to first match 'C665 IPT Cisco' when multiple matches exist"
+  );
+
+  // 2. Exact match
+  assert(
+    matchCaseTypeForChargeCcc("C600", dropdownOpts) === "C600",
+    "C600 exact match works"
+  );
+  assert(
+    matchCaseTypeForChargeCcc("C716", dropdownOpts) === "C716",
+    "C716 exact match works"
+  );
+
+  // 3. Single match with extra label: C556 -> C556 Cisco
+  assert(
+    matchCaseTypeForChargeCcc("C556", dropdownOpts) === "C556 Cisco",
+    "C556 matches 'C556 Cisco'"
+  );
+
+  // 4. Paired CCC in option: CD37 or CB13 -> CD37 & CB13
+  assert(
+    matchCaseTypeForChargeCcc("CD37", dropdownOpts) === "CD37 & CB13",
+    "CD37 matches 'CD37 & CB13'"
+  );
+  assert(
+    matchCaseTypeForChargeCcc("CB13", dropdownOpts) === "CD37 & CB13",
+    "CB13 matches 'CD37 & CB13'"
+  );
+
+  // 5. Shared CCC across multiple pairs: C88E defaults to first matching option in dropdown order
+  assert(
+    matchCaseTypeForChargeCcc("C88E", dropdownOpts) === "C674 & C88E (License)",
+    "C88E defaults to first matching option in dropdown list ('C674 & C88E (License)')"
+  );
+
+  // 6. Unknown CCC falls back to 'Others'
+  assert(
+    matchCaseTypeForChargeCcc("C999", dropdownOpts) === "Others",
+    "Unknown CCC falls back to 'Others'"
+  );
+
+  // 7. Blank Charge CCC returns empty string
+  assert(
+    matchCaseTypeForChargeCcc("", dropdownOpts) === "",
+    "Blank Charge CCC returns empty string"
+  );
+  assert(
+    matchCaseTypeForChargeCcc(null, dropdownOpts) === "",
+    "Null Charge CCC returns empty string"
+  );
+
+  // ── 11. Modal Integration: openRemarkModal defaults to First match and allows user selection ──
+  sandbox.EXPORTS.state.currentRecord = {
+    Id: "REC-C665-TEST",
+    Title: "ATQ-202608-00085-V02-1",
+    ChargeCCC: "C665",
+    HandledBy: "Yau, Ricky CH",
+    IssueBy: "Chan, Candy WS",
+    CustomerName: "Test Customer",
+    Vendor: "Test Vendor",
+  };
+  getMockElement("edit-pair-charge-ccc").value = "C665";
+  getMockElement("edit-charge-ccc").value = "C665";
+  getMockElement("edit-customer").value = "Test Customer";
+  getMockElement("edit-vendor").value = "Test Vendor";
+  getMockElement("edit-handledby").value = "Yau, Ricky CH";
+  getMockElement("edit-issue-by").value = "Chan, Candy WS";
+
+  await sandbox.EXPORTS.openRemarkModal();
+
+  const caseSelect = getMockElement("remark-case-type");
+  assert(
+    caseSelect.value === "C665 IPT Cisco",
+    "openRemarkModal auto-selects first matching option 'C665 IPT Cisco' for Charge CCC 'C665'"
+  );
+  assert(
+    caseSelect.innerHTML.includes('value="C665 Non-Cisco"'),
+    "Case Type dropdown contains 'C665 Non-Cisco' for user to select"
+  );
+
+  // User manually selects 'C665 Non-Cisco'
+  caseSelect.value = "C665 Non-Cisco";
+  sandbox.EXPORTS.handleRemarkCaseTypeChange("C665 Non-Cisco");
+  assert(
+    caseSelect.value === "C665 Non-Cisco",
+    "User can select 'C665 Non-Cisco' by themselves"
+  );
 
   console.log("\nALL CHECKS PASSED: Master page_21-Sep-2026.html Product Type Pair function verified successfully.");
 })();

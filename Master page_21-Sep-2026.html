@@ -501,12 +501,27 @@
             <!-- Modal Header -->
             <div class="px-6 py-4 bg-slate-50 border-b border-[var(--line)] flex items-center justify-between shrink-0">
                 <div>
-                    <h2 class="text-[20px] font-bold text-[var(--ink)] flex items-center gap-2" style="font-family:'Funnel Sans', system-ui, sans-serif;">
-                        <span>📋 Record Details & Workflow Engine</span>
+                    <h2 class="text-[20px] font-bold text-[var(--ink)] flex items-center gap-2.5" style="font-family:'Funnel Sans', system-ui, sans-serif;">
+                        <span class="w-7 h-7 rounded-lg bg-amber-100/70 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                <path d="M12 11h4"/>
+                                <path d="M12 16h4"/>
+                                <path d="M8 11h.01"/>
+                                <path d="M8 16h.01"/>
+                            </svg>
+                        </span>
+                        <span>Record Details & Workflow Engine</span>
                     </h2>
                     <p class="text-[12px] text-[var(--muted)] mt-0.5">Enterprise Master Record Management System</p>
                 </div>
-                <button type="button" onclick="closeModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btn-modal-remark" onclick="openRemarkModal()" class="ui-transition pressable px-3 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] flex items-center gap-1.5" title="View or edit Remark">
+                        <span>💬</span> Remark
+                    </button>
+                    <button type="button" onclick="closeModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+                </div>
             </div>
             
             <div class="px-6 pb-6 overflow-y-auto flex flex-col gap-6 bg-slate-50/50" id="modalFormContainer">
@@ -514,7 +529,12 @@
                 <!-- Redesigned Workflow Status Tracker -->
                 <div class="bg-white mt-6 p-5 rounded-xl border border-[var(--line)] shadow-sm">
                     <div class="text-[12px] font-bold text-[var(--muted)] uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <span>⚡ Sequential Workflow Progress</span>
+                        <span class="w-5 h-5 rounded bg-amber-100/80 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                        </span>
+                        <span>Sequential Workflow Progress</span>
                     </div>
                     <div id="statusTracker"></div>
                 </div>
@@ -525,11 +545,51 @@
                 <!-- Sticky Navigation Bar with Urgent Case Toggle -->
                 <div data-z-offset="30" class="sticky top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-xl border border-[var(--line)] shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
                     <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
-                        <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">📋 Request Info.</button>
-                        <button type="button" onclick="switchModalTab('tab-quotation')" id="btn-tab-quotation" class="modal-tab-btn px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">📄 Quotation Info.</button>
-                        <button type="button" onclick="switchModalTab('tab-contract')" id="btn-tab-contract" class="modal-tab-btn px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)]  whitespace-nowrap">📑 Contract Info.</button>
-                        <button type="button" onclick="switchModalTab('tab-pr')" id="btn-tab-pr" class="modal-tab-btn px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)]  whitespace-nowrap">💳 PR Info.</button>
-                        <button type="button" onclick="switchModalTab('tab-po')" id="btn-tab-po" class="modal-tab-btn px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)]  whitespace-nowrap">📦 PO Info.</button>
+                        <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                <path d="M12 11h4"/>
+                                <path d="M12 16h4"/>
+                                <path d="M8 11h.01"/>
+                                <path d="M8 16h.01"/>
+                            </svg>
+                            <span>Request Info.</span>
+                        </button>
+                        <button type="button" onclick="switchModalTab('tab-quotation')" id="btn-tab-quotation" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                <path d="M10 9H8"/>
+                                <path d="M16 13H8"/>
+                                <path d="M16 17H8"/>
+                            </svg>
+                            <span>Quotation Info.</span>
+                        </button>
+                        <button type="button" onclick="switchModalTab('tab-contract')" id="btn-tab-contract" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M20 7h-3a2 2 0 0 1-2-2V2"/>
+                                <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/>
+                                <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h11"/>
+                            </svg>
+                            <span>Contract Info.</span>
+                        </button>
+                        <button type="button" onclick="switchModalTab('tab-pr')" id="btn-tab-pr" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                <line x1="2" x2="22" y1="10" y2="10"/>
+                            </svg>
+                            <span>PR Info.</span>
+                        </button>
+                        <button type="button" onclick="switchModalTab('tab-po')" id="btn-tab-po" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
+                                <path d="M12 22V12"/>
+                                <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>
+                                <path d="m7.5 4.27 9 5.15"/>
+                            </svg>
+                            <span>PO Info.</span>
+                        </button>
                     </div>
 
                     <!-- Urgent Case Toggle -->
@@ -550,7 +610,16 @@
                     <div id="tab-request" class="modal-tab-pane">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <span class="text-xl">📋</span>
+                                <span class="w-7 h-7 rounded-lg bg-amber-100/70 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                        <path d="M12 11h4"/>
+                                        <path d="M12 16h4"/>
+                                        <path d="M8 11h.01"/>
+                                        <path d="M8 16h.01"/>
+                                    </svg>
+                                </span>
                                 <h3 class="text-[16px] font-bold text-[var(--ink)]">Request Information</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -595,14 +664,7 @@
                                     <input type="text" id="edit-customer" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
-                                    <div class="flex items-center justify-between">
-                                        <label class="text-[12px] font-semibold text-[var(--muted)]">Product Type</label>
-                                        <button type="button" onclick="runProductTypePair()"
-                                            title="Look this Product Type up in the coding table and fill Charge CCC / Account Code / Issue By / Works Order Code"
-                                            class="ui-transition pressable inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--orange)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--orange-dark)] bg-white hover:bg-[#FFF3E2] active:scale-95 shadow-sm">
-                                            Pair
-                                        </button>
-                                    </div>
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Product Type</label>
                                     <input type="text" id="edit-product-type" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
@@ -611,21 +673,16 @@
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">IPT Unit Mgr</label>
-                                    <input type="text" id="edit-ipt-unit-mgr" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-ipt-unit-mgr" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
 
-                                <!-- Product Type Coding & Pair Section (At Red Rectangle in Workflow) -->
+                                <!-- Works Order Code Pair Section (At Red Rectangle in Workflow) -->
                                 <div class="col-span-1 md:col-span-2 rounded-xl border border-[var(--line)] bg-[#FBF6EF]/70 p-4 flex flex-col gap-3 shadow-sm">
                                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)]/60 pb-2.5">
                                         <div class="flex items-center gap-2">
                                             <span class="text-[13px] font-bold text-[var(--ink)] flex items-center gap-1.5">
-                                                <span>🔗</span> Product Type Coding
+                                                <span>🔗</span> Works Order Code Pair
                                             </span>
-                                            <button type="button" id="btn-pair-codes" onclick="runProductTypePair()"
-                                                title="Look this Product Type up in the coding table and fill Charge CCC / Account Code / Issue By / Works Order Code"
-                                                class="ui-transition pressable inline-flex items-center gap-1 rounded-full border-[1.5px] border-[var(--orange)] px-3 py-1 text-[12px] font-semibold text-[var(--orange-dark)] bg-white hover:bg-[#FFF3E2] active:scale-95 shadow-sm">
-                                                Pair
-                                            </button>
                                         </div>
                                         <div id="pair-status-msg" class="text-[12px] font-medium hidden"></div>
                                     </div>
@@ -634,13 +691,18 @@
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div class="flex flex-col gap-1">
                                             <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
-                                            <input type="text" id="edit-pair-charge-ccc" oninput="syncPairChargeCcc(this.value)" placeholder="—"
-                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                            <input type="text" id="edit-pair-charge-ccc" disabled readonly placeholder="—"
+                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                         </div>
                                         <div class="flex flex-col gap-1">
-                                            <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
-                                            <input type="text" id="edit-pair-account-code" oninput="syncPairAccountCode(this.value)" placeholder="—"
-                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                            <label class="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-between">
+                                                <span>Account Code</span>
+                                                <span id="ac-options-hint" class="text-[11px] text-[var(--orange-dark)] font-normal hidden"></span>
+                                            </label>
+                                            <div id="ac-code-container">
+                                                <input type="text" id="edit-pair-account-code" disabled readonly placeholder="—"
+                                                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
+                                            </div>
                                         </div>
                                         <div class="flex flex-col gap-1">
                                             <label class="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-between">
@@ -648,8 +710,10 @@
                                                 <span id="wo-options-hint" class="text-[11px] text-[var(--orange-dark)] font-normal hidden"></span>
                                             </label>
                                             <div id="wo-code-container">
-                                                <input type="text" id="edit-pair-works-order-code" oninput="syncPairWorksOrderCode(this.value)" placeholder="—"
-                                                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                                <select id="edit-pair-works-order-code" onchange="handlePairWorksOrderSelect(this.value)"
+                                                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-[#FFF9F0] rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
+                                                    <option value="">-- Select Works Order Code --</option>
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -675,7 +739,15 @@
                     <div id="tab-quotation" class="modal-tab-pane hidden">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <span class="text-xl">📄</span>
+                                <span class="w-7 h-7 rounded-lg bg-blue-100/70 text-blue-600 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                        <path d="M10 9H8"/>
+                                        <path d="M16 13H8"/>
+                                        <path d="M16 17H8"/>
+                                    </svg>
+                                </span>
                                 <h3 class="text-[16px] font-bold text-[var(--ink)]">Quotation Information</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -712,7 +784,13 @@
                     <div id="tab-contract" class="modal-tab-pane hidden">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <span class="text-xl">📑</span>
+                                <span class="w-7 h-7 rounded-lg bg-purple-100/70 text-purple-600 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 7h-3a2 2 0 0 1-2-2V2"/>
+                                        <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/>
+                                        <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h11"/>
+                                    </svg>
+                                </span>
                                 <h3 class="text-[16px] font-bold text-[var(--ink)]">Contract Information</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -760,7 +838,12 @@
                     <div id="tab-pr" class="modal-tab-pane hidden">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <span class="text-xl">💳</span>
+                                <span class="w-7 h-7 rounded-lg bg-emerald-100/70 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                        <line x1="2" x2="22" y1="10" y2="10"/>
+                                    </svg>
+                                </span>
                                 <h3 class="text-[16px] font-bold text-[var(--ink)]">PR Information</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1010,7 +1093,14 @@
                     <div id="tab-po" class="modal-tab-pane hidden">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-                                <span class="text-xl">📦</span>
+                                <span class="w-7 h-7 rounded-lg bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
+                                        <path d="M12 22V12"/>
+                                        <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>
+                                        <path d="m7.5 4.27 9 5.15"/>
+                                    </svg>
+                                </span>
                                 <h3 class="text-[16px] font-bold text-[var(--ink)]">PO Information</h3>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1268,6 +1358,102 @@
                 <button type="button" onclick="confirmUMVerify()" class="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]">
                     Yes, Verify
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remark Modal (LIS & Remark Engine: To Supplier & To Buyer Remarks) -->
+    <div id="remarkModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-[#1D1D1F]/60 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeRemarkModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden border border-[var(--line)] flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">📋</span>
+                    <div>
+                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">LIS & Remark Generator</h3>
+                        <p class="text-[12px] text-[var(--muted)]" id="remark-modal-subtitle">Generate To Supplier Remark and BTB Remark (To Buyer)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+            </div>
+
+            <!-- Body: The exact cards from PR Assistant App LIS & Remark page -->
+            <div class="p-6 overflow-y-auto flex flex-col gap-5 bg-slate-50/50">
+                <!-- Top Row: Sales Name & Admin Name pickers -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Sales Name Card -->
+                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2">
+                        <label for="remark-sales-contact" class="text-[12px] font-bold text-[var(--muted)]">Sales Name :</label>
+                        <select id="remark-sales-contact" onchange="handleRemarkSalesContactChange(this.value)"
+                            class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
+                            <option value="">— Select sales contact —</option>
+                        </select>
+                    </div>
+                    <!-- Admin Name Card -->
+                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2">
+                        <label for="remark-admin-name" class="text-[12px] font-bold text-[var(--muted)]">Admin Name :</label>
+                        <select id="remark-admin-name" onchange="handleRemarkAdminNameChange(this.value)"
+                            class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: To Supplier Remark & BTB Remark (To Buyer) cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    <!-- To Supplier Remark Card -->
+                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[16px] font-bold text-[var(--ink)]">To Supplier Remark</span>
+                            <button type="button" onclick="copyRemarkText('modal-supplier-remark')" title="Copy remark"
+                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1">
+                                <span>📋</span> Copy
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="remark-case-type" class="text-[12px] font-bold text-[var(--muted)]">Case Type :</label>
+                            <select id="remark-case-type" onchange="handleRemarkCaseTypeChange(this.value)"
+                                class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
+                                <option value="">— Select Case Type —</option>
+                            </select>
+                        </div>
+
+                        <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
+                            <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}</span>
+                        </div>
+
+                        <textarea id="modal-supplier-remark" rows="11"
+                            placeholder="Pick a Case Type above, or type the remark manually."
+                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
+                    </div>
+
+                    <!-- BTB Remark (To Buyer) Card -->
+                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[16px] font-bold text-[var(--ink)]">BTB Remark (To Buyer)</span>
+                            <button type="button" onclick="copyRemarkText('modal-btb-remark')" title="Copy remark"
+                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1">
+                                <span>📋</span> Copy
+                            </button>
+                        </div>
+
+                        <textarea id="modal-btb-remark" rows="16"
+                            placeholder="Select a Sales Name above, or type the remark manually."
+                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-white border-t border-[var(--line)] flex justify-between items-center shrink-0">
+                <button type="button" onclick="scrollToRemark()" class="text-[13px] font-medium text-[var(--orange-dark)] hover:underline">
+                    Go to field in form ↓
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Close</button>
+                    <button type="button" onclick="applyRemarksToRecord()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Apply to Record Remark</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2179,11 +2365,11 @@
             return null;
         }
 
-        /* --- Product Type -> Coding Lookup & "Pair" Functionality --- */
+        /* --- IPT Unit Mgr -> Coding Lookup & "Pair" Functionality --- */
         const CCC_LOOKUP_CONFIG = {
             entity: "admin_btb_ccc_wocode_accode",
             select: [
-                "admin_producttype2",
+                "admin_iptum2",
                 "admin_ccc2",
                 "admin_accountcode2",
                 "admin_worksordercode2",
@@ -2191,17 +2377,37 @@
                 "admin_description2"
             ],
             fields: {
-                productType: "admin_producttype2",
+                iptUnitMgr: "admin_iptum2",
                 chargeCcc: "admin_ccc2",
                 accountCode: "admin_accountcode2",
                 worksOrderCode: "admin_worksordercode2",
                 issueBy: "admin_admin2",
-                description: "admin_description2"
+                description: "admin_description2",
+                productType: "admin_producttype2"
             }
         };
 
         const DEMO_CCC_LOOKUP_ROWS = [
             {
+                admin_iptum2: "Ma, Martin WS; Lai, Steven SY",
+                admin_producttype2: "Networking - Cisco products",
+                admin_ccc2: "C716",
+                admin_accountcode2: "512100",
+                admin_worksordercode2: "WO-SEC-01",
+                admin_admin2: "Lee, Mandy MY",
+                admin_description2: "Cisco Networking & Security Maintenance"
+            },
+            {
+                admin_iptum2: "Ma, Martin WS; Lai, Steven SY",
+                admin_producttype2: "Networking - Cisco products",
+                admin_ccc2: "C716",
+                admin_accountcode2: "512100",
+                admin_worksordercode2: "WO-SEC-02",
+                admin_admin2: "Lee, Mandy MY",
+                admin_description2: "Cisco Infrastructure Upgrade"
+            },
+            {
+                admin_iptum2: "Lee, Mandy MY",
                 admin_producttype2: "Security - Firewall",
                 admin_ccc2: "C716",
                 admin_accountcode2: "512100",
@@ -2210,6 +2416,7 @@
                 admin_description2: "Firewall & Security Maintenance"
             },
             {
+                admin_iptum2: "Lee, Mandy MY",
                 admin_producttype2: "Security - Firewall",
                 admin_ccc2: "C716",
                 admin_accountcode2: "512100",
@@ -2218,6 +2425,7 @@
                 admin_description2: "Security Appliance Upgrade"
             },
             {
+                admin_iptum2: "Chan, Mary",
                 admin_producttype2: "UCBV AV Equipment",
                 admin_ccc2: "CCC-01",
                 admin_accountcode2: "0012",
@@ -2226,6 +2434,7 @@
                 admin_description2: "Maintenance of UCBV"
             },
             {
+                admin_iptum2: "Chan, Mary",
                 admin_producttype2: "UCBV AV Equipment",
                 admin_ccc2: "CCC-01",
                 admin_accountcode2: "0012",
@@ -2234,6 +2443,7 @@
                 admin_description2: "Audio Visual Support"
             },
             {
+                admin_iptum2: "Lee, Peter",
                 admin_producttype2: "Logger",
                 admin_ccc2: "CCC-77",
                 admin_accountcode2: "0099",
@@ -2242,6 +2452,7 @@
                 admin_description2: "Logger Support"
             },
             {
+                admin_iptum2: "Chow, Alice SW",
                 admin_producttype2: "Networking & Security",
                 admin_ccc2: "C801",
                 admin_accountcode2: "511200",
@@ -2255,18 +2466,51 @@
             return String(value == null ? "" : value).trim().replace(/\s+/g, " ").toLowerCase();
         }
 
-        function pairCodesFromLookup(rows, productType, fields = CCC_LOOKUP_CONFIG.fields) {
-            const wanted = normCodeKey(productType);
+        function pairCodesFromLookup(rows, lookupVal, fields = CCC_LOOKUP_CONFIG.fields) {
+            const wanted = normCodeKey(lookupVal);
             if (!wanted || !fields) return null;
 
             const cell = (row, key) => {
                 const column = fields[key];
-                if (!column) return "";
-                const v = row && row[column];
-                return v == null ? "" : String(v).trim();
+                if (!column || !row) return "";
+                if (row[column] != null && row[column] !== "") return String(row[column]).trim();
+                const colLower = column.toLowerCase();
+                if (row[colLower] != null && row[colLower] !== "") return String(row[colLower]).trim();
+                const matchingKey = Object.keys(row).find(k => k.toLowerCase() === colLower);
+                if (matchingKey && row[matchingKey] != null && row[matchingKey] !== "") {
+                    return String(row[matchingKey]).trim();
+                }
+                return "";
             };
 
-            const matched = (rows || []).filter(r => normCodeKey(cell(r, "productType")) === wanted);
+            const matchFieldKey = fields.iptUnitMgr ? "iptUnitMgr" : (fields.productType ? "productType" : Object.keys(fields)[0]);
+
+            // 1. Exact match first
+            let matched = (rows || []).filter(r => normCodeKey(cell(r, matchFieldKey)) === wanted);
+
+            // 2. If no exact match, try matching split parts (handles e.g. "Ma, Martin WS; Lai, Steven SY")
+            if (!matched.length) {
+                const splitParts = str => str.split(/[;\n]+/).map(s => normCodeKey(s)).filter(Boolean);
+                const sParts = splitParts(wanted);
+
+                matched = (rows || []).filter(r => {
+                    const rNorm = normCodeKey(cell(r, matchFieldKey));
+                    if (!rNorm) return false;
+                    const rParts = splitParts(rNorm);
+                    return sParts.some(sp => rParts.includes(sp));
+                });
+
+                // 3. Fallback to substring inclusion if still no match
+                if (!matched.length) {
+                    matched = (rows || []).filter(r => {
+                        const rNorm = normCodeKey(cell(r, matchFieldKey));
+                        if (!rNorm) return false;
+                        const rParts = splitParts(rNorm);
+                        return sParts.some(sp => rParts.some(rp => sp.includes(rp) || rp.includes(sp)));
+                    });
+                }
+            }
+
             if (!matched.length) return null;
 
             const distinct = key => {
@@ -2300,10 +2544,11 @@
             return {
                 chargeCcc: cccs[0] || "",
                 accountCode: accounts[0] || "",
+                accountCodes: accounts,
                 issueBy: admins[0] || "",
                 worksOrderCodes: woCodes,
                 worksOrderOptions: woOptions,
-                conflict: cccs.length > 1 || accounts.length > 1 || admins.length > 1,
+                conflict: cccs.length > 1 || admins.length > 1,
                 matchedCount: matched.length
             };
         }
@@ -2317,8 +2562,15 @@
                     const response = await api.retrieveMultipleRecords(source.entity, query);
                     return (response && response.entities) || [];
                 } catch (err) {
-                    console.warn("[MasterRecords] Failed to read " + source.entity + " from Dataverse:", err);
-                    throw err;
+                    console.warn("[MasterRecords] Failed to read " + source.entity + " from Dataverse with select:", err);
+                    try {
+                        const fallbackSelect = ["admin_iptum2", "admin_ccc2", "admin_accountcode2", "admin_worksordercode2"];
+                        const response = await api.retrieveMultipleRecords(source.entity, "?$select=" + fallbackSelect.join(","));
+                        return (response && response.entities) || [];
+                    } catch (err2) {
+                        console.warn("[MasterRecords] Failed fallback read of " + source.entity + ":", err2);
+                        throw err;
+                    }
                 }
             }
             console.warn("[MasterRecords] WebApi not present, using local fallback lookup rows.");
@@ -2351,56 +2603,171 @@
 
         function syncTab3AccountCode(val) {
             const el = document.getElementById('edit-pair-account-code');
-            if (el) el.value = val;
+            if (el) {
+                if (el.tagName === 'SELECT' && val && ![...el.options].some(o => o.value === val)) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    el.appendChild(opt);
+                }
+                el.value = val;
+            }
             if (state.currentRecord) state.currentRecord.AccountCode = val;
         }
 
-        function syncTab3WorksOrderCode(val) {
-            const el = document.getElementById('edit-pair-works-order-code');
-            if (el) el.value = val;
-            if (state.currentRecord) state.currentRecord.WorksOrderCode = val;
-        }
-
-        function renderWorksOrderInput(val = '') {
-            const container = document.getElementById('wo-code-container');
-            const hint = document.getElementById('wo-options-hint');
+        function renderAccountCodeInput(val = '') {
+            const container = document.getElementById('ac-code-container');
+            const hint = document.getElementById('ac-options-hint');
             if (hint) hint.classList.add('hidden');
             if (!container) return;
             container.innerHTML = `
-                <input type="text" id="edit-pair-works-order-code" oninput="syncPairWorksOrderCode(this.value)"
-                    value="${escapeHtml(val)}" placeholder="—"
-                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                <input type="text" id="edit-pair-account-code" disabled readonly placeholder="—"
+                    value="${escapeHtml(val)}"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
             `;
-            const input = document.getElementById('edit-pair-works-order-code');
+            const input = document.getElementById('edit-pair-account-code');
             if (input) input.value = val;
         }
 
-        function renderWorksOrderDropdown(options, selectedVal = '') {
-            const container = document.getElementById('wo-code-container');
-            const hint = document.getElementById('wo-options-hint');
+        function renderAccountCodeDropdown(options = [], selectedVal = '') {
+            const container = document.getElementById('ac-code-container');
+            const hint = document.getElementById('ac-options-hint');
             if (hint) {
-                hint.innerText = `(${options.length} options)`;
-                hint.classList.remove('hidden');
+                if (options.length > 1) {
+                    hint.innerText = `(${options.length} options)`;
+                    hint.classList.remove('hidden');
+                } else {
+                    hint.classList.add('hidden');
+                }
             }
             if (!container) return;
             let html = `
-                <select id="edit-pair-works-order-code" onchange="handlePairWorksOrderSelect(this.value)"
+                <select id="edit-pair-account-code" onchange="handlePairAccountCodeSelect(this.value)"
                     class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-[#FFF9F0] rounded-lg border-[1.5px] border-[var(--orange)] focus:ring-2 focus:ring-[#FFE2B0] cursor-pointer">
-                    <option value="">-- Select Works Order Code --</option>
+                    <option value="">-- Select Account Code --</option>
             `;
-            options.forEach(opt => {
-                const code = opt.code || opt.value || opt;
-                const desc = opt.description ? ` (${opt.description})` : '';
+            const optList = Array.isArray(options) ? options : [];
+            const hasSelectedInOptions = optList.some(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                return String(code) === String(selectedVal);
+            });
+            if (selectedVal && !hasSelectedInOptions) {
+                html += `<option value="${escapeHtml(selectedVal)}" selected>${escapeHtml(selectedVal)}</option>`;
+            }
+            optList.forEach(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                const desc = typeof opt === 'object' && opt !== null && opt.description ? ` (${opt.description})` : '';
                 const isSel = String(code) === String(selectedVal) ? 'selected' : '';
                 html += `<option value="${escapeHtml(code)}" ${isSel}>${escapeHtml(code)}${escapeHtml(desc)}</option>`;
             });
             html += `</select>`;
             container.innerHTML = html;
-            const select = document.getElementById('edit-pair-works-order-code');
-            if (select) select.value = selectedVal;
+            const select = document.getElementById('edit-pair-account-code');
+            if (select) select.value = selectedVal || '';
         }
 
-        function handlePairWorksOrderSelect(val) {
+        function handlePairAccountCodeSelect(val) {
+            syncPairAccountCode(val);
+        }
+
+        function syncTab3WorksOrderCode(val) {
+            const el = document.getElementById('edit-pair-works-order-code');
+            if (el) {
+                if (el.tagName === 'SELECT' && val && ![...el.options].some(o => o.value === val)) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    el.appendChild(opt);
+                }
+                el.value = val;
+            }
+            if (state.currentRecord) state.currentRecord.WorksOrderCode = val;
+        }
+
+        function formatWorksOrderOptions(selectEl, mode) {
+            if (!selectEl || !selectEl.options) return;
+            const isSelectedMode = mode === 'selected';
+            for (let i = 0; i < selectEl.options.length; i++) {
+                const opt = selectEl.options[i];
+                if (!opt.value) continue;
+                const code = opt.getAttribute('data-code') || opt.value;
+                const desc = opt.getAttribute('data-desc') || '';
+                if (isSelectedMode) {
+                    if (opt.selected) {
+                        opt.text = code;
+                    } else {
+                        opt.text = desc ? `${code} (${desc})` : code;
+                    }
+                } else {
+                    opt.text = desc ? `${code} (${desc})` : code;
+                }
+            }
+        }
+
+        function renderWorksOrderDropdown(options = [], selectedVal = '') {
+            const container = document.getElementById('wo-code-container');
+            const hint = document.getElementById('wo-options-hint');
+            if (hint) {
+                if (options.length > 1) {
+                    hint.innerText = `(${options.length} options)`;
+                    hint.classList.remove('hidden');
+                } else {
+                    hint.classList.add('hidden');
+                }
+            }
+            if (!container) return;
+            let html = `
+                <select id="edit-pair-works-order-code"
+                    onchange="handlePairWorksOrderSelect(this)"
+                    onfocus="formatWorksOrderOptions(this, 'full')"
+                    onmousedown="formatWorksOrderOptions(this, 'full')"
+                    onblur="formatWorksOrderOptions(this, 'selected')"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-[#FFF9F0] rounded-lg border-[1.5px] border-[var(--orange)] focus:ring-2 focus:ring-[#FFE2B0] cursor-pointer">
+                    <option value="">-- Select Works Order Code --</option>
+            `;
+            const optList = Array.isArray(options) ? options : [];
+            const hasSelectedInOptions = optList.some(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                return String(code) === String(selectedVal);
+            });
+            if (selectedVal && !hasSelectedInOptions) {
+                html += `<option value="${escapeHtml(selectedVal)}" data-code="${escapeHtml(selectedVal)}" data-desc="" selected>${escapeHtml(selectedVal)}</option>`;
+            }
+            optList.forEach(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                const desc = typeof opt === 'object' && opt !== null && opt.description ? opt.description : '';
+                const isSel = String(code) === String(selectedVal);
+                const fullText = desc ? `${code} (${desc})` : code;
+                const displayText = (isSel && code) ? code : fullText;
+                html += `<option value="${escapeHtml(code)}" data-code="${escapeHtml(code)}" data-desc="${escapeHtml(desc)}" ${isSel ? 'selected' : ''}>${escapeHtml(displayText)}</option>`;
+            });
+            html += `</select>`;
+            container.innerHTML = html;
+            const select = document.getElementById('edit-pair-works-order-code');
+            if (select) {
+                select.value = selectedVal || '';
+                formatWorksOrderOptions(select, 'selected');
+            }
+        }
+
+        function renderWorksOrderInput(val = '') {
+            renderWorksOrderDropdown(val ? [{ code: val, description: '' }] : [], val);
+        }
+
+        function handlePairWorksOrderSelect(target) {
+            let select = document.getElementById('edit-pair-works-order-code');
+            let val = '';
+            if (typeof target === 'string') {
+                val = target;
+                if (select) select.value = val;
+            } else if (target && target.value !== undefined) {
+                val = target.value;
+            } else if (select) {
+                val = select.value;
+            }
+            if (select) {
+                formatWorksOrderOptions(select, 'selected');
+            }
             syncPairWorksOrderCode(val);
         }
 
@@ -2438,19 +2805,23 @@
             const pairCcc = document.getElementById('edit-pair-charge-ccc');
             if (pairCcc) pairCcc.value = cccVal;
 
-            const pairAcc = document.getElementById('edit-pair-account-code');
-            if (pairAcc) pairAcc.value = accVal;
-
-            renderWorksOrderInput(woVal);
+            renderAccountCodeInput(accVal);
+            renderWorksOrderDropdown(woVal ? [{ code: woVal, description: '' }] : [], woVal);
         }
 
-        async function runProductTypePair() {
-            const ptInput = document.getElementById('edit-product-type');
-            const productType = ptInput ? ptInput.value.trim() : '';
+        async function runProductTypePair(preferredWoVal = '') {
+            const iptInput = document.getElementById('edit-ipt-unit-mgr');
+            let iptUnitMgr = iptInput ? iptInput.value.trim() : '';
+            if (!iptUnitMgr && state.currentRecord && state.currentRecord.IPTUnitMgr) {
+                iptUnitMgr = String(state.currentRecord.IPTUnitMgr).trim();
+                if (iptInput) iptInput.value = iptUnitMgr;
+            }
             const pairBtn = document.getElementById('btn-pair-codes');
 
-            if (!productType) {
-                showPairMessage('No Product Type to pair on — fill the Product Type field first.', 'error');
+            if (!iptUnitMgr) {
+                if (pairBtn) {
+                    showPairMessage('No IPT Unit Mgr to pair on — fill the IPT Unit Mgr field first.', 'error');
+                }
                 return;
             }
 
@@ -2458,7 +2829,6 @@
                 pairBtn.disabled = true;
                 pairBtn.innerText = 'Pairing…';
             }
-            showPairMessage('Reading the coding table…', 'info');
 
             let rows;
             try {
@@ -2481,9 +2851,9 @@
                 return;
             }
 
-            const found = pairCodesFromLookup(rows, productType, CCC_LOOKUP_CONFIG.fields);
+            const found = pairCodesFromLookup(rows, iptUnitMgr, CCC_LOOKUP_CONFIG.fields);
             if (!found) {
-                showPairMessage(`“${productType}” is not in the coding table.`, 'none');
+                showPairMessage(`“${iptUnitMgr}” is not in the coding table.`, 'none');
                 if (pairBtn) {
                     pairBtn.disabled = false;
                     pairBtn.innerText = 'Pair';
@@ -2496,40 +2866,555 @@
             if (pairCcc) pairCcc.value = found.chargeCcc;
             syncPairChargeCcc(found.chargeCcc);
 
-            // Set Account Code
-            const pairAcc = document.getElementById('edit-pair-account-code');
-            if (pairAcc) pairAcc.value = found.accountCode;
-            syncPairAccountCode(found.accountCode);
+            // Set Account Code: if multiple distinct values, render dropdown; otherwise disabled text box
+            const currentAcc = (state.currentRecord && state.currentRecord.AccountCode) || '';
+            const hasValidAcc = currentAcc && found.accountCodes && found.accountCodes.includes(currentAcc);
+            const selectedAcc = hasValidAcc ? currentAcc : '';
+            if (found.accountCodes && found.accountCodes.length > 1) {
+                renderAccountCodeDropdown(found.accountCodes, selectedAcc);
+                syncPairAccountCode(selectedAcc);
+            } else {
+                const finalAcc = selectedAcc || found.accountCode;
+                renderAccountCodeInput(finalAcc);
+                syncPairAccountCode(finalAcc);
+            }
 
-            // Set Issue By
+            // Set Issue By (if available)
             const issueByEl = document.getElementById('edit-issue-by');
             if (issueByEl && found.issueBy) {
                 issueByEl.value = found.issueBy;
                 if (state.currentRecord) state.currentRecord.IssueBy = found.issueBy;
             }
 
-            // Set Works Order Code
-            if (found.worksOrderCodes.length > 1) {
-                renderWorksOrderDropdown(found.worksOrderOptions);
-                syncPairWorksOrderCode('');
-            } else {
-                const singleWo = found.worksOrderCodes[0] || '';
-                renderWorksOrderInput(singleWo);
-                syncPairWorksOrderCode(singleWo);
-            }
+            // Set Works Order Code (always dropdown, no manual text input)
+            // Pre-select existing works order code from record if present and valid, else singleWo or ''
+            const existingWo = preferredWoVal || (state.currentRecord ? state.currentRecord.WorksOrderCode : '') || '';
+            const hasValidWo = existingWo && found.worksOrderCodes && found.worksOrderCodes.includes(existingWo);
+            const selectedWo = hasValidWo ? existingWo : (found.worksOrderCodes.length === 1 ? found.worksOrderCodes[0] : '');
+            renderWorksOrderDropdown(found.worksOrderOptions, selectedWo);
+            syncPairWorksOrderCode(selectedWo);
 
             // Status message
+            const pickList = [];
+            if (found.accountCodes && found.accountCodes.length > 1 && !selectedAcc) pickList.push('an Account Code');
+            if (found.worksOrderCodes && found.worksOrderCodes.length > 1 && !selectedWo) pickList.push('a Works Order Code');
+
+            const filledList = ['Charge CCC'];
+            if (!pickList.includes('an Account Code') && (selectedAcc || found.accountCode)) filledList.push('Account Code');
+            if (found.issueBy) filledList.push('Issue By');
+            if (!pickList.includes('a Works Order Code') && selectedWo) filledList.push('Works Order Code');
+
             if (found.conflict) {
-                showPairMessage(`Warning: ${found.matchedCount} rows for this Product Type disagree on CCC / Account Code / Issue By. First row used — check them.`, 'warning');
-            } else if (found.worksOrderCodes.length > 1) {
-                showPairMessage('Charge CCC, Account Code and Issue By filled. Pick a Works Order Code below.', 'success');
+                showPairMessage(`Warning: ${found.matchedCount} rows for this IPT Unit Mgr disagree on CCC. First row used — check them.`, 'warning');
+            } else if (pickList.length > 0) {
+                showPairMessage(`${filledList.join(', ')} filled. Pick ${pickList.join(' and ')} below.`, 'success');
             } else {
-                showPairMessage('Charge CCC, Account Code, Issue By and Works Order Code filled.', 'success');
+                showPairMessage(`${filledList.join(', ')} filled.`, 'success');
             }
 
             if (pairBtn) {
                 pairBtn.disabled = false;
                 pairBtn.innerText = 'Pair';
+            }
+        }
+
+        /* --- LIS & Remark Engine (To Supplier & BTB Remark) --- */
+        const OUR_COMPANY = {
+            label: "HKT",
+            unit: "HKT · IPA PILLAR 1",
+            helpdeskPhone: "852-28883799",
+        };
+
+        const BTB_SALES_CONTACTS = [
+            { key: "Chan, Abby NY", title: "Ms.", name: "Abby Chan", phone: "2883 0385" },
+            { key: "Cheung, Sindy SY", title: "Ms.", name: "Sindy Cheung", phone: "2883 6285" },
+            { key: "Wong, Cammy SL", title: "Ms.", name: "Cammy Wong", phone: "2888 6801" },
+            { key: "Hsui, Janet WJ", title: "Ms.", name: "Janet Hsui", phone: "28832315" },
+            { key: "Chan, Connie WC", title: "Ms.", name: "Connie Chan", phone: "28883756" },
+            { key: "Wong, Ada SK", title: "Ms.", name: "Ada Wong", phone: "2883 8093" },
+            { key: "Tsui, Ivan PH", title: "Mr.", name: "Ivan Tsui", phone: "2888 3118" },
+            { key: "Lam, Jeffrey CK", title: "Ms.", name: "Jeffrey Lam", phone: "28832816" },
+            { key: "Ng, Dennis WL", title: "Mr.", name: "Dennis Ng", phone: "28832679" },
+            { key: "Tan, Simon HH", title: "Mr.", name: "Simon Tan", phone: "28881663" },
+            { key: "Yau, Iris PM", title: "", name: "Iris Yau", phone: "28836319" },
+            { key: "Yau, Ricky CH", title: "Mr.", name: "Ricky Yau", phone: "28882171" },
+            { key: "Wong, Kiwi LF", title: "Ms.", name: "Kiwi Wong", phone: "28883350" },
+            { key: "Leung, Sammi SM", title: "Ms.", name: "Sammi Leung", phone: "28883130" },
+            { key: "Chan, Ina YK", title: "Ms.", name: "Ina Chan", phone: "28883208" },
+            { key: "Lam, Jessica WS", title: "Ms.", name: "Jessica Lam", phone: "2888 3191" },
+            { key: "Po, Nicky MY", title: "", name: "Nicky Po", phone: "2883 2119" },
+            { key: "Mak, Connie OM", title: "Ms.", name: "Connie Mak", phone: "2883 4968" },
+            { key: "Ng, Ivy WY", title: "Ms", name: "Ivy Ng", phone: "2883 2895" },
+            { key: "Lau, CoCo WY", title: "Ms", name: "Coco Lau", phone: "2888 3360" },
+            { key: "Yim, Theo TP", title: "Mr.", name: "Theo Yim", phone: "2883 8991" },
+            { key: "Cheung, Marcus TH", title: "Mr.", name: "Marcus Cheung", phone: "2883 2031" },
+            { key: "Leung, Ida PS", title: "Ms.", name: "Ida Leung", phone: "2888 3392" },
+            { key: "Liang, Aka ZH", title: "Ms.", name: "Aka Liang", phone: "2884 4155" },
+            { key: "Chow, Winnie WY", title: "Ms.", name: "Winnie Chow", phone: "2883 2679" },
+        ];
+
+        const BTB_ADMINS = [
+            { name: "Lee, Mandy MY",      phone: "28833100" },
+            { name: "Chow, Alice SW",     phone: "28831026" },
+            { name: "Fong, Josephine PH", phone: "28832607" },
+            { name: "Chan, Candy WS",     phone: "27602282" },
+            { name: "Hung, Joyce SY",     phone: "28831307" },
+            { name: "IPTS BSCCC AO Team", phone: "2888 6469" },
+            { name: "IPTS\\PMO (BPM)",    phone: "" },
+            { name: "Lum, Coria SF2",     phone: "28833249" },
+            { name: "Pang, Joey CY",      phone: "" },
+            { name: "Yeung, May SM",      phone: "28831139" },
+        ];
+
+        const BTB_ADMIN_NAMES = BTB_ADMINS.map(a => a.name);
+
+        const TO_SUPPLIER_OTHERS_INSERT = [
+            "Please state below on PO:",
+            `a) The vendor should report fault log creation to ${OUR_COMPANY.label} helpdesk at ${OUR_COMPANY.helpdeskPhone}`,
+            `b) The vendor must update the recovery progress and the closing fault(s) to ${OUR_COMPANY.label} Helpdesk within 2 hours once completed.`,
+            "For Delivery Note/Invoice/Payment Arrangement, please refer to the attached PAYMENT INSTRUCTION GUIDELING (Particularly for this PO).",
+        ];
+
+        const DEMO_SUPPLIER_REMARKS = [
+            {
+                admin_ccc: "C716",
+                admin_reamrk: "Remarks: Pls refer att'd quotation & document for details information.\nAttached quote for your reference only.",
+            },
+            {
+                admin_ccc: "Others",
+                admin_reamrk: [
+                    "Remarks: Pls refer att'd quotation & document for details information.",
+                    "Please state below on PO:",
+                    `a) The vendor should report fault log creation to ${OUR_COMPANY.label} helpdesk at ${OUR_COMPANY.helpdeskPhone}`,
+                    `b) The vendor must update the recovery progress and the closing fault(s) to ${OUR_COMPANY.label} Helpdesk within 2 hours once completed.`,
+                    "For Delivery Note/Invoice/Payment Arrangement, please refer to the attached PAYMENT INSTRUCTION GUIDELING (Particularly for this PO).",
+                    "Attached quote for your reference only.",
+                ].join("\n"),
+            },
+        ];
+
+        function personNameKey(v) {
+            return String(v == null ? "" : v).toUpperCase().replace(/[^A-Z\s]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ");
+        }
+
+        function findSalesContact(handledByValue) {
+            const target = personNameKey(handledByValue);
+            if (!target) return null;
+            return BTB_SALES_CONTACTS.find(c => personNameKey(c.name) === target || personNameKey(c.key) === target) || null;
+        }
+
+        function findBtbAdminName(issueByValue) {
+            const target = personNameKey(issueByValue);
+            if (!target) return null;
+            return BTB_ADMIN_NAMES.find(n => personNameKey(n) === target) || null;
+        }
+
+        function adminIssuedBy(name) {
+            const admin = BTB_ADMINS.find(a => a.name === name);
+            const phone = admin && admin.phone;
+            return phone ? `${name}@${phone}` : name;
+        }
+
+        function cleanRichTextToPlainText(html) {
+            if (!html) return "";
+            let s = String(html);
+            if (!/<[a-z][\s\S]*>/i.test(s) && !/&[#a-z0-9]+;/i.test(s)) {
+                return s;
+            }
+            s = s.replace(/<(?:br|hr)\s*\/?>/gi, "\n");
+            s = s.replace(/<\/(?:p|div|li|tr|h[1-6]|blockquote)>/gi, "\n");
+            s = s.replace(/<(?:p|div|li|tr|h[1-6]|blockquote)[^>]*>/gi, "\n");
+            s = s.replace(/<[^>]+>/g, "");
+            s = s.replace(/&#(\d+);/g, (_, dec) => {
+                const code = parseInt(dec, 10);
+                return code === 160 ? " " : String.fromCharCode(code);
+            });
+            s = s.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+                const code = parseInt(hex, 16);
+                return (code === 160 || code === 0xA0) ? " " : String.fromCharCode(code);
+            });
+            const namedEntities = {
+                "&nbsp;": " ",
+                "&quot;": '"',
+                "&apos;": "'",
+                "&amp;": "&",
+                "&lt;": "<",
+                "&gt;": ">",
+            };
+            s = s.replace(/&(?:nbsp|quot|apos|amp|lt|gt);/gi, m => namedEntities[m.toLowerCase()] || m);
+            s = (s || "").replace(/\u00A0/g, " ");
+            const lines = s.split(/\r?\n/).map(l => l.trimEnd());
+            const out = [];
+            let blankCount = 0;
+            for (const line of lines) {
+                if (line.trim() === "") {
+                    blankCount++;
+                    if (blankCount <= 1 && out.length > 0) out.push("");
+                } else {
+                    blankCount = 0;
+                    out.push(line);
+                }
+            }
+            return out.join("\n").trim();
+        }
+
+        function getRowCcc(row) {
+            if (!row || typeof row !== "object") return "";
+            if (row.admin_ccc != null && String(row.admin_ccc).trim()) return String(row.admin_ccc).trim();
+            if (row.admin_CCC != null && String(row.admin_CCC).trim()) return String(row.admin_CCC).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase();
+                if (lk === "admin_ccc" || lk === "ccc") {
+                    const val = row[k] != null ? String(row[k]).trim() : "";
+                    if (val) return val;
+                }
+            }
+            return "";
+        }
+
+        function getRowRemark(row) {
+            if (!row || typeof row !== "object") return "";
+            let raw = "";
+            if (row.admin_reamrk != null) raw = String(row.admin_reamrk);
+            else if (row.admin_Reamrk != null) raw = String(row.admin_Reamrk);
+            else if (row.admin_remark != null) raw = String(row.admin_remark);
+            else if (row.admin_Remark != null) raw = String(row.admin_Remark);
+            else {
+                for (const k of Object.keys(row)) {
+                    const lk = k.toLowerCase();
+                    if (lk === "admin_reamrk" || lk === "admin_remark" || lk === "reamrk" || lk === "remark") {
+                        raw = String(row[k] != null ? row[k] : "");
+                        break;
+                    }
+                }
+            }
+            return cleanRichTextToPlainText(raw);
+        }
+
+        async function fetchSupplierRemarkRows() {
+            const webApi = getDataverseWebApi();
+            if (!webApi) return DEMO_SUPPLIER_REMARKS;
+            const entityName = "admin_btb_supplier_remark";
+            try {
+                const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_ccc,admin_reamrk");
+                if (res && res.entities && res.entities.length > 0) return res.entities;
+            } catch (_e1) {}
+            try {
+                const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_ccc,admin_remark");
+                if (res && res.entities && res.entities.length > 0) return res.entities;
+            } catch (_e2) {}
+            try {
+                const res = await webApi.retrieveMultipleRecords(entityName, "");
+                if (res && res.entities && res.entities.length > 0) return res.entities;
+            } catch (_e3) {}
+            try {
+                const res = await webApi.retrieveMultipleRecords("admin_btb_supplier_remarks", "");
+                if (res && res.entities && res.entities.length > 0) return res.entities;
+            } catch (_e4) {}
+            return DEMO_SUPPLIER_REMARKS;
+        }
+
+        function monthsBetween(startVal, endVal) {
+            const s = formatDateForInput(startVal);
+            const e = formatDateForInput(endVal);
+            if (!s || !e) return null;
+            const [sy, sm] = s.split("-").map(Number);
+            const [ey, em] = e.split("-").map(Number);
+            const diff = (ey - sy) * 12 + (em - sm) + 1;
+            return diff > 0 ? diff : null;
+        }
+
+        function buildBtbRemark(contact, adminName = BTB_ADMIN_NAMES[0], withBuyerSignoff = false) {
+            if (!contact) return "";
+            const titleName = [contact.title, contact.name].filter(Boolean).join(" ");
+            const signoff = withBuyerSignoff ? `; ${titleName} at ${contact.phone}` : "";
+            return `Special Request: Would BUYER please send PO to vendor, and copy to ${adminName}; PCCW-SB; PCCW-SB BTB; Lo, Priscilla PM; ${contact.key}(sales)${signoff}`;
+        }
+
+        function buildToSupplierRemark(option, fields, contact = null, withPeriod = true, adminName = null) {
+            const contactLine = contact
+                ? `For case details, please contact ${[contact.title, contact.name].filter(Boolean).join(" ")} at ${contact.phone}`
+                : "For case details, please contact";
+            const months = monthsBetween(fields.quotationStartDate.value, fields.quotationEndDate.value);
+            const periodMths = months != null ? `${months} Mths` : "Mths";
+            const lines = [
+                adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100",
+                contactLine,
+                `Enduser: ${fields.customerName.value}`,
+                `SI: ${fields.vendor.value}`,
+                ...(withPeriod ? [`Period:  ${fields.quotationStartDate.value} to ${fields.quotationEndDate.value} (${periodMths})`] : []),
+                `Purchase of ${fields.poPrDescription.value}`,
+                "Remarks: Pls refer att'd quotation & document for details information.",
+            ];
+            if (option === "Others") lines.push(...TO_SUPPLIER_OTHERS_INSERT);
+            lines.push("Attached quote for your reference only.");
+            return lines.join("\n");
+        }
+
+        function interpolateRemark(template, fields = {}, contact = null, adminName = null) {
+            if (!template) return "";
+            const s = String(template);
+            if (!s.includes("{") || !s.includes("}")) return s;
+
+            const fVal = key => (fields[key] && fields[key].value) || "";
+            const months = monthsBetween(fVal("quotationStartDate"), fVal("quotationEndDate"));
+            const periodMths = months != null ? `${months} Mths` : "Mths";
+            const periodStr = (fVal("quotationStartDate") || fVal("quotationEndDate"))
+                ? `${fVal("quotationStartDate")} to ${fVal("quotationEndDate")} (${periodMths})`
+                : "";
+            const contactLine = contact
+                ? `For case details, please contact ${[contact.title, contact.name].filter(Boolean).join(" ")} at ${contact.phone}`
+                : "For case details, please contact";
+            const contactName = contact ? [contact.title, contact.name].filter(Boolean).join(" ") : "";
+            const contactPhone = contact ? (contact.phone || "") : "";
+            const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
+
+            const map = {
+                "enduser": fVal("customerName"),
+                "customer name": fVal("customerName"),
+                "customername": fVal("customerName"),
+                "si": fVal("vendor"),
+                "vendor": fVal("vendor"),
+                "purchase of": fVal("poPrDescription"),
+                "pr description": fVal("poPrDescription"),
+                "poprdescription": fVal("poPrDescription"),
+                "description": fVal("poPrDescription"),
+                "pr issued by": issuedBy,
+                "issued by": issuedBy,
+                "admin name": adminName || "",
+                "admin": adminName || "",
+                "contact": contactLine,
+                "sales contact": contactLine,
+                "contact name": contactName,
+                "contact phone": contactPhone,
+                "period": periodStr,
+                "quotation start date": fVal("quotationStartDate"),
+                "quotation end date": fVal("quotationEndDate"),
+                "quotation no": fVal("quotation"),
+                "quotation": fVal("quotation"),
+                "contract no": fVal("contractNo"),
+                "agreement number": fVal("contractNo"),
+                "atq ref no": fVal("atqRefNo"),
+                "atq": fVal("atqRefNo"),
+                "hkd": fVal("hkd"),
+                "total value": fVal("hkd"),
+                "amount": fVal("hkd"),
+                "charge ccc": fVal("chargeCcc"),
+                "ccc": fVal("chargeCcc"),
+            };
+
+            return s.replace(/\{([^}]+)\}/g, (match, key) => {
+                const k = key.trim().toLowerCase();
+                return Object.prototype.hasOwnProperty.call(map, k) ? map[k] : match;
+            });
+        }
+
+        function getRemarkFields() {
+            const rec = state.currentRecord || {};
+            const val = (id, recKey) => {
+                const el = document.getElementById(id);
+                if (el && el.value !== undefined && el.value !== '') return el.value;
+                return rec[recKey] != null ? String(rec[recKey]) : '';
+            };
+
+            return {
+                customerName: { value: val('edit-customer', 'CustomerName') },
+                vendor: { value: val('edit-vendor', 'Vendor') },
+                quotationStartDate: { value: val('edit-quotation-start-date', 'QuotationStartDate') },
+                quotationEndDate: { value: val('edit-quotation-end-date', 'QuotationEndDate') },
+                poPrDescription: { value: val('edit-description', 'PRDescription') },
+                quotation: { value: val('edit-prref', 'PRReference') },
+                contractNo: { value: val('edit-contract', 'ContractNo') },
+                atqRefNo: { value: val('edit-title', 'Title') },
+                hkd: { value: val('edit-pramount', 'PRAmount') },
+                chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') },
+                handledBy: { value: val('edit-handledby', 'HandledBy') },
+                issueBy: { value: val('edit-issue-by', 'IssueBy') }
+            };
+        }
+
+        let cachedSupplierRemarkRows = null;
+
+        async function openRemarkModal() {
+            const modal = document.getElementById('remarkModal');
+            if (!modal) return;
+
+            const fields = getRemarkFields();
+            const subtitle = document.getElementById('remark-modal-subtitle');
+            if (subtitle && state.currentRecord) {
+                subtitle.innerText = `Record: ${state.currentRecord.Title || state.currentRecord.Id || 'Current Record'}`;
+            }
+
+            // 1. Populate Sales Name dropdown
+            const salesSelect = document.getElementById('remark-sales-contact');
+            if (salesSelect) {
+                salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
+                    BTB_SALES_CONTACTS.map(c => `<option value="${escapeHtml(c.key)}">${escapeHtml(c.key)}</option>`).join('');
+                const autoSales = findSalesContact(fields.handledBy.value);
+                if (autoSales) salesSelect.value = autoSales.key;
+            }
+
+            // 2. Populate Admin Name dropdown
+            const adminSelect = document.getElementById('remark-admin-name');
+            if (adminSelect) {
+                adminSelect.innerHTML = BTB_ADMINS.map(a => `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`).join('');
+                const autoAdmin = findBtbAdminName(fields.issueBy.value) || BTB_ADMIN_NAMES[0];
+                adminSelect.value = autoAdmin;
+            }
+
+            // 3. Load supplier remark rows if not cached
+            if (!cachedSupplierRemarkRows) {
+                try {
+                    cachedSupplierRemarkRows = await fetchSupplierRemarkRows();
+                } catch (_e) {
+                    cachedSupplierRemarkRows = DEMO_SUPPLIER_REMARKS;
+                }
+            }
+            const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
+
+            // 4. Populate Case Type dropdown
+            const caseSelect = document.getElementById('remark-case-type');
+            if (caseSelect) {
+                const seenCcc = new Set();
+                const caseOpts = [];
+                rows.forEach(r => {
+                    const ccc = getRowCcc(r);
+                    if (ccc && !seenCcc.has(ccc.toUpperCase())) {
+                        seenCcc.add(ccc.toUpperCase());
+                        caseOpts.push(ccc);
+                    }
+                });
+                if (!seenCcc.has("OTHERS")) caseOpts.push("Others");
+
+                caseSelect.innerHTML = `<option value="">— Select Case Type —</option>` +
+                    caseOpts.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+                // Auto-match case type from Charge CCC
+                const charge = String(fields.chargeCcc.value || '').trim().toUpperCase();
+                let matchedCcc = "";
+                if (charge) {
+                    const matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === charge);
+                    matchedCcc = matchedRow ? getRowCcc(matchedRow) : (charge === "C716" ? "C716" : "Others");
+                }
+                if (matchedCcc) caseSelect.value = matchedCcc;
+            }
+
+            // 5. Generate and set initial remarks text
+            rebuildRemarksFromModalState();
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRemarkModal() {
+            const modal = document.getElementById('remarkModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function rebuildRemarksFromModalState() {
+            const fields = getRemarkFields();
+            const salesKey = document.getElementById('remark-sales-contact')?.value || '';
+            const adminName = document.getElementById('remark-admin-name')?.value || BTB_ADMIN_NAMES[0];
+            const caseType = document.getElementById('remark-case-type')?.value || '';
+            const contact = BTB_SALES_CONTACTS.find(c => c.key === salesKey) || null;
+
+            // BTB Remark text
+            const btbTextarea = document.getElementById('modal-btb-remark');
+            if (btbTextarea) {
+                btbTextarea.value = contact ? buildBtbRemark(contact, adminName, false) : '';
+            }
+
+            // To Supplier Remark text
+            const supplierTextarea = document.getElementById('modal-supplier-remark');
+            if (supplierTextarea) {
+                if (caseType) {
+                    const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
+                    const matchedRow = rows.find(r => getRowCcc(r).toUpperCase() === caseType.toUpperCase());
+                    if (matchedRow) {
+                        const rawRemark = getRowRemark(matchedRow);
+                        supplierTextarea.value = interpolateRemark(rawRemark, fields, contact, adminName);
+                    } else {
+                        supplierTextarea.value = buildToSupplierRemark(caseType, fields, contact, true, adminName);
+                    }
+                } else {
+                    const existingFormRemark = (document.getElementById('edit-remarks')?.value) || (state.currentRecord && state.currentRecord.Remarks) || '';
+                    if (!supplierTextarea.value) {
+                        supplierTextarea.value = existingFormRemark;
+                    }
+                }
+            }
+        }
+
+        function handleRemarkSalesContactChange(key) {
+            rebuildRemarksFromModalState();
+        }
+
+        function handleRemarkAdminNameChange(name) {
+            rebuildRemarksFromModalState();
+        }
+
+        function handleRemarkCaseTypeChange(caseType) {
+            rebuildRemarksFromModalState();
+        }
+
+        function copyRemarkText(textareaId) {
+            const el = document.getElementById(textareaId);
+            const val = el ? el.value : '';
+            if (!val) {
+                showToast('Nothing to copy.', 'warning');
+                return;
+            }
+            if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(val).then(() => {
+                    showToast('Remark copied to clipboard!', 'success');
+                }).catch(() => fallbackCopy(val));
+            } else {
+                fallbackCopy(val);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('Remark copied to clipboard!', 'success');
+            } catch (_e) {
+                showToast('Failed to copy.', 'error');
+            }
+            document.body.removeChild(ta);
+        }
+
+        function applyRemarksToRecord() {
+            const supplierText = document.getElementById('modal-supplier-remark')?.value || '';
+            const btbText = document.getElementById('modal-btb-remark')?.value || '';
+            const targetRemarks = supplierText || btbText;
+
+            const formRemarks = document.getElementById('edit-remarks');
+            if (formRemarks) formRemarks.value = targetRemarks;
+            if (state.currentRecord) {
+                state.currentRecord.Remarks = targetRemarks;
+                persistRecordToDataverse(state.currentRecord);
+            }
+            closeRemarkModal();
+            showToast('Remark applied and saved to record!', 'success');
+        }
+
+        function scrollToRemark() {
+            closeRemarkModal();
+            switchModalTab('tab-request');
+            const el = document.getElementById('edit-remarks');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
             }
         }
 
@@ -4864,13 +5749,19 @@
             'edit-charge-ccc',
             'edit-works-order-code',
             'edit-account-code',
-            'edit-um-mgr'
+            'edit-um-mgr',
+            'edit-ipt-unit-mgr',
+            'edit-pair-charge-ccc',
+            'edit-pair-account-code'
         ]);
 
         function applyPermanentlyDisabledFields() {
             PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
+                    if (id === 'edit-pair-account-code' && el.tagName === 'SELECT') {
+                        return;
+                    }
                     el.disabled = true;
                     el.classList.add('cursor-not-allowed');
                 }
@@ -4887,6 +5778,11 @@
                 const controls = container.querySelectorAll('input, select, textarea, button');
                 controls.forEach(control => {
                     if (PERMANENTLY_DISABLED_FIELD_IDS.has(control.id)) {
+                        if (control.id === 'edit-pair-account-code' && control.tagName === 'SELECT') {
+                            control.disabled = false;
+                            control.classList.remove('cursor-not-allowed');
+                            return;
+                        }
                         control.disabled = true;
                         control.classList.add('cursor-not-allowed');
                         return;
@@ -5005,6 +5901,9 @@
             resetProductTypePairUI(item);
             applyPermanentlyDisabledFields();
 
+            // Automatically run pairing logic based on IPT Unit Mgr so Works Order Code dropdown is ready for selection
+            runProductTypePair(item.WorksOrderCode || '');
+
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -5060,11 +5959,19 @@
 
             // Flush pair coding fields from Tab 1 display to Tab 3 inputs so they persist
             const pairCcc = document.getElementById('edit-pair-charge-ccc');
-            if (pairCcc && pairCcc.value !== undefined) syncPairChargeCcc(pairCcc.value);
+            const cccVal = pairCcc ? String(pairCcc.value || '').trim() : (item.ChargeCCC || '');
+            item.ChargeCCC = cccVal;
+            syncPairChargeCcc(cccVal);
+
             const pairAcc = document.getElementById('edit-pair-account-code');
-            if (pairAcc && pairAcc.value !== undefined) syncPairAccountCode(pairAcc.value);
+            const accVal = pairAcc ? String(pairAcc.value || '').trim() : (item.AccountCode || '');
+            item.AccountCode = accVal;
+            syncPairAccountCode(accVal);
+
             const pairWo = document.getElementById('edit-pair-works-order-code');
-            if (pairWo && pairWo.value !== undefined) syncPairWorksOrderCode(pairWo.value);
+            const woVal = pairWo ? String(pairWo.value || '').trim() : (item.WorksOrderCode || '');
+            item.WorksOrderCode = woVal;
+            syncPairWorksOrderCode(woVal);
 
             Object.entries(FIELD_ID_TO_RECORD_KEY).forEach(([fieldId, recordKey]) => {
                 const el = /** @type {HTMLInputElement} */(document.getElementById(fieldId));
@@ -5429,6 +6336,9 @@
             'edit-uid': 'UID',
             'edit-sbreportgenerated': 'SBReportGenerated',
             'edit-remarks': 'Remarks',
+            'edit-pair-charge-ccc': 'ChargeCCC',
+            'edit-pair-account-code': 'AccountCode',
+            'edit-pair-works-order-code': 'WorksOrderCode',
 
             // ============
             // Quot Info.

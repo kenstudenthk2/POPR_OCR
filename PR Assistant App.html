@@ -266,7 +266,7 @@
     color: var(--red);
     box-shadow: 0 10px 26px rgba(178,59,59,0.18);
   }
-  /* An orange alarm row for Quotation Expire Date expiring tomorrow.
+  /* An orange alarm row for Quotation Expire Date expiring soon.
      Styled in CSS for the same specificity reasons as verify-row-alarm. */
   .verify-stage tbody tr.verify-row-warning,
   .verify-stage tbody tr.verify-row-warning:hover {
@@ -10673,8 +10673,8 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // LIS box is drawn in three places, so leaving the class inline would be four
   // chances to colour three of them.
   //
-  // Expired, Urgent (today), and Warning (tomorrow) are mutually exclusive by
-  // construction (`<` vs `=== today` vs `=== tomorrow`), so the ternaries below
+  // Expired, Urgent (today), and Warning (Soon) are mutually exclusive by
+  // construction (`<` vs `=== today` vs `=== soon`), so the ternaries below
   // never have to decide which wins.
   const isQuotationExpiryRow = row => row.key === "quotationExpireDate";
   const rowExpired = row => quotationExpired && isQuotationExpiryRow(row);
@@ -10683,7 +10683,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // Urgent is drawn in the SAME red as Expired, at the user's request -- it was
   // amber. What still tells the two apart is the wording in the row ("Expired"
   // against "Urgent - expires today !!!") and the disabled button, not a hue.
-  // Tomorrow's expiry is drawn in Orange with an urgent processing reminder.
+  // soon's expiry is drawn in Orange with an urgent processing reminder.
   const rowAlarm = row => rowExpired(row) || rowUrgent(row);
   const lisInputClass = row => `w-full min-w-[120px] rounded-lg border px-3 py-1.5 text-right fs-14-19 ui-transition focus:outline-none focus:ring-2 focus:ring-[#FFE2B0] ${rowAlarm(row)
     ? "border-[var(--red)] bg-white font-bold text-[var(--red)] focus:border-[var(--red)]"
@@ -10747,7 +10747,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
       <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--red)]">Urgent — expires today !!!</span>
     );
     if (rowWarning(row)) return (
-      <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--orange-dark)]">Urgent — expires tomorrow !!!</span>
+      <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--orange-dark)]">Urgent — expires soon !!!</span>
     );
     return null;
   };
@@ -10955,8 +10955,8 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
           {quotationExpiresSoon && (
             <div className="w-full flex gap-2 px-4 py-3 bg-[#FED7AA] border-l-4 border-[var(--orange)] rounded-lg">
               <div className="flex-1 fs-13-19 leading-5 text-[#3D3D3D]">
-                <span className="font-bold text-[var(--orange-dark)]">Urgent !!! The quotation expires tomorrow.</span>{" "}
-                Quotation Expire Date is {quotationExpiryShown} ({quotationExpiryIso}). The quotation was expiry on Tomorrow,
+                <span className="font-bold text-[var(--orange-dark)]">Urgent !!! The quotation is expiring soon.</span>{" "}
+                Quotation Expire Date is {quotationExpiryShown} ({quotationExpiryIso}). The quotation is expiring soon,
                 please process it Urgently.
               </div>
             </div>

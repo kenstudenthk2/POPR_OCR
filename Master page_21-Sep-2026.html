@@ -158,8 +158,10 @@
             content: " " attr(data-approval);
         }
 
-        .currency-convert_hkd:not([data-currency-type="HKD"])::after {
-            content: "HKD: " attr(data-currency-hkd) " (1" attr(data-currency-type) "→" attr(data-currency-rate) "HKD)";
+        .currency-convert_hkd {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
         }
 
         [data-z-offset] {
@@ -564,9 +566,9 @@
                                         <option value="NON-BTB">NON-BTB</option>
                                     </select>
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Request Status</label>
-                                    <input type="text" id="edit-request-status" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-request-status" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Rec'd Date</label>
@@ -694,9 +696,9 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Vendor</label>
                                     <input type="text" id="edit-vendor" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Reference</label>
-                                    <input type="text" id="edit-prref" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-prref" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="col-span-1 md:col-span-2 flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Description</label>
@@ -730,25 +732,25 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Total Revenue</label>
                                     <input type="number" step="0.01" id="edit-total-revenue" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">UM/Mgr</label>
-                                    <input type="text" id="edit-um-mgr" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-um-mgr" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">License Receive Date</label>
                                     <input type="date" id="edit-license-receive-date" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
-                                    <input type="text" id="edit-charge-ccc" oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-charge-ccc" disabled oninput="syncTab3ChargeCcc(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Works Order Code</label>
-                                    <input type="text" id="edit-works-order-code" oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-works-order-code" disabled oninput="syncTab3WorksOrderCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
-                                <div class="flex flex-col gap-1.5 md:col-span-2">
+                                <div class="flex flex-col gap-1.5 md:col-span-2 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Account Code</label>
-                                    <input type="text" id="edit-account-code" oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                    <input type="text" id="edit-account-code" disabled oninput="syncTab3AccountCode(this.value)" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
                                 </div>
                             </div>
                         </div>
@@ -846,7 +848,7 @@
                                             <option value="HKD">HKD</option>
                                             <option value="USD">USD</option>
                                         </select>
-                                        <input type="number" id="edit-pramount" step="0.01" oninput="handlePRAmount()" placeholder="0.00" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-r-lg border-[1.5px] border-[var(--line)] stage-required-field" aria-required="true">
+                                        <input type="text" id="edit-pramount" inputmode="decimal" oninput="handlePRAmount()" placeholder="0.00" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-r-lg border-[1.5px] border-[var(--line)] stage-required-field" aria-required="true">
                                     </div>
                                     <div>
                                         <span
@@ -1442,7 +1444,7 @@
                 PRIssuedMonth?: string;         // PR Issued Month (admin_prx0020issuedx0020month)
                 Currency?: string;              // unknown dataverse column
                 PRAmount?: number;              // admin_hkd. TODO: but in masster list the currency can be anything
-                // Missing: Buyer: string;
+                Buyer?: string;                 // Buyer (admin_buyer)
                 InvoiceDNNo?: string;           // Invoice # / DN # (admin_invoicex0020x0023x0020x00)
                 InvoiceDNDate?: string;         // Invoice / DN Date (admin_invoicex0020x002fx0020dnx)
                 USDOthers?: string;             // USD / Others (admin_usdx0020x002fx0020others)
@@ -1460,7 +1462,7 @@
                 POAmount?: number;              // PO Amount HK$ (admin_pox0020amountx0020hkx0024)
                 DeliveryNote: string;           // (admin_deliverynote)
                 ReceiptNum: string;             // (admin_receiptnum)
-                MarkReceiptDate: string;        // 
+                MarkReceiptDate?: string;       // Mark Receipt Date (admin_markreceivedate) 
 
                 YN?: string;                    // Urgent (Y/N) / Y / N (admin_yx0020x002fx0020n)
                 Flagged?: boolean;              // Flagged (admin_flagged)
@@ -1573,6 +1575,9 @@
             { key: "Status", label: "Status", visible: false, sortable: true },
             { key: "StatusRemark", label: "Status Remark", visible: false, sortable: true },
             { key: "Flagged", label: "Flagged", visible: false, sortable: true },
+            { key: "Buyer", label: "Buyer", visible: false, sortable: true },
+            { key: "ItemNo", label: "Item No.", visible: false, sortable: true },
+            { key: "MarkReceiptDate", label: "Mark Receipt Date", visible: false, sortable: true },
             { key: "Actions", label: "Actions", visible: true, sortable: false, locked: true },
         ];
 
@@ -1618,10 +1623,6 @@
                 {
                 threshold: 499999.99,
                 approver: "AVP",
-                },
-                {
-                threshold: 23399999.99,
-                approver: "MD",
                 },
             ],
             "NON-BTB": [
@@ -2121,7 +2122,8 @@
                             break;
                         case 'PRAmount':
                             td.className = 'px-4 py-3.5 border-b border-[#C5BEB6] text-[13px] font-mono whitespace-nowrap';
-                            td.textContent = item.PRAmount !== null && item.PRAmount !== undefined ? `HK$ ${item.PRAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}` : '-';
+                            const prCurr = (item.Currency === 'USD') ? 'USD' : 'HK$';
+                            td.textContent = item.PRAmount !== null && item.PRAmount !== undefined ? `${prCurr} ${Number(item.PRAmount).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '-';
                             break;
                         case 'POAmount':
                             td.className = 'px-4 py-3.5 border-b border-[#C5BEB6] text-[13px] font-mono whitespace-nowrap';
@@ -3712,10 +3714,8 @@
 
             "admin_sbmtceorder"                 : "SBMTCEOrder", 
             "admin_itemno"                      : "ItemNo",
-            // missing UMVerified
-            // missing PRApproved
-            // missing POReady
-            // missing Buyer
+            "admin_buyer"                       : "Buyer",
+            "admin_markreceivedate"             : "MarkReceiptDate",
             "admin_sellingamounthkd"            : "SellingAmountHKD",
             "admin_ratioofoverallcostx002dreve" : "CostRevenueRatio",
             "admin_ratioofoverallswappingx002d" : "SwappingRevenueRatio",
@@ -3731,7 +3731,10 @@
             "admin_flagged"                     : "Flagged",
             "admin_statusremark"                : "StatusRemark",
             "admin_reviewapproval"              : "Approver",
-            "admin_processstatus"               : "ProcessStatus"
+            "admin_processstatus"               : "ProcessStatus",
+            "admin_pocurrency"                  : "POCurrency",
+            "admin_approvaldate"                : "ApprovalDate",
+            "admin_reviewdate"                  : "ReviewDate",
         });
         /** @typedef {typeof DV_COLUMN_MAP} IDVColumnMap */
 
@@ -3746,7 +3749,12 @@
             }
 
             // Dataverse logical attribute names from live schema
-            const primaryCols = Object.keys(DV_COLUMN_MAP);
+            const primaryCols = [
+    "admin_btb_lis_excel_datasid",
+    ...Object.keys(
+        DV_COLUMN_MAP
+    )
+];
 
             /** @type {{[RecordKey in keyof IDVColumnMap]: IRecord[IDVColumnMap[RecordKey]]}[]} */
             let entities = [];
@@ -3766,7 +3774,7 @@
                         "admin_title", "admin_customerx0020name", "admin_vendor", "admin_hkd",
                         "admin_hkdusd",
                         "admin_contractx0020nox002e", "admin_contractstartdate", "admin_contractenddate",
-                        "admin_prx0020reference", "admin_uidx0020x0023", "admin_issuex0020by",
+                        "admin_prx0020reference", "admin_prx0020description", "admin_uidx0020x0023", "admin_issuex0020by",
                         "admin_chargex0020ccc", "admin_worksx0020orderx0020code", "admin_accountx0020code",
                         "admin_prx0020issuedx0020on", "admin_prx0020nox002e", "admin_handledx0020byx0020",
                         "admin_iptx0020unitx0020mgr", "admin_quotationstartdates", "admin_quotationenddates",
@@ -3775,7 +3783,13 @@
                         "admin_pox0020amountx0020hkx0024", "admin_umx002fmgr", "admin_prx0020issuedx0020month",
                         "admin_yx0020x002fx0020n", "admin_remarks", "admin_invoicex0020x0023x0020x00",
                         "admin_invoicex0020x002fx0020dnx", "admin_producttype", "admin_prstatus",
-                        "admin_flagged", "admin_statusremark", "admin_quotationexpirydate"
+                        "admin_flagged", "admin_statusremark", "admin_quotationexpirydate",
+                        "admin_sbmtceorder", "admin_sellingamounthkd", "admin_ratioofoverallcostx002dreve",
+                        "admin_ratioofoverallswappingx002d", "admin_deliverynote", "admin_receiptnum",
+                        "admin_pocurrency", "admin_approvaldate", "admin_reviewdate", "admin_brand",
+                        "admin_model", "admin_licensereceivedate", "admin_pramount", "admin_pramounthkd",
+                        "admin_pramountusd", "admin_usdx0020x002fx0020others", "admin_itemno",
+                        "admin_buyer", "admin_markreceivedate"
                     ];
                     const coreQuery = "?$select=" + coreCols.join(",") + "&$top=5000";
                     const coreResponse = await api.retrieveMultipleRecords(loadedEntityName, coreQuery);
@@ -3817,14 +3831,51 @@
                         // TODO: handle special cases for certain fields
                         switch (masterKey){
                             // numeric fields
-                            case "TotalRevenue":
-                            case "PRAmount": 
+                            //case "TotalRevenue":
+                            case "No": {
+                                const numValue = Number(item[dvColumnKey]);
+                                masterRecord[masterKey] = (!isNaN(numValue) && item[dvColumnKey] !== null && item[dvColumnKey] !== "") ? numValue : item[dvColumnKey];
+                                break;
+                            }
+                            case "PRAmount": {
+                                const rawVal = (item.admin_pramount !== undefined && item.admin_pramount !== null && item.admin_pramount !== "")
+                                    ? item.admin_pramount
+                                    : ((item.admin_hkd !== undefined && item.admin_hkd !== null && item.admin_hkd !== "")
+                                        ? item.admin_hkd
+                                        : item.admin_usdx0020x002fx0020others);
+                                const clean = rawVal != null ? String(rawVal).replace(/,/g, "").trim() : "";
+                                const numValue = clean !== "" ? parseFloat(clean) : NaN;
+                                masterRecord[masterKey] = !isNaN(numValue) ? numValue : undefined;
+                                break;
+                            }
+                            case "Currency": {
+                                const rawCurr = String(item.admin_hkdusd || "").toUpperCase();
+                                masterRecord.Currency = (rawCurr === "USD" || rawCurr === "HKD")
+                                    ? rawCurr
+                                    : (item.admin_usdx0020x002fx0020others ? "USD" : "HKD");
+                                break;
+                            }
                             case "POAmount":
                             case "SellingAmountHKD":
                             case "CostRevenueRatio":
                             case "SwappingRevenueRatio": {
                                 const numValue = Number(item[dvColumnKey]);
                                 masterRecord[masterKey] = !isNaN(numValue) ? numValue : undefined;
+                                break;
+                            }
+                            // choice fields
+                            case "Status": {
+                                const rawStatus = item[dvColumnKey];
+                                masterRecord.Status = PR_STATUS_CHOICES[rawStatus] || rawStatus || "";
+                                break;
+                            }
+                            case "PRIssuedMonth": {
+                                const rawMonth = item[dvColumnKey];
+                                if (rawMonth && /^\d{4}-\d{2}/.test(String(rawMonth))) {
+                                    masterRecord.PRIssuedMonth = String(rawMonth).slice(5, 7);
+                                } else {
+                                    masterRecord.PRIssuedMonth = rawMonth ? String(rawMonth) : "";
+                                }
                                 break;
                             }
                             // date fields
@@ -4437,6 +4488,23 @@
             };
         }
 
+        // Rate: 1 USD : 7.9 HKD for PR Amount currency conversion (matched to PR Assistant App dev side)
+        const HKD_PER_USD = 7.9;
+
+        function convertPrAmount(numValue, currency) {
+            if (numValue == null || isNaN(numValue)) {
+                return { prAmountHkd: null, prAmountUsd: null };
+            }
+            const isUsd = String(currency || "").toUpperCase() === "USD";
+            if (isUsd) {
+                const hkdVal = Number((numValue * HKD_PER_USD).toFixed(2));
+                return { prAmountUsd: String(numValue), prAmountHkd: String(hkdVal) };
+            } else {
+                const usdVal = Number((numValue / HKD_PER_USD).toFixed(2));
+                return { prAmountHkd: String(numValue), prAmountUsd: String(usdVal) };
+            }
+        }
+
         /**
          * Converts a given amount from a specified currency to HKD.
          * @param {string} currency
@@ -4444,37 +4512,64 @@
          * @returns {{ currency: string, rate: number, hkd: number }} the converted amount in HKD
          */
         function convertToHKD(currency, amount) {
-            const numericAmount = parseFloat(amount);
-            if(!currency) {
-                return {currency: "unknown", hkd: parseFloat(amount) || 0, rate: 1};
-            }
-            const currencyConfig = CURRENCY_CONFIG[currency]
-            if (!currencyConfig){
-                showToast(`Currency config not found for ${currency}. Omitting conversion.`, 'warning');
-                return {currency: "unknown", hkd: numericAmount, rate: 1};
-            }
-            let currencyDetail = { currency, rate: currencyConfig.toHKD, hkd: 0 }
+            const numericAmount = parseFloat(String(amount || '').replace(/,/g, ''));
+            const isUsd = String(currency || '').toUpperCase() === 'USD';
             if (isNaN(numericAmount)) {
-                console.warn(`Invalid amount: ${amount}.`);
-                return currencyDetail;
+                return { currency: isUsd ? 'USD' : 'HKD', rate: isUsd ? HKD_PER_USD : 1, hkd: 0 };
             }
-            currencyDetail.hkd = Number((currencyConfig.toHKD * numericAmount).toFixed(2));
-            return currencyDetail;
+            if (isUsd) {
+                return { currency: 'USD', rate: HKD_PER_USD, hkd: Number((numericAmount * HKD_PER_USD).toFixed(2)) };
+            }
+            return { currency: 'HKD', rate: 1, hkd: Number(numericAmount.toFixed(2)) };
         }
 
         function handlePRAmount() {
-            const prCurrency = /** @type {HTMLInputElement} */ (document.getElementById("edit-currency"));
+            const prCurrency = /** @type {HTMLSelectElement} */ (document.getElementById("edit-currency"));
             const prAmount = /** @type {HTMLInputElement} */ (document.getElementById("edit-pramount"));
             const btbType = /** @type {HTMLInputElement} */ (document.getElementById("edit-btb"));
 
-            const hkdAmount = convertToHKD(prCurrency.value, prAmount.value) || 0;
-            const prAmountInHKD = document.getElementById("pr-amount-convert_hkd");
-            prAmountInHKD.setAttribute("data-currency-type", hkdAmount.currency);
-            prAmountInHKD.setAttribute("data-currency-rate", hkdAmount.rate);
-            prAmountInHKD.setAttribute("data-currency-hkd", hkdAmount.hkd.toFixed(2));
+            let rawVal = prAmount ? prAmount.value : "";
+            // Auto-detect currency if entered / pasted in the amount field (matches PR Assistant App dev side)
+            if (/\bUSD\b/i.test(rawVal)) {
+                if (prCurrency) prCurrency.value = "USD";
+                rawVal = rawVal.replace(/\b(?:USD|US\$)\b/gi, "").trim();
+                if (prAmount) prAmount.value = rawVal;
+            } else if (/\bHKD\b/i.test(rawVal)) {
+                if (prCurrency) prCurrency.value = "HKD";
+                rawVal = rawVal.replace(/\b(?:HKD|HK\$)\b/gi, "").trim();
+                if (prAmount) prAmount.value = rawVal;
+            }
 
-            // TODO: decide if we use converted HKD or native currency for approval threshold evaluation
-            const approverDetail = getDualApprovers(btbType.value, hkdAmount.hkd);
+            const cleanStr = String(rawVal).replace(/,/g, "").trim();
+            const numValue = cleanStr !== "" ? parseFloat(cleanStr) : NaN;
+            const currency = prCurrency ? prCurrency.value : "HKD";
+
+            const { prAmountHkd, prAmountUsd } = convertPrAmount(numValue, currency);
+            const prAmountInHKD = document.getElementById("pr-amount-convert_hkd");
+            if (prAmountInHKD) {
+                if (!isNaN(numValue) && numValue !== null) {
+                    if (currency === "USD") {
+                        prAmountInHKD.setAttribute("data-currency-type", "USD");
+                        prAmountInHKD.setAttribute("data-currency-rate", String(HKD_PER_USD));
+                        prAmountInHKD.setAttribute("data-currency-hkd", prAmountHkd || "0");
+                        prAmountInHKD.textContent = `HKD: ${Number(prAmountHkd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD → 7.9 HKD)`;
+                    } else {
+                        prAmountInHKD.setAttribute("data-currency-type", "HKD");
+                        prAmountInHKD.setAttribute("data-currency-rate", "1");
+                        prAmountInHKD.setAttribute("data-currency-hkd", prAmountHkd || "0");
+                        prAmountInHKD.textContent = `USD: ${Number(prAmountUsd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD : 7.9 HKD)`;
+                    }
+                } else {
+                    prAmountInHKD.setAttribute("data-currency-type", "HKD");
+                    prAmountInHKD.setAttribute("data-currency-rate", "1");
+                    prAmountInHKD.setAttribute("data-currency-hkd", "0");
+                    prAmountInHKD.textContent = "";
+                }
+            }
+
+            // Dual approver evaluation uses converted HKD amount
+            const hkdEvalAmount = (currency === "USD" ? Number(prAmountHkd) : numValue) || 0;
+            const approverDetail = getDualApprovers(btbType ? btbType.value : "", hkdEvalAmount);
 
             const prApprovalSection = document.getElementById("prApprovalSection");
             const prApprovalTitle = document.getElementById("prApprovalTitle");
@@ -4488,33 +4583,44 @@
                 );
                 prApprovalSection?.removeAttribute("data-disabled");
                 prApprovalSection?.classList.remove("opacity-50", "cursor-not-allowed");
-                btnPrApproved.disabled = false;
-                btnPrApproved?.classList.remove("pointer-events-none");
+                if (btnPrApproved) {
+                    btnPrApproved.disabled = false;
+                    btnPrApproved.classList.remove("pointer-events-none");
+                }
             } else {
-                // approval not needed
-                prApprovalTitle?.setAttribute("data-approval", "(Omitted)");
+                prApprovalTitle?.setAttribute("data-approval", "(Not Required)");
                 prApprovalSection?.setAttribute("data-disabled", "");
-                prApprovalSection?.classList?.add("opacity-50", "cursor-not-allowed");
-                btnPrApproved.disabled = true;
-                btnPrApproved?.classList.add("pointer-events-none");
+                prApprovalSection?.classList.add("opacity-50", "cursor-not-allowed");
+                if (btnPrApproved) {
+                    btnPrApproved.disabled = true;
+                    btnPrApproved.classList.add("pointer-events-none");
+                }
             }
 
             handleFormInputChange();
-            return approverDetail
+            return approverDetail;
         }
 
         function handlePOAmount() {
-            const poCurrency = /** @type {HTMLInputElement} */ (document.getElementById("edit-pocurrency"));
+            const poCurrency = /** @type {HTMLSelectElement} */ (document.getElementById("edit-pocurrency"));
             const poAmount = /** @type {HTMLInputElement} */ (document.getElementById("edit-poamount"));
 
-            const hkdAmount = convertToHKD(poCurrency.value, poAmount.value) || 0;
+            const curr = poCurrency ? poCurrency.value : "HKD";
+            const cleanStr = String(poAmount ? poAmount.value : "").replace(/,/g, "").trim();
+            const numVal = cleanStr !== "" ? parseFloat(cleanStr) : NaN;
+            const { prAmountHkd, prAmountUsd } = convertPrAmount(numVal, curr);
+
             const poAmountInHKD = document.getElementById("po-amount-convert_hkd");
-            if(!poAmountInHKD) {
-                return 
+            if (!poAmountInHKD) return;
+            if (!isNaN(numVal) && numVal !== null) {
+                if (curr === "USD") {
+                    poAmountInHKD.textContent = `HKD: ${Number(prAmountHkd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD → 7.9 HKD)`;
+                } else {
+                    poAmountInHKD.textContent = `USD: ${Number(prAmountUsd).toLocaleString('en-US', {minimumFractionDigits: 2})} (1 USD : 7.9 HKD)`;
+                }
+            } else {
+                poAmountInHKD.textContent = "";
             }
-            poAmountInHKD.setAttribute("data-currency-type", hkdAmount.currency);
-            poAmountInHKD.setAttribute("data-currency-rate", hkdAmount.rate);
-            poAmountInHKD.setAttribute("data-currency-hkd", hkdAmount.hkd.toFixed(2));
         }
 
         
@@ -4751,6 +4857,26 @@
             updateFieldLockingAndApprovalUI(activeStatus);
         }
 
+        const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
+            'edit-title',
+            'edit-request-status',
+            'edit-prref',
+            'edit-charge-ccc',
+            'edit-works-order-code',
+            'edit-account-code',
+            'edit-um-mgr'
+        ]);
+
+        function applyPermanentlyDisabledFields() {
+            PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.disabled = true;
+                    el.classList.add('cursor-not-allowed');
+                }
+            });
+        }
+
         function updateFieldLockingAndApprovalUI(currentStatus) {
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
@@ -4760,6 +4886,11 @@
                 // TODO: why are we unlocking the fields after completion?
                 const controls = container.querySelectorAll('input, select, textarea, button');
                 controls.forEach(control => {
+                    if (PERMANENTLY_DISABLED_FIELD_IDS.has(control.id)) {
+                        control.disabled = true;
+                        control.classList.add('cursor-not-allowed');
+                        return;
+                    }
                     control.disabled = false;
                     control.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-50');
                 });
@@ -4810,6 +4941,7 @@
             if (!item) return;
 
             state.currentRecord = { ...item };
+            document.getElementById("edit-id").value = item.Id;
             state.isPREditing = false;
             const prInput = document.getElementById('edit-prno');
             const prEditBtn = document.getElementById('btn-edit-prno');
@@ -4835,7 +4967,16 @@
                 if (CHECKBOX_FIELD_IDS.has(fieldId)) {
                     el.checked = Boolean(item[recordKey]);
                 } else {
-                    const val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    let val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    if (fieldId === 'edit-currency') {
+                        val = (val && String(val).toUpperCase() === 'USD') ? 'USD' : 'HKD';
+                    }
+                    if (fieldId === 'edit-pramount' && val) {
+                        val = val.replace(/\b(?:HKD|HK\$|USD|US\$)\b/gi, '').trim();
+                    }
+                    if (!val && (fieldId === 'edit-pr-remark' || fieldId === 'edit-pr-remarks') && item.Remarks) {
+                        val = String(item.Remarks);
+                    }
                     if (el.tagName === 'SELECT' && val && el.options && ![...el.options].some(o => o.value === val)) {
                         const opt = document.createElement('option');
                         opt.value = val;
@@ -4862,6 +5003,7 @@
             updateTrackerVisual();
             clearRequiredFieldErrors();
             resetProductTypePairUI(item);
+            applyPermanentlyDisabledFields();
 
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
@@ -4931,11 +5073,18 @@
                     item[recordKey] = el.checked;
                 } else {
                     switch (recordKey) {
-                        // TODO: add other numeric fields
                         case 'PRAmount':
+                            item[recordKey] = (el.value !== "" && !isNaN(parseFloat(String(el.value).replace(/,/g, ''))))
+                                ? parseFloat(String(el.value).replace(/,/g, ''))
+                                : null;
+                            break;
                         case 'POAmount':
                         case 'TotalRevenue':
-                            item[recordKey] = el.value ? parseFloat(el.value) : null;
+                        case 'SellingAmountHKD':
+                        case 'CostRevenueRatio':
+                        case 'SwappingRevenueRatio':
+                        case 'No':
+                            item[recordKey] = (el.value !== "" && !isNaN(parseFloat(String(el.value).replace(/,/g, '')))) ? parseFloat(String(el.value).replace(/,/g, '')) : null;
                             break;
                         case 'PRNo':
                         case 'PONo':
@@ -4960,15 +5109,35 @@
             return true;
         }
 
-const PROCESS_STATUS_MAP = {
-    "Complete": 0,
-    "Cancelled": 1,
-    "PR No. Ready": 2,
-    "UM Verified": 3,
-    "LIS System Approved": 4,
-    "PO No. Ready": 5
-};
+        const PR_STATUS_CHOICES = {
+            1: "Completed",
+            2: "Pending",
+            3: "Cancel",
+            4: "Return",
+            5: "Duplicate"
+        };
 
+        const PR_STATUS_MAP = {
+            "Completed": 1,
+            "Pending": 2,
+            "Cancel": 3,
+            "Return": 4,
+            "Duplicate": 5,
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 4,
+            5: 5
+        };
+
+        const PROCESS_STATUS_MAP = {
+            "Complete": 0,
+            "Cancelled": 1,
+            "PR No. Ready": 2,
+            "UM Verified": 3,
+            "LIS System Approved": 4,
+            "PO No. Ready": 5
+        };
 
         async function persistRecordToDataverse(record) {
             const api = getDataverseWebApi();
@@ -4992,6 +5161,8 @@ const PROCESS_STATUS_MAP = {
 
                 if (existingId) {
                     const payload = {};
+
+                    // 1. Identity / Primary Text Fields
                     if (record.BTBType !== undefined) {
                         payload.admin_btbtype = record.BTBType || null;
                     }
@@ -4999,180 +5170,134 @@ const PROCESS_STATUS_MAP = {
                     if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
                     if (record.PRNo !== undefined) payload.admin_prx0020nox002e = record.PRNo || null;
                     if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
-                    if (record.PRAmount !== undefined) payload.admin_hkd = (record.PRAmount !== null && record.PRAmount !== "") ? Number(record.PRAmount) : null;
-                    if (record.POAmount !== undefined) payload.admin_pox0020amountx0020hkx0024 = (record.POAmount !== null && record.POAmount !== "") ? Number(record.POAmount) : null;
-if (record.ProcessStatus !== undefined)
-    payload.admin_processstatus =
-        PROCESS_STATUS_MAP[
-            record.ProcessStatus
-        ];
-        
-if (record.Status !== undefined)
-    payload.admin_prstatus =
-        record.Status;
 
-if (record.RecordDate !== undefined)
-    payload.admin_recx0027dx0020datex0020 =
-        record.RecordDate;
+                    // 2. Numeric / Float Columns (Dataverse Float requires number, not string or empty string)
+                    if (record.POAmount !== undefined) {
+                        const poNum = (record.POAmount !== null && record.POAmount !== "" && !isNaN(Number(record.POAmount))) ? Number(record.POAmount) : null;
+                        payload.admin_pox0020amountx0020hkx0024 = poNum;
+                        payload.admin_poamount = poNum !== null ? String(poNum) : null;
+                    }
+                    if (record.No !== undefined) {
+                        const noNum = (record.No !== null && record.No !== "" && !isNaN(Number(record.No))) ? Number(record.No) : null;
+                        payload.admin_nox002e = noNum;
+                    }
 
-if (record.IssueBy !== undefined)
-    payload.admin_issuex0020by =
-        record.IssueBy;
+                    // 3. PR Amount & Currency (matched to PR Assistant App dev side buildLisExcelPayload)
+                    if (record.PRAmount !== undefined) {
+                        const prAmountNum = (record.PRAmount !== null && record.PRAmount !== "" && !isNaN(Number(record.PRAmount)))
+                            ? Number(record.PRAmount)
+                            : null;
+                        const rawCurrency = record.Currency || "HKD";
+                        const prCurrency = (String(rawCurrency).toUpperCase() === "USD") ? "USD" : "HKD";
+                        const { prAmountHkd, prAmountUsd } = convertPrAmount(prAmountNum, prCurrency);
 
-if (record.Brand !== undefined)
-    payload.admin_brand =
-        record.Brand;
+                        const isHkd = prCurrency === "HKD";
+                        const isUsd = prCurrency === "USD";
+                        const prAmountVal = prAmountNum !== null ? String(prAmountNum) : null;
 
-if (record.Model !== undefined)
-    payload.admin_model =
-        record.Model;
+                        payload.admin_pramount = prAmountVal;
+                        payload.admin_hkdusd = prCurrency;
+                        payload.admin_pramounthkd = prAmountHkd;
+                        payload.admin_pramountusd = prAmountUsd;
+                        payload.admin_hkd = isHkd ? prAmountNum : null;
+                        payload.admin_usdx0020x002fx0020others = isUsd ? prAmountVal : null;
+                    }
+                    if (record.Currency !== undefined) payload.admin_hkdusd = (String(record.Currency).toUpperCase() === "USD") ? "USD" : "HKD";
 
-if (record.ProductType !== undefined)
-    payload.admin_producttype =
-        record.ProductType;
+                    // 4. Choice & Status Columns
+                    if (record.Status !== undefined && PR_STATUS_MAP[record.Status] !== undefined) {
+                        payload.admin_prstatus = PR_STATUS_MAP[record.Status];
+                    }
+                    if (record.ProcessStatus !== undefined && PROCESS_STATUS_MAP[record.ProcessStatus] !== undefined) {
+                        payload.admin_processstatus = PROCESS_STATUS_MAP[record.ProcessStatus];
+                    }
+                    if (record.ProcessStatus !== undefined) {
+                        payload.admin_previousprocessstatus = record.ProcessStatus || null;
+                    }
 
-if (record.HandledBy !== undefined)
-    payload.admin_handledx0020byx0020 =
-        record.HandledBy;
+                    // 5. Date-only columns in Dataverse
+                    if (record.RecordDate !== undefined) {
+                        payload.admin_recx0027dx0020datex0020 = record.RecordDate ? formatDateForInput(record.RecordDate) : null;
+                    }
+                    if (record.InvoiceDNDate !== undefined) {
+                        payload.admin_invoicex0020x002fx0020dnx = record.InvoiceDNDate ? formatDateForInput(record.InvoiceDNDate) : null;
+                    }
+                    if (record.PRIssuedOn !== undefined) {
+                        payload.admin_prx0020issuedx0020on = record.PRIssuedOn ? formatDateForInput(record.PRIssuedOn) : null;
+                    }
+                    // admin_prx0020issuedx0020month is Date-only in Dataverse; format as YYYY-MM-01
+                    if (record.PRIssuedOn && /^\d{4}-\d{2}/.test(record.PRIssuedOn)) {
+                        payload.admin_prx0020issuedx0020month = record.PRIssuedOn.slice(0, 7) + '-01';
+                    } else if (record.PRIssuedMonth && /^\d{4}-\d{2}/.test(record.PRIssuedMonth)) {
+                        payload.admin_prx0020issuedx0020month = record.PRIssuedMonth.slice(0, 7) + '-01';
+                    }
 
-if (record.IPTUnitMgr !== undefined)
-    payload.admin_iptx0020unitx0020mgr =
-        record.IPTUnitMgr;
+                    // 6. Text-based Date Fields in Dataverse
+                    if (record.SBReportGenerated !== undefined) payload.admin_sbreportgenrated = record.SBReportGenerated || null;
+                    if (record.QuotationStartDate !== undefined) payload.admin_quotationstartdates = record.QuotationStartDate || null;
+                    if (record.QuotationEndDate !== undefined) payload.admin_quotationenddates = record.QuotationEndDate || null;
+                    if (record.QuotationExpiryDate !== undefined) payload.admin_quotationexpirydate = record.QuotationExpiryDate || null;
+                    if (record.StartDate !== undefined) payload.admin_contractstartdate = record.StartDate || null;
+                    if (record.EndDate !== undefined) payload.admin_contractenddate = record.EndDate || null;
+                    if (record.LicenseReceiveDate !== undefined) payload.admin_licensereceivedate = record.LicenseReceiveDate || null;
+                    if (record.PODate !== undefined) payload.admin_pox0020date = record.PODate || null;
+                    if (record.POReceiptDate !== undefined) payload.admin_receiptx0020date = record.POReceiptDate || null;
+                    if (record.ApprovalDate !== undefined) payload.admin_approvaldate = record.ApprovalDate || null;
+                    if (record.ReviewDate !== undefined) payload.admin_reviewdate = record.ReviewDate || null;
 
-if (record.UID !== undefined)
-    payload.admin_uidx0020x0023 =
-        record.UID;
+                    // 7. General Text Fields
+                    if (record.IssueBy !== undefined) payload.admin_issuex0020by = record.IssueBy || null;
+                    if (record.Brand !== undefined) payload.admin_brand = record.Brand || null;
+                    if (record.Model !== undefined) payload.admin_model = record.Model || null;
+                    if (record.ProductType !== undefined) payload.admin_producttype = record.ProductType || null;
+                    if (record.HandledBy !== undefined) payload.admin_handledx0020byx0020 = record.HandledBy || null;
+                    if (record.IPTUnitMgr !== undefined) payload.admin_iptx0020unitx0020mgr = record.IPTUnitMgr || null;
+                    if (record.UID !== undefined) payload.admin_uidx0020x0023 = record.UID || null;
+                    if (record.Remarks !== undefined || record.PRRemarks !== undefined) {
+                        payload.admin_remarks = record.Remarks || record.PRRemarks || null;
+                    }
+                    if (record.PRReference !== undefined) payload.admin_prx0020reference = record.PRReference || null;
+                    if (record.PRDescription !== undefined) payload.admin_prx0020description = record.PRDescription || null;
+                    if (record.ContractNo !== undefined) payload.admin_contractx0020nox002e = record.ContractNo || null;
+                    if (record.TotalRevenue !== undefined) payload.admin_totalrevenue = (record.TotalRevenue != null && record.TotalRevenue !== "") ? String(record.TotalRevenue) : null;
+                    if (record.UMMgr !== undefined) payload.admin_umx002fmgr = record.UMMgr || null;
+                    if (record.ChargeCCC !== undefined) payload.admin_chargex0020ccc = record.ChargeCCC || null;
+                    if (record.WorksOrderCode !== undefined) payload.admin_worksx0020orderx0020code = record.WorksOrderCode || null;
+                    if (record.AccountCode !== undefined) payload.admin_accountx0020code = record.AccountCode || null;
+                    if (record.InvoiceDNNo !== undefined) payload.admin_invoicex0020x0023x0020x00 = record.InvoiceDNNo || null;
+                    if (record.SBMTCEOrder !== undefined) payload.admin_sbmtceorder = record.SBMTCEOrder || null;
+                    if (record.ItemNo !== undefined) payload.admin_itemno = record.ItemNo || null;
+                    if (record.Buyer !== undefined) payload.admin_buyer = record.Buyer || null;
+                    if (record.MarkReceiptDate !== undefined) payload.admin_markreceivedate = record.MarkReceiptDate ? formatDateForInput(record.MarkReceiptDate) : null;
+                    if (record.SellingAmountHKD !== undefined) payload.admin_sellingamounthkd = (record.SellingAmountHKD != null && record.SellingAmountHKD !== "") ? String(record.SellingAmountHKD) : null;
+                    if (record.CostRevenueRatio !== undefined) payload.admin_ratioofoverallcostx002dreve = (record.CostRevenueRatio != null && record.CostRevenueRatio !== "") ? String(record.CostRevenueRatio) : null;
+                    if (record.SwappingRevenueRatio !== undefined) payload.admin_ratioofoverallswappingx002d = (record.SwappingRevenueRatio != null && record.SwappingRevenueRatio !== "") ? String(record.SwappingRevenueRatio) : null;
+                    if (record.DeliveryNote !== undefined) payload.admin_deliverynote = record.DeliveryNote || null;
+                    if (record.ReceiptNum !== undefined) payload.admin_receiptnum = record.ReceiptNum || null;
+                    if (record.POCurrency !== undefined) payload.admin_pocurrency = record.POCurrency || null;
 
-if (record.Remarks !== undefined)
-    payload.admin_remarks =
-        record.Remarks;
-
-if (record.QuotationStartDate !== undefined)
-    payload.admin_quotationstartdates =
-        record.QuotationStartDate;
-
-if (record.QuotationEndDate !== undefined)
-    payload.admin_quotationenddates =
-        record.QuotationEndDate;
-
-if (record.QuotationExpiryDate !== undefined)
-    payload.admin_quotationexpirydate =
-        record.QuotationExpiryDate;
-
-if (record.PRReference !== undefined)
-    payload.admin_prx0020reference =
-        record.PRReference;
-
-if (record.PRDescription !== undefined)
-    payload.admin_prx0020description =
-        record.PRDescription;
-
-if (record.ContractNo !== undefined)
-    payload.admin_contractx0020nox002e =
-        record.ContractNo;
-
-if (record.StartDate !== undefined)
-    payload.admin_contractstartdate =
-        record.StartDate;
-
-if (record.EndDate !== undefined)
-    payload.admin_contractenddate =
-        record.EndDate;
-
-if (record.TotalRevenue !== undefined)
-    payload.admin_totalrevenue =
-        record.TotalRevenue;
-
-if (record.UMMgr !== undefined)
-    payload.admin_umx002fmgr =
-        record.UMMgr;
-
-if (record.LicenseReceiveDate !== undefined)
-    payload.admin_licensereceivedate =
-        record.LicenseReceiveDate;
-
-if (record.ChargeCCC !== undefined)
-    payload.admin_chargex0020ccc =
-        record.ChargeCCC;
-
-if (record.WorksOrderCode !== undefined)
-    payload.admin_worksx0020orderx0020code =
-        record.WorksOrderCode;
-
-if (record.AccountCode !== undefined)
-    payload.admin_accountx0020code =
-        record.AccountCode;
-
-if (record.PRIssuedOn !== undefined)
-    payload.admin_prx0020issuedx0020on =
-        record.PRIssuedOn;
-
-if (record.PRIssuedMonth !== undefined)
-    payload.admin_prx0020issuedx0020month =
-        record.PRIssuedMonth;
-
-if (record.Currency !== undefined)
-    payload.admin_hkdusd =
-        record.Currency;
-
-if (record.No !== undefined)
-    payload.admin_nox002e =
-        record.No;
-
-if (record.InvoiceDNNo !== undefined)
-    payload.admin_invoicex0020x0023x0020x00 =
-        record.InvoiceDNNo;
-
-if (record.InvoiceDNDate !== undefined)
-    payload.admin_invoicex0020x002fx0020dnx =
-        record.InvoiceDNDate;
-
-if (record.SBMTCEOrder !== undefined)
-    payload.admin_sbmtceorder =
-        record.SBMTCEOrder;
-
-if (record.ItemNo !== undefined)
-    payload.admin_itemno =
-        record.ItemNo;
-
-if (record.SellingAmountHKD !== undefined)
-    payload.admin_sellingamounthkd =
-        record.SellingAmountHKD;
-
-if (record.CostRevenueRatio !== undefined)
-    payload.admin_ratioofoverallcostx002dreve =
-        record.CostRevenueRatio;
-
-if (record.SwappingRevenueRatio !== undefined)
-    payload.admin_ratioofoverallswappingx002d =
-        record.SwappingRevenueRatio;
-
-if (record.PODate !== undefined)
-    payload.admin_pox0020date =
-        record.PODate;
-
-if (record.POReceiptDate !== undefined)
-    payload.admin_receiptx0020date =
-        record.POReceiptDate;
-
-if (record.DeliveryNote !== undefined)
-    payload.admin_deliverynote =
-        record.DeliveryNote;
-
-if (record.ReceiptNum !== undefined)
-    payload.admin_receiptnum =
-        record.ReceiptNum;
-
-if (record.UrgentFlag !== undefined)
-    payload.admin_flagged =
-        !!record.UrgentFlag;
-
-if (record.UrgentFlag !== undefined)
-    payload.admin_yx0020x002fx0020n =
-        record.UrgentFlag ? "Y" : "N";
+                    // 8. Booleans / Flags
+                    if (record.UrgentFlag !== undefined) {
+                        payload.admin_flagged = !!record.UrgentFlag;
+                        payload.admin_yx0020x002fx0020n = record.UrgentFlag ? "Y" : "N";
+                    }
+                    if (record.StatusRemark !== undefined) payload.admin_statusremark = record.StatusRemark || null;
 
                     if (Object.keys(payload).length > 0) {
-                        await api.updateRecord(entityName, existingId, payload);
+                        try {
+                            await api.updateRecord(entityName, existingId, payload);
+                            console.log("[MasterRecords] Successfully updated record in Dataverse:", title);
+                        } catch (bulkErr) {
+                            console.warn("[MasterRecords] Bulk update failed, trying per-field update:", bulkErr);
+                            for (const [key, value] of Object.entries(payload)) {
+                                try {
+                                    await api.updateRecord(entityName, existingId, { [key]: value });
+                                    console.log("[MasterRecords] SUCCESS:", key, value);
+                                } catch (fieldErr) {
+                                    console.error("[MasterRecords] FAILED FIELD:", key, value, fieldErr);
+                                }
+                            }
+                        }
                     }
                 }
             } catch (err) {
@@ -5241,7 +5366,6 @@ if (record.UrgentFlag !== undefined)
                 { id: 'edit-btb', label: 'BTB Type' },
                 { id: 'edit-handledby', label: 'Case Handled By' },
                 { id: 'edit-ipt-unit-mgr', label: 'IPT Unit Mgr' },
-                { id: 'edit-prref', label: 'PR Reference' },
                 { id: 'edit-quotationexpiry', label: 'Quotation Expiry Date' },
                 { id: 'edit-pr-issued-on', label: 'PR Issued Date' },
                 { id: 'edit-pramount', label: 'PR Amount' },
@@ -5346,7 +5470,8 @@ if (record.UrgentFlag !== undefined)
             'edit-selling-amount-hkd': 'SellingAmountHKD',
             'edit-ratio-cost-revenue': 'CostRevenueRatio',
             'edit-ratio-swapping-revenue': 'SwappingRevenueRatio',
-            'edit-pr-remarks': 'Remarks',
+            'edit-pr-remark': 'PRRemarks',
+            'edit-pr-remarks': 'PRRemarks',
 
             'edit-um-verified': 'UMVerified',
             'edit-pr-approved': 'PRRequestApproved',
@@ -5505,6 +5630,7 @@ if (record.UrgentFlag !== undefined)
                 const requiredFields = STAGE_REQUIRED_FIELDS[STAGES[idx]] || [];
                 requiredFields.forEach(field => {
                     const element = document.getElementById(field.id);
+                    if (element && element.disabled) return;
                     const value = getFieldValue(field);
 
                     const isPlaceholder = field.id === 'edit-btb' && value === '-- Select --';

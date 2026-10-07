@@ -5896,7 +5896,7 @@ function PdfPreview({ doc, url, page, setPage, zoom, setZoom, onLoaded }) {
         </div>
 
         <div ref={paneRef} onWheel={e => handleZoomWheel(e, setZoom)}
-          className="flex-1 overflow-auto bg-[#F3EBE2] p-6 flex items-start justify-center">
+          className="flex-1 overflow-auto bg-[#F3EBE2] p-6 flex items-start w-full">
           {renderErr
             ? <div className="m-auto max-w-[360px] px-4 py-3 bg-[#FDF6E0] border-l-[3px] border-[#B78312] rounded-lg text-xs leading-[18px] text-[#3D3D3D]" style={{fontFamily:"Newsreader, serif"}}>
                 {renderErr} Download the original to open it in a PDF reader.
@@ -5904,7 +5904,7 @@ function PdfPreview({ doc, url, page, setPage, zoom, setZoom, onLoaded }) {
             : pageUrl
               ? <img src={pageUrl} alt={`Page ${page}`}
                   style={{ maxWidth: "none", maxHeight: "none" }}
-                  className={`shrink-0 shadow-[0px_2px_12px_0px_#0000001a] rounded bg-white ${rendering ? "opacity-50" : ""}`} />
+                  className={`mx-auto shrink-0 shadow-[0px_2px_12px_0px_#0000001a] rounded bg-white ${rendering ? "opacity-50" : ""}`} />
               : <div className="m-auto flex flex-col items-center gap-2">
                   <div className="w-[220px] h-[280px] rounded bg-[#E3D6C8] animate-pulse" />
                   <div className="text-xs text-[#6B6B6B]" style={{fontFamily:"Newsreader, serif"}}>Rendering page {page}…</div>

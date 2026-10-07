@@ -509,7 +509,7 @@
   })();
 </script>
 
-<script type="text/babel-jsx" id="app-src">
+<script type="text/babel" id="app-src">
 
 const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
@@ -11988,7 +11988,6 @@ class Semaphore {
     };
     const resolvers = /** @type {PromiseWithResolvers<() => void>} */ (Promise.withResolvers());
     if (this.currentCount < this.maxConcurrency) {
-      this.currentCount++;
       resolvers.resolve(notifyNext);
     } else {
       this.queue.push(() => resolvers.resolve(notifyNext));
@@ -12062,8 +12061,9 @@ function sliceFiles(serializedFiles, chunkSize) {
  * @param {ISerializedFile[]} serializedFiles
  * @param {string} recordId
  * @param {number} chunkSize
+ * @param {((current: number, total: number) => void)} [onProgress]
  */
-async function splitUpload(serializedFiles, recordId, chunkSize) {
+async function splitUpload(serializedFiles, recordId, chunkSize, onProgress) {
   const semaphore = new Semaphore(5);
 
   const { reqList, chunkManifests } = sliceFiles(serializedFiles, chunkSize);
@@ -12073,6 +12073,10 @@ async function splitUpload(serializedFiles, recordId, chunkSize) {
     action: "finish",
     "chunk-manifest": chunkManifests,
   };
+
+  let completedCount = 0;
+  const totalCount = reqList.length;
+  onProgress?.(0, totalCount);
 
   const requests = reqList.map(async (files)=>{
     const notify = await semaphore.queueNext();
@@ -12088,6 +12092,7 @@ async function splitUpload(serializedFiles, recordId, chunkSize) {
         method: "POST",
         body: JSON.stringify(chunkReqObject)
       });
+      onProgress?.(++completedCount, totalCount);
       return response;
     } finally {
       notify();
@@ -12103,12 +12108,14 @@ async function splitUpload(serializedFiles, recordId, chunkSize) {
   return response;
 }
 
+// const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
+
 /**
- * 
- * @param {string} recordId 
- * @param {import("../../lib/interfaces/AttachmentRecord").IAttachments} attachments 
+ * @param {string} recordId
+ * @param {import("../../lib/interfaces/AttachmentRecord").IAttachments} attachments
+ * @param {((current: number, total: number) => void)} [onProgress]
  */
-async function saveAttachmentToPowerFlow(recordId, attachments){
+async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
@@ -12116,31 +12123,39 @@ async function saveAttachmentToPowerFlow(recordId, attachments){
   //   recordId,
   //   attachments: []
   // }
-  const emailFile = attachments["Vendor Quotation"].fileObj
+  const emailFile = attachments["Vendor Quotation"].fileObj;
 
   const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {
-      if (!doc.fileName) throw new Error("Invalid filename") ;
-      return ({
-        filename: doc.fileName,
-        base64: await blobToBase64(doc.blob)
-      })
-    }
-  )
-  if (emailFile){
-    promises.push(blobToBase64(emailFile).then((base64)=>({
-      filename: emailFile.name,
-      base64
-    })))
+    if (!doc.fileName) throw new Error("Invalid filename");
+    return {
+      filename: doc.fileName,
+      base64: await blobToBase64(doc.blob),
+    };
+  });
+  if (emailFile) {
+    promises.push(
+      blobToBase64(emailFile).then((base64) => ({
+        filename: emailFile.name,
+        base64,
+      })),
+    );
   }
-  const base64Files = (await Promise.allSettled(promises)).filter(res=> res.status === 'fulfilled')
-  const response = await splitUpload(base64Files.map(res=>res.value), recordId, 1024*1024)
-  
+  const base64Files = (await Promise.allSettled(promises)).filter(
+    (res) => res.status === "fulfilled",
+  );
+  const response = await splitUpload(
+    base64Files.map((res) => res.value),
+    recordId,
+    1024 * 1024,
+    onProgress
+  );
+
   // postObj.attachments = base64Files.map((res) => res.value)
   // const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
   //   method: "POST",
-  //   body: JSON.stringify(postObj), 
+  //   body: JSON.stringify(postObj),
   // })
-  return response
+  return response;
 }
 
 // No `census` prop: every role this page names travels inside the crosscheck
@@ -12428,6 +12443,19 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
     </React.Fragment>
   );
 
+  
+  const [uploadProgress, setUploadProgress] = useState(null);
+
+  const onSaveToMasterClick = async () => {
+    const navigateNext = await goSave(false);
+    setUploadProgress({current: 0, total: 0})
+    await saveAttachmentToPowerFlow(recordId, attachments, (current, total)=>{
+      setUploadProgress({current, total})
+    })
+    setUploadProgress(null)
+    navigateNext?.();
+  }
+
   return <React.Fragment>
     <TopBar title="LIS & Remark" desc="Review the LIS row and add remarks"
       right={<React.Fragment>
@@ -12440,14 +12468,18 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
           options={items.map((_, i) => ({ value: i, label: `Item ${i + 1}` }))}
           triggerClassName="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border-[1.5px] border-[var(--line)] bg-white text-[13px] font-semibold text-[var(--ink)]" />}
         <GhostButton onClick={goUpload}><span className="inline-flex items-center gap-1.5"><Icon name="chevronLeft" className="w-4 h-4" />Upload</span></GhostButton>
-        <PrimaryButton 
-          disabled={saving || !!savedRecordId} 
-          onClick={async (e)=>{
-            await goSave(e);
-            saveAttachmentToPowerFlow(recordId, attachments)
-          }}
+        <PrimaryButton
+          disabled={saving || !!savedRecordId || uploadProgress}
+          onClick={onSaveToMasterClick}
         >
-          {saving ? "Saving..." : savedRecordId ? "Saved" : "Save to master"}
+          {saving
+            ? "Saving..."
+            : uploadProgress
+              ? `Uploading chunk ${uploadProgress.current} of ${uploadProgress.total}...`
+              : savedRecordId
+                ? "Saved"
+                : "Save to master"
+          }
         </PrimaryButton>
       </React.Fragment>} />
     <div className="px-5 md:px-8 pb-8 flex flex-col gap-5">
@@ -15858,7 +15890,7 @@ function App() {
   // finished item stays recorded as finished and its row is never written twice.
   const savedRecordId = savedRecordIdOf(savedRecordIds, recordIdForItem(savePlans, itemIndex));
 
-  const goSave = async () => {
+  const goSave = async (navigateNext = true) => {
     if (saving) return;
     // Backstop for the disabled button: a stale closure or a double-click must
     // not be able to write a second record for this upload.
@@ -15976,7 +16008,13 @@ function App() {
     // rail entry highlighted and no way back. The write above still happens
     // either way, and savedRecordId still flips the button to "Saved" -- the
     // Admin reviewer simply stays where they are.
-    if (navReachable("records")) setPage("records");
+    if (navReachable("records")) {
+      if (navigateNext){
+        setPage("records");
+      }
+      // return callback to manually navigate to records page
+      return ()=>setPage("records")
+    }
   };
   const markSent = id => setRecords(prev => prev.map(r => r.id === id ? { ...r, status: "Completed" } : r));
 

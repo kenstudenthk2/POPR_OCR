@@ -509,7 +509,7 @@
   })();
 </script>
 
-<script type="text/babel-jsx" id="app-src">
+<script type="text/babel" id="app-src">
 
 const { useState, useMemo, useEffect, useRef, useCallback } = React;
 
@@ -5896,7 +5896,7 @@ function PdfPreview({ doc, url, page, setPage, zoom, setZoom, onLoaded }) {
         </div>
 
         <div ref={paneRef} onWheel={e => handleZoomWheel(e, setZoom)}
-          className="flex-1 overflow-auto bg-[#F3EBE2] p-6 flex items-start justify-center">
+          className="flex-1 overflow-auto bg-[#F3EBE2] p-6 flex items-start w-full">
           {renderErr
             ? <div className="m-auto max-w-[360px] px-4 py-3 bg-[#FDF6E0] border-l-[3px] border-[#B78312] rounded-lg text-xs leading-[18px] text-[#3D3D3D]" style={{fontFamily:"Newsreader, serif"}}>
                 {renderErr} Download the original to open it in a PDF reader.
@@ -5904,7 +5904,7 @@ function PdfPreview({ doc, url, page, setPage, zoom, setZoom, onLoaded }) {
             : pageUrl
               ? <img src={pageUrl} alt={`Page ${page}`}
                   style={{ maxWidth: "none", maxHeight: "none" }}
-                  className={`shrink-0 shadow-[0px_2px_12px_0px_#0000001a] rounded bg-white ${rendering ? "opacity-50" : ""}`} />
+                  className={`mx-auto shrink-0 shadow-[0px_2px_12px_0px_#0000001a] rounded bg-white ${rendering ? "opacity-50" : ""}`} />
               : <div className="m-auto flex flex-col items-center gap-2">
                   <div className="w-[220px] h-[280px] rounded bg-[#E3D6C8] animate-pulse" />
                   <div className="text-xs text-[#6B6B6B]" style={{fontFamily:"Newsreader, serif"}}>Rendering page {page}…</div>
@@ -11904,7 +11904,7 @@ function ProcessingPage({ status, pct, error, retry, goVerify }) {
 }
 
 /**
- * @param {Blob} blob 
+ * @param {Blob} blob
  * @returns {Promise<string>} - base64 string representation of the blob
  */
 function blobToBase64(blob) {
@@ -11917,49 +11917,245 @@ function blobToBase64(blob) {
         return;
       }
       const base64 = result.substring(result.indexOf(",") + 1); // Remove the data URL prefix
-      resolve(base64)
+      resolve(base64);
     };
     reader.readAsDataURL(blob);
   });
 }
 
+
+/** 
+  @typedef {{
+      filename: string,
+      base64: string
+    }} ISerializedFile
+
+  @typedef {{
+    recordId: string,
+    action: 'chunk' | 'finish' | 'purge-folder' | undefined, 
+  }} IBaseSaveAttachmentPayload
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: undefined,
+    attachments: ISerializedFile[]
+  }} ISimpleSaveAttachmentPayload
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: 'chunk',
+    attachments: ISerializedFile[]
+  }} IChunkedSaveAttachmentUploadPayload
+
+  @typedef {{
+    filename:string, 
+    chunks: string[]
+  }} IChunkManifestItem 
+
+  @typedef {IBaseSaveAttachmentPayload & {
+    action: 'finish',
+    "chunk-manifest": IChunkManifestItem[]
+  }} IChunkedSaveAttachmentFinishPayload
+
+  @typedef {
+    | ISimpleSaveAttachmentPayload
+    | IChunkedSaveAttachmentUploadPayload
+    | IChunkedSaveAttachmentFinishPayload
+  } ISaveAttachmentPayload
+*/
+
+class Semaphore {
+  /** @type {(()=>any)[]} */
+  queue = [];
+  currentCount = 0;
+
+  /**
+   * @param {number} maxConcurrency
+   */
+  constructor(maxConcurrency) {
+    this.maxConcurrency = maxConcurrency;
+  }
+
+  queueNext() {
+    let notified = false;
+    this.currentCount++;
+    const notifyNext = () => {
+      if (notified) return;
+      notified = true;
+      this.currentCount--;
+      if (this.queue.length > 0) {
+        const nextResolve = this.queue.shift();
+        nextResolve?.();
+      }
+    };
+    const resolvers = /** @type {PromiseWithResolvers<() => void>} */ (Promise.withResolvers());
+    if (this.currentCount < this.maxConcurrency) {
+      resolvers.resolve(notifyNext);
+    } else {
+      this.queue.push(() => resolvers.resolve(notifyNext));
+    }
+
+    return resolvers.promise;
+  }
+}
+
+// const N8N_SAVE_ONEDRIVE_URL = "";
 const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
+const GROUP_RATIO = 0.7;
+
 /**
- * Send Email and attachments to PowerFlow (through n8n flow)
- * @param {string} recordId 
- * @param {import("./types/AttachmentRecord").IAttachments} attachments 
+ * @param {ISerializedFile[]} serializedFiles
+ * @param {number} chunkSize
  */
-async function saveAttachmentToPowerFlow(recordId, attachments){
+function sliceFiles(serializedFiles, chunkSize) {
+  /** @type {IChunkManifestItem[]} */
+  const chunkManifest = [];
+  /** @type {ISerializedFile[][]} */
+  const reqList = [];
+  let reqAttachments = [];
+  let reqSize = 0;
+  for (const file of serializedFiles) {
+    /** @type {IChunkManifestItem} */
+    const chunkManifestItem = {
+      filename: file.filename,
+      chunks: [],
+    };
+    let fileHead = 0;
+    let chunkIndex = 0;
+    while (fileHead < file.base64.length) {
+      const chunkName = `${file.filename}.chunk-${chunkIndex}`;
+      const remainingSize = chunkSize - reqSize;
+      const chunk = file.base64.slice(fileHead, fileHead + remainingSize);
+      fileHead += chunk.length;
+      chunkIndex++;
+
+      reqAttachments.push({
+        filename: chunkName,
+        base64: chunk,
+      });
+      reqSize += chunk.length;
+      chunkManifestItem.chunks.push(chunkName);
+
+      if (reqSize >= chunkSize * GROUP_RATIO) {
+        reqList.push(reqAttachments);
+        reqAttachments = [];
+        reqSize = 0;
+      }
+      // reuse request when chunk utilization is below GROUP_RATIO
+    }
+    chunkManifest.push(chunkManifestItem);
+  }
+  if (reqAttachments.length > 0) {
+    reqList.push(reqAttachments);
+    reqAttachments = [];
+    reqSize = 0;
+  }
+
+  return {
+    reqList,
+    chunkManifests: chunkManifest,
+  };
+}
+
+/**
+ *
+ * @param {ISerializedFile[]} serializedFiles
+ * @param {string} recordId
+ * @param {number} chunkSize
+ * @param {((current: number, total: number) => void)} [onProgress]
+ */
+async function splitUpload(serializedFiles, recordId, chunkSize, onProgress) {
+  const semaphore = new Semaphore(5);
+
+  const { reqList, chunkManifests } = sliceFiles(serializedFiles, chunkSize);
+  /** @type {IChunkedSaveAttachmentFinishPayload} */
+  const finishPostObj = {
+    recordId,
+    action: "finish",
+    "chunk-manifest": chunkManifests,
+  };
+
+  let completedCount = 0;
+  const totalCount = reqList.length;
+  onProgress?.(0, totalCount);
+
+  const requests = reqList.map(async (files)=>{
+    const notify = await semaphore.queueNext();
+    try {
+      /** @type {IChunkedSaveAttachmentUploadPayload}*/
+      const chunkReqObject = {
+        recordId,
+        action: "chunk",
+        attachments: files,
+      }
+
+      const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+        method: "POST",
+        body: JSON.stringify(chunkReqObject)
+      });
+      onProgress?.(++completedCount, totalCount);
+      return response;
+    } finally {
+      notify();
+    }
+  })
+
+
+  await Promise.all(requests);
+  const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+    method: "POST",
+    body: JSON.stringify(finishPostObj),
+  });
+  return response;
+}
+
+// const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
+
+/**
+ * @param {string} recordId
+ * @param {import("../../lib/interfaces/AttachmentRecord").IAttachments} attachments
+ * @param {((current: number, total: number) => void)} [onProgress]
+ */
+async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
-  /** @type {{recordId: string, attachments: {filename: string; base64: string}[]}} */
-  const postObj = {
-    recordId,
-    attachments: []
-  }
-  const emailFile = attachments["Vendor Quotation"].fileObj
+  // const postObj = {
+  //   recordId,
+  //   attachments: []
+  // }
+  const emailFile = attachments["Vendor Quotation"].fileObj;
 
   const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {
-      if (!doc.fileName) throw new Error("Invalid filename") ;
-      return ({
-        filename: doc.fileName,
-        base64: await blobToBase64(doc.blob)
-      })
-    }
-  )
-  promises.push(blobToBase64(emailFile).then((base64)=>({
-    filename: emailFile.name,
-    base64
-  })))
-  const base64Files = (await Promise.allSettled(promises)).filter(res=> res.status === 'fulfilled')
-  postObj.attachments = base64Files.map((res) => res.value)
-  const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
-    method: "POST",
-    body: JSON.stringify(postObj), 
-  })
-  return response
+    if (!doc.fileName) throw new Error("Invalid filename");
+    return {
+      filename: doc.fileName,
+      base64: await blobToBase64(doc.blob),
+    };
+  });
+  if (emailFile) {
+    promises.push(
+      blobToBase64(emailFile).then((base64) => ({
+        filename: emailFile.name,
+        base64,
+      })),
+    );
+  }
+  const base64Files = (await Promise.allSettled(promises)).filter(
+    (res) => res.status === "fulfilled",
+  );
+  const response = await splitUpload(
+    base64Files.map((res) => res.value),
+    recordId,
+    1024 * 1024,
+    onProgress
+  );
+
+  // postObj.attachments = base64Files.map((res) => res.value)
+  // const response = await fetch(N8N_SAVE_ONEDRIVE_URL, {
+  //   method: "POST",
+  //   body: JSON.stringify(postObj),
+  // })
+  return response;
 }
 
 // No `census` prop: every role this page names travels inside the crosscheck
@@ -12247,6 +12443,19 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
     </React.Fragment>
   );
 
+  
+  const [uploadProgress, setUploadProgress] = useState(null);
+
+  const onSaveToMasterClick = async () => {
+    const navigateNext = await goSave(false);
+    setUploadProgress({current: 0, total: 0})
+    await saveAttachmentToPowerFlow(recordId, attachments, (current, total)=>{
+      setUploadProgress({current, total})
+    })
+    setUploadProgress(null)
+    navigateNext?.();
+  }
+
   return <React.Fragment>
     <TopBar title="LIS & Remark" desc="Review the LIS row and add remarks"
       right={<React.Fragment>
@@ -12259,14 +12468,18 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
           options={items.map((_, i) => ({ value: i, label: `Item ${i + 1}` }))}
           triggerClassName="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border-[1.5px] border-[var(--line)] bg-white text-[13px] font-semibold text-[var(--ink)]" />}
         <GhostButton onClick={goUpload}><span className="inline-flex items-center gap-1.5"><Icon name="chevronLeft" className="w-4 h-4" />Upload</span></GhostButton>
-        <PrimaryButton 
-          disabled={saving || !!savedRecordId} 
-          onClick={async (e)=>{
-            await goSave(e);
-            saveAttachmentToPowerFlow(recordId, attachments)
-          }}
+        <PrimaryButton
+          disabled={saving || !!savedRecordId || uploadProgress}
+          onClick={onSaveToMasterClick}
         >
-          {saving ? "Saving..." : savedRecordId ? "Saved" : "Save to master"}
+          {saving
+            ? "Saving..."
+            : uploadProgress
+              ? `Uploading chunk ${uploadProgress.current} of ${uploadProgress.total}...`
+              : savedRecordId
+                ? "Saved"
+                : "Save to master"
+          }
         </PrimaryButton>
       </React.Fragment>} />
     <div className="px-5 md:px-8 pb-8 flex flex-col gap-5">
@@ -15677,7 +15890,7 @@ function App() {
   // finished item stays recorded as finished and its row is never written twice.
   const savedRecordId = savedRecordIdOf(savedRecordIds, recordIdForItem(savePlans, itemIndex));
 
-  const goSave = async () => {
+  const goSave = async (navigateNext = true) => {
     if (saving) return;
     // Backstop for the disabled button: a stale closure or a double-click must
     // not be able to write a second record for this upload.
@@ -15795,7 +16008,13 @@ function App() {
     // rail entry highlighted and no way back. The write above still happens
     // either way, and savedRecordId still flips the button to "Saved" -- the
     // Admin reviewer simply stays where they are.
-    if (navReachable("records")) setPage("records");
+    if (navReachable("records")) {
+      if (navigateNext){
+        setPage("records");
+      }
+      // return callback to manually navigate to records page
+      return ()=>setPage("records")
+    }
   };
   const markSent = id => setRecords(prev => prev.map(r => r.id === id ? { ...r, status: "Completed" } : r));
 

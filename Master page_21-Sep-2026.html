@@ -984,6 +984,10 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Remark</label>
                                     <textarea id="edit-pr-remark" rows="2" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y"></textarea>
                                 </div>
+                                <div class="col-span-1 md:col-span-2 flex text-[12px] font-semibold text-[var(--muted)]">
+                                    <span class="mr-1">Attachment URL:</span>
+                                    <a id="review-attachment-url" class="text-[var(--blue)] underline"></a>
+                                </div>
 
                                 <!-- PR Action Control inside PR Info Tab -->
                                 <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2">
@@ -997,7 +1001,9 @@
     type="button"
     id="btn-send-approval"
     onclick="sendApprovalRequest()"
-    class="ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent"
+    class="
+        ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
+    "
 >
     Send Approval Request
 </button>
@@ -1010,6 +1016,18 @@
                                                 >
                                                 <span class="text-[14px] font-semibold text-[var(--ink)]">UM Verified</span>
                                             </label>
+                                            <div id="um-review-info" class="hidden">
+                                                <p class="text-[12px] text-[var(--muted)]">
+                                                    Reviewer:
+                                                    <span id="um-review-info-reviewer">
+                                                    </span>
+                                                </p>
+                                                <p class="text-[12px] text-[var(--muted)]">
+                                                    Review Date:
+                                                    <span id="um-review-info-date">
+                                                    </span>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1279,7 +1297,9 @@
     type="button"
     id="btn-send-approval"
     onclick="sendApprovalRequest()"
-    class="ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent"
+    class="
+        ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
+    "
 >
     Send Approval Request
 </button>
@@ -1576,6 +1596,8 @@
     <div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end" id="toastContainer"></div>
 
     <script>
+        const LOAD_MOCK_DATA = false;
+
         /**
             @typedef {
                 | "PR No. Ready"
@@ -1656,12 +1678,16 @@
 
                 // UI & Workflow fields
                 ProcessStatus: WorkflowStage;   // (admin_ProcessStatus)
-                UMVerified?: boolean;
                 PRRequestApproved?: boolean;
                 Approver?: string;              // (admin_Approver)
-                ReviewApproval?: string;        // (admin_ReviewApproval)
+
+                UMReviewer?: string;            // (admin_umreviewapprovername)
+                UMVerified?: boolean;           // (admin_reviewapproval)
+                // ReviewApproval?: string;     // (admin_ReviewApproval)
                 ReviewDate?: string;            // (admin_ReviewDate)
                 ApprovalDate?: string;          // (admin_ApprovalDate)
+
+                ReviewDocumentURL?: string;      // (admin_reviewdocumenturl)
             }} IRecord;
 
             @typedef {{
@@ -4613,6 +4639,9 @@
                         <button type="button" onclick="initApp()" class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]">
                             Retry
                         </button>
+                        <button type="button" onclick="initMockApp()" class="text-nowrap ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6]">
+                            Load Mock Data
+                        </button>
                     `;
                 }
             }
@@ -4683,13 +4712,31 @@
             "admin_yx0020x002fx0020n"           : "UrgentFlag",
             "admin_flagged"                     : "Flagged",
             "admin_statusremark"                : "StatusRemark",
-            "admin_reviewapproval"              : "Approver",
             "admin_processstatus"               : "ProcessStatus",
             "admin_pocurrency"                  : "POCurrency",
             "admin_approvaldate"                : "ApprovalDate",
-            "admin_reviewdate"                  : "ReviewDate",
+            // "admin_reviewdate"                  : "ReviewDate",
+
+            "admin_reviewapproval"              : "UMVerified",
+            "admin_umrevieweddatetime"          : "ReviewDate",
+            "admin_umreviewapprovername"        : "UMReviewer",
+            "admin_reviewdocumenturl"           : "ReviewDocumentURL"
+
+
         });
         /** @typedef {typeof DV_COLUMN_MAP} IDVColumnMap */
+
+        /** 
+          @typedef {{
+               admin_reviewapproval: "Y" | "N" | null;
+               admin_yx0020x002fx0020n: "Y" | "N" | null;
+          }} IDVColumnTypeOverrride
+          
+          @typedef {
+               Omit<{[RecordKey in keyof IDVColumnMap]: IRecord[IDVColumnMap[RecordKey]]}, keyof IDVColumnTypeOverrride> & 
+               IDVColumnTypeOverrride
+          } IDVColumnType 
+         */
 
         async function loadData() {
             const api = getDataverseWebApi();
@@ -4709,7 +4756,7 @@
     )
 ];
 
-            /** @type {{[RecordKey in keyof IDVColumnMap]: IRecord[IDVColumnMap[RecordKey]]}[]} */
+            /** @type {IDVColumnType[]} */
             let entities = [];
             let loadedEntityName = "admin_btb_lis_excel_datas";
 
@@ -4894,6 +4941,12 @@
                                 }
                                 break;
                             }
+                            
+                            case "UMVerified": {
+                                const reviewed = item[dvColumnKey] === "Y"
+                                masterRecord[masterKey] = reviewed;
+                                break;
+                            }
                             default: 
                                 masterRecord[masterKey] = item[dvColumnKey];
                                 break;
@@ -4912,9 +4965,115 @@
         }
 
         function loadMockData() {
-            state.allData = [];
+            state.allData = [
+                {
+                    Id: "1",
+                    Title: "REQ-2026-001",
+                    CustomerName: "Acme Corporation",
+                    Vendor: "TechSupplier Ltd",
+                    BTBType: "BTB",
+                    PRAmount: 1250000,
+                    ProcessStatus: "UM Verified",
+                    HandledBy: "John Doe",
+                    PRNo: "6306168",
+                    PONo: "",
+                    UMVerified: true,
+                    PRRequestApproved: false,
+                    UrgentFlag: true,
+                    QuotationExpiryDate: "2026-10-15",
+                    ReviewDate: "2026-10-01",
+                    UMReviewer: "Test Reviewer - 01",
+                    ReviewDocumentURL: "https://example.com/review-doc-01"
+                },
+                {
+                    Id: "2",
+                    Title: "REQ-2026-002",
+                    CustomerName: "Global Logistics Inc",
+                    Vendor: "DataSoft HK",
+                    BTBType: "NON-BTB",
+                    PRAmount: 45000,
+                    ProcessStatus: "PO No. Ready",
+                    HandledBy: "Jane Smith",
+                    PRNo: "5258704",
+                    PONo: "",
+                    UMVerified: true,
+                    PRRequestApproved: true,
+                    UrgentFlag: false,
+                    QuotationExpiryDate: "2026-09-25"
+                },
+                {
+                    "Id": "3",
+                    "Title": "REQ-2026-003",
+                    "CustomerName": "Abc Company",
+                    "Vendor": "AAAYA",
+                    "BTBType": "BTB",
+                    "PRAmount": 805000,
+                    "ProcessStatus": "UM Verified",
+                    "HandledBy": "John Smith",
+                    "PRNo": "3142389",
+                    "PONo": "",
+                    "UMVerified": false,
+                    "PRRequestApproved": false,
+                    "UrgentFlag": false,
+                    "QuotationExpiryDate": "2027-08-25",
+                    "ServiceType": "a",
+                    "IPTUnitMgr": "a",
+                    "PRReference": "3",
+                    "ContractNo": "a",
+                    "StartDate": "3333-03-31",
+                    "EndDate": "3333-03-31",
+                    "PRIssuedOn": "3333-03-31",
+                    "Currency": "USD",
+                },
+                {
+                    Id: "4",
+                    Title: "REQ-2026-004",
+                    CustomerName: "132 Ltd",
+                    Vendor: "yawidfdf ",
+                    BTBType: "BTB",
+                    PRAmount: 3342000,
+                    ProcessStatus: "PO No. Ready",
+                    PRNo: "",
+                    HandledBy: "Billy Davidson",
+                    PONo: "",
+                    PODate: "",
+                    POReceiptDate: "",
+                    UMVerified: false,
+                    PRRequestApproved: false,
+                    UrgentFlag: false,
+                    QuotationExpiryDate: "2024-08-21"
+                },
+                {
+                    Id: "5",
+                    Title: "REQ-2026-005",
+                    CustomerName: "Forton Enterprise Limited",
+                    Vendor: "Cisco",
+                    BTBType: "NON-BTB",
+                    IPTUnitMgr: "Ken Wong",
+                    PRAmount: 50000,
+                    PRNo: "3567981",
+                    PRReference: "L4431796542",
+                    PRIssuedOn: "2026-09-22",
+                    StartDate: "2026-09-21",
+                    EndDate: "2026-09-30",
+                    ContractNo: "P/3241/MAMA/K113",
+                    PONo: "ZA3334357",
+                    POAmount: "47000",
+                    PODate: "2026-10-02",
+                    POReceiptDate: "2026-10-02",
+                    HandledBy: "Kelvin Smith",
+                    UMVerified: true,
+                    PRRequestApproved: true,
+                    UrgentFlag: false,
+                    QuotationExpiryDate: "2026-10-11",
+                    UID: "007",
+                    ServiceType: "fun",
+                }
+            ];
+            state.allData.forEach(item => {
+                item.ProcessStatus = evaluateWorkflowState(item);
+            });
         }
-
             
         /**
          * Updates query params without page reload
@@ -4933,6 +5092,22 @@
             const param = new URLSearchParams(location.search);
             const recordId = param.get("record");
             openEditModal(recordId);
+        }
+
+        function initMockApp() {
+            showLoader(true);
+            try {
+                loadMockData();
+                processData();
+                showToast("Loaded mock records.", "info");
+            } catch (error) {
+                console.error(error);
+                showToast("Failed to initialize records.", "error");
+            } finally {
+                showLoader(false);
+                openParamItem();
+            }
+
         }
 
         async function initApp() {
@@ -5740,6 +5915,19 @@
                 updateFieldLockingAndApprovalUI(activeStatus);
                 return;
             }
+            const umReviewInfoDiv = document.getElementById('um-review-info')
+            if (umReviewInfoDiv) {
+                umReviewInfoDiv.classList.toggle('hidden', !curRecord.UMVerified);
+            }
+            const sendApprovalButton = document.getElementById('btn-send-approval');
+            if (sendApprovalButton) {
+                const buttonDisabledStyle = ["bg-gray-400", "cursor-not-allowed", "opacity-50"];
+                if (curRecord.UMVerified) {
+                    sendApprovalButton.classList.add(...buttonDisabledStyle);
+                } else {
+                    sendApprovalButton.classList.remove(...buttonDisabledStyle);
+                }
+            }
             
             const prApprovedContainer =
                 document.getElementById('prApprovalSection');
@@ -5932,6 +6120,7 @@
                     el.checked = Boolean(item[recordKey]);
                 } else {
                     let val = item[recordKey] !== undefined && item[recordKey] !== null ? String(item[recordKey]) : '';
+                    
                     if (fieldId === 'edit-currency') {
                         val = (val && String(val).toUpperCase() === 'USD') ? 'USD' : 'HKD';
                     }
@@ -5946,6 +6135,19 @@
                         opt.value = val;
                         opt.textContent = val;
                         el.appendChild(opt);
+                    }
+                    // non-input display fields
+                    if (
+                        fieldId === "um-review-info-reviewer" ||
+                        fieldId === "um-review-info-date"
+                    ) {
+                        el.textContent = val || "";
+                    }
+                    if (
+                        fieldId === "review-attachment-url"
+                    ) {
+                        el.textContent = val || "";
+                        el.href = val || "#";
                     }
                     el.value = val;
                 }
@@ -6454,6 +6656,9 @@
             'edit-um-verified': 'UMVerified',
             'edit-pr-approved': 'PRRequestApproved',
 
+            "um-review-info-reviewer": "UMReviewer",
+            "um-review-info-date": "ReviewDate",
+
             // ============
             // PO Info.
             // ============
@@ -6465,6 +6670,8 @@
             'edit-delivery-note': 'DeliveryNote',
             'edit-receipt-num': 'ReceiptNum',
             'edit-mark-receipt-date': 'MarkReceiptDate',
+
+            'review-attachment-url': 'ReviewDocumentURL'
             
             // missing PONoReady
         };
@@ -6729,12 +6936,13 @@
 function sendApprovalRequest() {
 
     if (!state.currentRecord) {
-
         showToast(
             "No record selected.",
             "warning"
         );
-
+        return;
+    }
+    if (state.currentRecord.UMVerified) {
         return;
     }
 

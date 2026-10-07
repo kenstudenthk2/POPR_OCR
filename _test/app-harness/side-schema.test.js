@@ -89,85 +89,24 @@ eq(SIDE_LABEL, 'UNKNOWN', 'the label says UNKNOWN rather than naming a side');
 ok(SCHEMA === DATAVERSE_SCHEMAS.dev, 'SCHEMA falls back to dev so reads keep working');
 eq(FEATURES.processStatus, false, 'the Admin-only process status feature is off on the dev side');
 
-/* ---------- 4b. the Verify Table's three code rows are dev-only ---------- */
-// Charge CCC / Account Code / Works Order Code sit directly under IPT Unit Mgr
-// on the dev side and are absent from the Admin rail's Verify Table. Both
-// halves matter and each fails silently on its own: a row left on Admin would
-// draw a box over a column the Admin payload never writes, and an id left in
-// LIS_EXCEL_ROW_IDS with no row would send an empty key for a row nobody saw.
-// Issue By joined them on 2026-09-25 and is in PAIR_ROW_IDS below rather than
-// here, for one reason: its LIS column, admin_issuex0020by, is spelled the SAME
-// on both sides, so the "two sides share no spelling" loop further down is
-// genuinely false for it. Everything the three share WITH it is checked over
-// PAIR_ROW_IDS; only the spelling rule stays on these three.
-const CODE_ROW_IDS = ['chargeCcc', 'accountCode', 'worksOrderCode'];
-const PAIR_ROW_IDS = CODE_ROW_IDS.concat(['issueBy']);
-eq(FEATURES.verifyLisCodes, true, 'the dev-only Verify Table code rows are on when the side is not admin');
-eq(FEATURES.prAmountCurrency, true, 'PR Amount currency format is on for dev side');
-PAIR_ROW_IDS.forEach(id => {
-  const row = VERIFY_TABLE_ROWS_ALL.find(r => r.id === id);
-  ok(!!row, id + ' is a VERIFY_TABLE_ROWS_ALL row');
-  ok(row && row.devOnly === true, id + ' is marked devOnly');
-  // lisOnly, NOT solo: no document on these emails states a charge code, so a
-  // Value (ATQ Excel) cell would read "not extracted" forever. See the row's
-  // own note in PR Assistant App.html.
-  ok(row && row.lisOnly === true, id + ' draws the LIS box alone (lisOnly)');
-  ok(row && !row.lisAutoFill, id + ' has nothing to prefill from, so no lisAutoFill');
-  // The row's key is what lisCellValue looks up, so it must be a key this
-  // table's fields map actually names -- on BOTH sides, since the filter is
-  // what keeps the rows off Admin, not a missing column.
-  ['dev', 'admin'].forEach(side => {
-    ok(!!DATAVERSE_SCHEMAS[side].lis.fields[id],
-      side + '.lis.fields names a column for ' + id);
-    ok(DATAVERSE_SCHEMAS[side].lis.select.indexOf(DATAVERSE_SCHEMAS[side].lis.fields[id]) !== -1,
-      side + '.lis.select asks for ' + id + "'s column");
-  });
-  // The dev write map gained chargeCcc/accountCode with these rows,
-  // issueBy when Pair started filling it; worksOrderCode was already there.
-  // This is the assertion that caught issueBy being read-only on dev: Pair
-  // filled the box, the box showed the name, and mapPayload dropped the key.
-  ok(!!DATAVERSE_SCHEMAS.dev.lis.write[id], 'dev.lis.write names a column for ' + id);
-});
-// Same rule as every other column in this file: nothing is derived, and the
-// two sides share no spelling.
+/* ---------- 4b. the Verify Table's dev-only rows ---------- */
+// Charge CCC / Account Code / Works Order Code / Issue By were removed from the Verify Table.
+const CODE_ROW_IDS = ['chargeCcc', 'accountCode', 'worksOrderCode', 'issueBy'];
 CODE_ROW_IDS.forEach(id => {
-  ok(DATAVERSE_SCHEMAS.dev.lis.fields[id] !== DATAVERSE_SCHEMAS.admin.lis.fields[id],
-    id + " spells its column differently on the two sides");
+  ok(!VERIFY_TABLE_ROWS_ALL.find(r => r.id === id), id + ' is removed from VERIFY_TABLE_ROWS_ALL');
 });
-// Filtered ONCE. With the flag on, the filtered list is the whole list; the
-// assertion that matters is that the filter is the only thing standing between
-// them, so a second filter elsewhere would show up as a length change here.
+
+eq(FEATURES.verifyLisCodes, false, 'verifyLisCodes is off');
+eq(FEATURES.prAmountCurrency, true, 'PR Amount currency format is on for dev side');
+
 eq(VERIFY_TABLE_ROWS.length, VERIFY_TABLE_ROWS_ALL.length,
-  'with verifyLisCodes on, every row reaches the table');
-eq(VERIFY_TABLE_ROWS_ALL.filter(r => r.devOnly).length, PAIR_ROW_IDS.length,
-  "the four rows Pair fills are the only devOnly Verify Table rows");
-// Directly under IPT Unit Mgr, which is what was asked for -- and above UID,
-// which has always been last.
-eq(VERIFY_TABLE_ROWS_ALL.findIndex(r => r.id === 'chargeCcc'),
-  VERIFY_TABLE_ROWS_ALL.findIndex(r => r.id === 'iptUnitMgr') + 1,
-  'Charge CCC sits directly below IPT Unit Mgr');
-eq(VERIFY_TABLE_ROWS_ALL.map(r => r.id).slice(-5).join(','),
-  'chargeCcc,accountCode,worksOrderCode,issueBy,uid',
-  'the four rows Pair fills sit between IPT Unit Mgr and UID, in the order asked for');
-// The write half. A blank is dropped rather than blanking a column somebody
-// filled in elsewhere, and a code is Text -- "0012" must survive as "0012".
-eq(JSON.stringify(buildLisExcelPayload({ chargeCcc: 'CCC-01', accountCode: '0012', worksOrderCode: 'WO-9' }, 'R-1')),
-  JSON.stringify({
-    [DATAVERSE_SCHEMAS.dev.lis.write.recordId]: 'R-1',
-    [DATAVERSE_SCHEMAS.dev.lis.write.chargeCcc]: 'CCC-01',
-    [DATAVERSE_SCHEMAS.dev.lis.write.accountCode]: '0012',
-    [DATAVERSE_SCHEMAS.dev.lis.write.worksOrderCode]: 'WO-9',
-  }),
-  'the three codes are written as Text, leading zeros and all');
-eq(JSON.stringify(buildLisExcelPayload({ chargeCcc: '', accountCode: '  ' }, 'R-1')),
-  JSON.stringify({ [DATAVERSE_SCHEMAS.dev.lis.write.recordId]: 'R-1' }),
-  'a blank code writes nothing rather than blanking the column');
+  'every remaining row reaches the table');
+eq(VERIFY_TABLE_ROWS_ALL.filter(r => r.devOnly).length, 0,
+  "there are no devOnly Verify Table rows");
 
 /* ---------- 4c. the Product Type -> coding lookup behind "Pair" ---------- */
-// FEATURES.verifyCodePair, and the one thing that makes it safe on the side it
-// is NOT on: the Admin schema has no cccLookup at all, so there is no entity
-// name to query and no guessed column to send.
-ok(FEATURES.verifyCodePair === true, 'the Pair button is on for the dev side');
+// FEATURES.verifyCodePair is now off on the Verify Table.
+ok(FEATURES.verifyCodePair === false, 'the Pair button is off');
 ok(!!DATAVERSE_SCHEMAS.dev.cccLookup, 'the dev side names a coding table');
 ok(!DATAVERSE_SCHEMAS.admin.cccLookup,
   'the Admin side names NO coding table -- its columns have not been transcribed');

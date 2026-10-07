@@ -99,7 +99,7 @@ const EXPORTS = [
   'cleanRichTextToPlainText',
   'buildBtbRemark', 'BTB_ADMIN_NAMES', 'BTB_ADMINS', 'adminIssuedBy', 'BTB_SALES_CONTACTS',
   'FEATURES', 'DATAVERSE_SCHEMAS', 'SCHEMA', 'mapPayload', 'buildLisStartPayload', 'btbTypeOf',
-  'localIsoDay', 'localIsoTomorrow',
+  'localIsoDay', 'localIsoTomorrow', 'expiryDayText',
   'NAV_ITEMS_ALL', 'NAV_ITEMS', 'navReachable',
   'findExistingLisRecordId',
   'dataverseIsActive', 'dataverseCellValue', 'lisCellValue', 'atqExcelCellValue', 'dataverseVerifyNotice', 'verifyValueTone',

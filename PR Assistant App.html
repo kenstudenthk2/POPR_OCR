@@ -266,7 +266,7 @@
     color: var(--red);
     box-shadow: 0 10px 26px rgba(178,59,59,0.18);
   }
-  /* An orange alarm row for Quotation Expire Date expiring tomorrow.
+  /* An orange alarm row for Quotation Expire Date expiring soon (tomorrow / 2 days after).
      Styled in CSS for the same specificity reasons as verify-row-alarm. */
   .verify-stage tbody tr.verify-row-warning,
   .verify-stage tbody tr.verify-row-warning:hover {
@@ -763,41 +763,11 @@ const FEATURES = {
   // Master Records page draws its own "Demo Mode" button, which is a separate
   // control this flag deliberately does not cover.
   workbenchDemoToggle: IS_ADMIN,
-  // Charge CCC / Account Code / Works Order Code / Issue By as four extra
-  // Verify Table rows directly under IPT Unit Mgr, dev side only. Issue By
-  // joined the other three on 2026-09-25 -- same lookup table, same button,
-  // same write, so one flag and not a fourth of its own. No document ever states
-  // any of the three -- they are procurement's own coding, typed by hand --
-  // so they are `lisOnly` rows: the LIS Value box and nothing else, seeded
-  // with whatever BTB_LIS_Excel_Datas already holds and written back by
-  // "Continue to save".
-  //
-  // This one DOES have a write guard to pair with it, unlike every UI-only
-  // flag above: the four ids join LIS_EXCEL_ROW_IDS only while the flag is
-  // on, so the Admin side's "Continue to save" payload is byte-for-byte what
-  // it is today. The Admin side has its own columns
-  // (admin_chargex0020ccc4 and friends) and has not asked for the rows.
-  //
-  // ⚠️ Issue By is the one of the four whose LIS column, admin_issuex0020by,
-  // is spelled the SAME on both sides -- it is in both lis.write maps already.
-  // So the guard here is not "the Admin side would hit a missing column"; it is
-  // that the Admin side fills that column from its own LIS & Remark input and
-  // has not asked for a second writer of it.
-  verifyLisCodes: !IS_ADMIN,
-  // The "Pair" button beside Product Type, dev side only for now (the Admin
-  // side's own lookup table, admin_btb_ccc_wocode_accode4, exists but its
-  // columns have not been transcribed -- see DATAVERSE_SCHEMAS.admin, which
-  // deliberately has NO cccLookup rather than a guessed one).
-  //
-  // Two guards, same pairing as verifyLisCodes: this flag hides the button,
-  // and `pairCodesFromLookup` returns early when SCHEMA.cccLookup is absent.
-  // The read guard is the load-bearing one -- a query against an entity this
-  // side has no name for is not a blank result, it is a rejected request.
-  //
-  // It has no WRITE guard and needs none: the lookup table is read-only to
-  // this app (SCHEMA.cccLookup carries no `write` map at all), and the three
-  // values it fills are saved by the LIS path verifyLisCodes already guards.
-  verifyCodePair: !IS_ADMIN,
+  // Verify Table coding rows (Charge CCC / Account Code / Works Order Code / Issue By)
+  // removed at user request.
+  verifyLisCodes: false,
+  // The "Pair" button beside Product Type, removed on Verify Table at user request.
+  verifyCodePair: false,
   // Product Type and IPT Unit Mgr read the BTB_ATQ_Excel record ALONE, dev
   // side only. Every other `atqExcelValueKey` row prefers the workbook cell it
   // was extracted from and only falls back to Dataverse; these two are the
@@ -941,7 +911,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.27.2";
+const APP_VERSION = "5.27.5";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -3029,6 +2999,13 @@ function localIsoTomorrow(d, offsetDays = 1) {
   if (isNaN(t.getTime())) return null;
   t.setDate(t.getDate() + offsetDays);
   return localIsoDay(t);
+}
+
+function expiryDayText(diffDays) {
+  if (diffDays === 1) return "tomorrow";
+  if (diffDays === 2) return "2 days after";
+  if (diffDays && diffDays > 0) return `${diffDays} days after`;
+  return "soon";
 }
 
 // Rate: 1 USD : 7.9 HKD for PR Amount currency conversion
@@ -8309,22 +8286,6 @@ const VERIFY_TABLE_ROWS_ALL = [
   // (lisValueForRow -> lisCellValue) and is otherwise the reviewer's to type.
   // `devOnly`: the Admin side has its own three columns and has not asked for
   // the rows -- see FEATURES.verifyLisCodes.
-  { id: "chargeCcc", key: "chargeCcc", label: "Charge CCC", lisOnly: true, devOnly: true },
-  { id: "accountCode", key: "accountCode", label: "Account Code", lisOnly: true, devOnly: true },
-  { id: "worksOrderCode", key: "worksOrderCode", label: "Works Order Code", lisOnly: true, devOnly: true },
-  // The fourth value Pair fills, added 2026-09-25. Same shape and same flag as
-  // the three above rather than a flag of its own: it comes from the same
-  // lookup table (admin_admin2), is written by the same "Continue to save" into
-  // the same LIS row (admin_issuex0020by), exists on the same side, and no
-  // document states it either. Two flags that must always agree is how the row
-  // and its write start disagreeing.
-  //
-  // ⚠️ `key: "issueBy"` is also a FIELDS key -- buildRecordPayload writes
-  // `issueBy: getVal("issueBy")` from the LIS & Remark form, whose input is
-  // Admin-only. On dev that reads "" and mapPayload drops it, so Save cannot
-  // blank what Pair put here. If the dev side ever grows that input, the two
-  // writers of admin_issuex0020by have to be reconciled deliberately.
-  { id: "issueBy", key: "issueBy", label: "Issue By", lisOnly: true, devOnly: true },
   { id: "uid", key: "uid", label: "UID", special: "uid", crossCheckLabel: "Extract From Email Subject", sourceKind: "emailSubject" },
 ];
 
@@ -10540,14 +10501,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // value the row is showing -- see the write map's own note on productType.
   const LIS_EXCEL_ROW_IDS = ["customerName", "vendor", "contractNo", "prAmount",
     "contractStartDate", "contractEndDate", "quotationStartDate", "quotationEndDate",
-    "quotationExpireDate", "handledBy", "iptUnitMgr", "contractRevenue", "productType",
-    // FEATURES.verifyLisCodes' write half. The three rows are dev-only, so the
-    // ids are appended only where the rows exist -- the Admin payload is
-    // unchanged. Guarding here rather than relying on the `row ? ... : ""`
-    // fallback below: that fallback would send three empty keys for rows that
-    // are not on screen, and "the row is off" and "the reviewer left it blank"
-    // are not the same thing to say to Dataverse.
-    ...(FEATURES.verifyLisCodes ? ["chargeCcc", "accountCode", "worksOrderCode", "issueBy"] : [])];
+    "quotationExpireDate", "handledBy", "iptUnitMgr", "contractRevenue", "productType"];
   const lisExcelValues = () => {
     const out = {};
     LIS_EXCEL_ROW_IDS.forEach(id => {
@@ -10665,17 +10619,23 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   const quotationExpiryIso = normDate(quotationExpiryShown);
   const quotationExpired = !!(quotationExpiryIso && quotationExpiryIso < todayIsoDate);
   const quotationExpiresToday = !!(quotationExpiryIso && quotationExpiryIso === todayIsoDate);
-  const quotationExpiresSoon = !!(quotationExpiryIso && new Date(quotationExpiryIso).valueOf() <= new Date(future3IsoDate).valueOf());
-  // const quotationExpiresTomorrow = !!(quotationExpiryIso && new Date(quotationExpiryIso).valueOf() <= Date(tomorrowIsoDate).valueOf());
+  const quotationExpiresSoon = !!(
+    quotationExpiryIso &&
+    quotationExpiryIso > todayIsoDate &&
+    new Date(quotationExpiryIso).valueOf() <= new Date(future3IsoDate).valueOf()
+  );
+  const quotationExpiryDaysDiff = (quotationExpiryIso && todayIsoDate)
+    ? Math.round((new Date(quotationExpiryIso + "T00:00:00").getTime() - new Date(todayIsoDate + "T00:00:00").getTime()) / 86400000)
+    : null;
   // The row's treatment is keyed off ONE pair of tests, and the row is matched
   // by `key` rather than by `id` so the two spellings cannot drift. `lisOnly`
   // rows draw in two different branches (n8n mode and document mode), and the
   // LIS box is drawn in three places, so leaving the class inline would be four
   // chances to colour three of them.
   //
-  // Expired, Urgent (today), and Warning (tomorrow) are mutually exclusive by
-  // construction (`<` vs `=== today` vs `=== tomorrow`), so the ternaries below
-  // never have to decide which wins.
+  // Expired, Urgent (today), and Warning (expiring soon: tomorrow / 2 days after) are
+  // mutually exclusive by construction (`<` vs `=== today` vs `> today && <= future3`),
+  // so the ternaries below never have to decide which wins.
   const isQuotationExpiryRow = row => row.key === "quotationExpireDate";
   const rowExpired = row => quotationExpired && isQuotationExpiryRow(row);
   const rowUrgent = row => quotationExpiresToday && isQuotationExpiryRow(row);
@@ -10683,7 +10643,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // Urgent is drawn in the SAME red as Expired, at the user's request -- it was
   // amber. What still tells the two apart is the wording in the row ("Expired"
   // against "Urgent - expires today !!!") and the disabled button, not a hue.
-  // Tomorrow's expiry is drawn in Orange with an urgent processing reminder.
+  // Soon expiry (tomorrow / 2 days after) is drawn in Orange with an urgent processing reminder.
   const rowAlarm = row => rowExpired(row) || rowUrgent(row);
   const lisInputClass = row => `w-full min-w-[120px] rounded-lg border px-3 py-1.5 text-right fs-14-19 ui-transition focus:outline-none focus:ring-2 focus:ring-[#FFE2B0] ${rowAlarm(row)
     ? "border-[var(--red)] bg-white font-bold text-[var(--red)] focus:border-[var(--red)]"
@@ -10729,7 +10689,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
             ? `This quotation expired on ${quotationExpiryShown}. Continue to save is off until the vendor re-issues it — then correct the date in the box above.`
             : rowUrgent(row)
               ? `Urgent !!! This quotation expires today (${quotationExpiryShown}). It is still valid, so you can continue to save — but it has to be done today.`
-              : `Urgent !!! The quotation expires soon (${quotationExpiryShown}). The quotation is expiring soon, please process it Urgently.`}
+              : `Urgent !!! The quotation expires ${expiryDayText(quotationExpiryDaysDiff)} (${quotationExpiryShown}). The quotation is expiring ${expiryDayText(quotationExpiryDaysDiff)}, please process it Urgently.`}
         </td>
       </tr>
     );
@@ -10747,7 +10707,9 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
       <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--red)]">Urgent — expires today !!!</span>
     );
     if (rowWarning(row)) return (
-      <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--orange-dark)]">Urgent — expires tomorrow !!!</span>
+      <span className="mt-0.5 block fs-14-19 font-bold uppercase tracking-[0.06em] text-[var(--orange-dark)]">
+        {`Urgent — expires ${expiryDayText(quotationExpiryDaysDiff)} !!!`}
+      </span>
     );
     return null;
   };
@@ -10955,8 +10917,10 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
           {quotationExpiresSoon && (
             <div className="w-full flex gap-2 px-4 py-3 bg-[#FED7AA] border-l-4 border-[var(--orange)] rounded-lg">
               <div className="flex-1 fs-13-19 leading-5 text-[#3D3D3D]">
-                <span className="font-bold text-[var(--orange-dark)]">Urgent !!! The quotation expires tomorrow.</span>{" "}
-                Quotation Expire Date is {quotationExpiryShown} ({quotationExpiryIso}). The quotation was expiry on Tomorrow,
+                <span className="font-bold text-[var(--orange-dark)]">
+                  {`Urgent !!! The quotation expires ${expiryDayText(quotationExpiryDaysDiff)}.`}
+                </span>{" "}
+                Quotation Expire Date is {quotationExpiryShown} ({quotationExpiryIso}). The quotation is expiring {expiryDayText(quotationExpiryDaysDiff)},
                 please process it Urgently.
               </div>
             </div>

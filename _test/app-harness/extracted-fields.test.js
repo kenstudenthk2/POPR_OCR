@@ -1491,8 +1491,13 @@ const PIX2 = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIC
 
 }
 
-// Quotation Expire Date: tomorrow warning & orange background
+// Quotation Expire Date: soon warning & orange background (tomorrow / 2 days after)
 {
+  eq('expiryDayText returns "tomorrow" for 1 day', app.expiryDayText(1), 'tomorrow');
+  eq('expiryDayText returns "2 days after" for 2 days', app.expiryDayText(2), '2 days after');
+  eq('expiryDayText returns "3 days after" for 3 days', app.expiryDayText(3), '3 days after');
+  eq('expiryDayText returns "soon" for null', app.expiryDayText(null), 'soon');
+
   const today = app.localIsoDay();
   const tomorrow = app.localIsoTomorrow();
   ok('localIsoTomorrow returns a valid date string', typeof tomorrow === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tomorrow));
@@ -1513,11 +1518,30 @@ const PIX2 = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAIC
     tomorrowHtml.includes('bg-[var(--orange)]') && tomorrowHtml.includes('border-[var(--orange-dark)]'));
   ok('the field cell displays "Urgent — expires tomorrow !!!"',
     tomorrowHtml.includes('Urgent — expires tomorrow !!!'));
-  ok('the alarm note row reminds user quotation was expiry on Tomorrow',
-    tomorrowHtml.includes('The quotation was expiry on Tomorrow, please process it Urgently.'));
+  ok('the alarm note row reminds user quotation is expiring tomorrow',
+    tomorrowHtml.includes('The quotation is expiring tomorrow, please process it Urgently.'));
   ok('the top banner warns about expiring tomorrow',
     tomorrowHtml.includes('Urgent !!! The quotation expires tomorrow.') &&
-    tomorrowHtml.includes('The quotation was expiry on Tomorrow, please process it Urgently.'));
+    tomorrowHtml.includes('The quotation is expiring tomorrow, please process it Urgently.'));
+
+  // When quotation expiry is 2 days after
+  const after2Days = app.localIsoTomorrow(new Date(), 2);
+  const after2DaysDv = ready({ quotation: { quotationExpireDate: after2Days }, atqExcel: {} });
+  const after2DaysProps = Object.assign({}, pageProps, { recordId: RID, dataverseVerify: after2DaysDv });
+  const after2DaysHtml = renders('ExtractedFieldsPage renders quotation expiring 2 days after',
+    React.createElement(app.ExtractedFieldsPage, after2DaysProps));
+
+  ok('the row has verify-row-warning class when expiring 2 days after',
+    after2DaysHtml.includes('verify-row-warning'));
+  ok('the LIS input has orange background and border styling for 2 days after',
+    after2DaysHtml.includes('bg-[var(--orange)]') && after2DaysHtml.includes('border-[var(--orange-dark)]'));
+  ok('the field cell displays "Urgent — expires 2 days after !!!"',
+    after2DaysHtml.includes('Urgent — expires 2 days after !!!'));
+  ok('the alarm note row reminds user quotation is expiring 2 days after',
+    after2DaysHtml.includes('The quotation is expiring 2 days after, please process it Urgently.'));
+  ok('the top banner warns about expiring 2 days after',
+    after2DaysHtml.includes('Urgent !!! The quotation expires 2 days after.') &&
+    after2DaysHtml.includes('The quotation is expiring 2 days after, please process it Urgently.'));
 }
 
 /* ---------- report ---------- */

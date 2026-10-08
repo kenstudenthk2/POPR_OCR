@@ -1085,7 +1085,7 @@
                                                 UM Verification
                                             </span>
                                             <span class="text-[11px] font-bold text-[var(--red)]">
-                                                **Before sending the approval , please review the Attachment URL to ensure that the folder contains all required attachments.**
+                                                **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
                                             </span>
 <button
     type="button"
@@ -1404,6 +1404,9 @@
                 <div class="flex flex-col gap-3">
                     <span class="text-[13px] font-bold text-[var(--ink)]">
                         UM Verification
+                    </span>
+                    <span class="text-[11px] font-bold text-[var(--red)]">
+                        **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
                     </span>
 <button
     type="button"
@@ -1919,16 +1922,10 @@
         ];
 
         const STATUS_TABS = [
-            "All",
-            "Urgent",
-            "Expired",
-            "Expiring Soon",
             "PR No. Ready",
             "UM Verified",
             "LIS System Approved",
-            "PO No. Ready",
-            "Complete",
-            "Cancelled"
+            "PO No. Ready"
         ];
 
         /** @type {Record<WorkflowStage, string>} */
@@ -6007,7 +6004,8 @@
 
             let kpi = { total: state.allData.length, urgent: 0, finished: 0, pending: 0, expired: 0, upcoming: 0, cancelled: 0 };
             state.allData.forEach(i => {
-                if (Boolean(i.UrgentFlag)) kpi.urgent++;
+                const isProgressTracked = i.ProcessStatus !== 'Cancelled' && i.ProcessStatus !== 'Complete';
+                if (Boolean(i.UrgentFlag) && isProgressTracked) kpi.urgent++;
                 if (i.ProcessStatus === 'Cancelled') {
                     kpi.cancelled++;
                 } else {
@@ -6015,7 +6013,7 @@
                     if (i.ProcessStatus !== 'Complete') kpi.pending++;
                 }
 
-                if (i.QuotationExpiryDate && i.ProcessStatus !== 'Cancelled') {
+                if (i.QuotationExpiryDate && isProgressTracked) {
                     const parts = i.QuotationExpiryDate.split('-');
                     if (parts.length === 3) {
                         const qd = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6111,71 +6109,16 @@
         function renderTabBar() {
             const bar = document.getElementById('tabBar');
             if(!bar) return;
-            const todayHKT = getCurrentHKTDate();
 
             bar.innerHTML = STATUS_TABS.map(t => {
-                let count = 0;
-
-                /**
-                 * @param {IRecord} item - The record to check.
-                 * @returns {boolean} - True if the item is progress tracked, false otherwise.
-                 */
-                function isItemProgressTracked(item){
-                    return item.ProcessStatus !== 'Cancelled' && item.ProcessStatus !== 'Complete';
-                }
-
-                if (t === 'All') {
-                    count = state.allData.length;
-                } else if (t === 'Urgent') {
-                    count = state.allData.filter(item => Boolean(item.UrgentFlag) && isItemProgressTracked(item)).length;
-                } else if (t === "Expired") {
-                    count = state.allData.filter(item => {
-                        if (!isItemProgressTracked(item)) return false;
-                        const parts = item.QuotationExpiryDate?.split('-');
-                        if (parts && parts.length === 3) {
-                            const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                            const diffDays = Math.ceil((expiryDate.valueOf() - todayHKT.valueOf()) / (1000 * 60 * 60 * 24));
-                            return diffDays < 0;
-                        }
-                        return false;
-                    }).length;
-                } else if (t === 'Expiring Soon') {
-                    count = state.allData.filter(item => {
-                        if (!isItemProgressTracked(item)) return false;
-                        const parts = item.QuotationExpiryDate?.split('-');
-                        if (parts && parts.length === 3) {
-                            const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                            const diffDays = Math.ceil((expiryDate.valueOf() - todayHKT.valueOf()) / (1000 * 60 * 60 * 24));
-                            return diffDays >= 0 && diffDays < 3;
-                        }
-                        return false;
-                    }).length;
-                } else {
-                    count = state.allData.filter(i => i.ProcessStatus === t).length;
-                }
-                
-
+                const count = state.allData.filter(i => i.ProcessStatus === t).length;
                 const active = state.activeTab === t;
-                const isAllTab = t === 'All';
-                const isUrgentTab = t === 'Urgent';
-                const isExpiredTab = t === 'Expired';
-                const isExpiringsoonTab = t === 'Expiring Soon';
-                const isCompleteTab = t === 'Complete';
-                const isCancelledTab = t === 'Cancelled';
-                const badgeStyle = isUrgentTab ? (active ? 'bg-red-600 text-white font-bold' : 'bg-red-100 text-red-700 font-bold') : (active ? 'bg-[#FBF0E8] text-[#D4916E]' : 'bg-[#F3EBE2] text-[#6B6B6B]');
-                const labelStyle = isAllTab ? (active ? 'text-blue-700 font-bold' : 'text-blue-600 font-semibold') 
-                                 : isUrgentTab ? (active ? 'text-red-700 font-bold' : 'text-red-600 font-semibold' ) 
-                                 : isExpiredTab ? (active ? 'text-purple-700 font-bold' : 'text-purple-600 font-semibold') 
-                                 : isExpiringsoonTab ? (active ? 'text-orange-700 font-bold' : 'text-orange-600 font-semibold') 
-                                 : isCompleteTab ? (active ? 'text-green-700 font-bold' : 'text-green-600 font-semibold') 
-                                 : isCancelledTab ? (active ? 'text-gray-700 font-bold' : 'text-gray-600 font-semibold') 
-                                 : (active ? 'text-[#D4916E] font-semibold' : 'text-[#6B6B6B] ');
-                const separator = t === 'Urgent'|| t=== 'PR No. Ready' || t === 'Complete' || t=== 'Cancelled' ? '<span class="status-tab-separator" aria-hidden="true"></span>' : '';
-                const bottomBorderClass = active ? (isUrgentTab ? 'border-b-red-600' : 'border-b-[#D4916E]'): 'border-b-transparent';
+                const badgeStyle = active ? 'bg-[#FBF0E8] text-[#D4916E]' : 'bg-[#F3EBE2] text-[#6B6B6B]';
+                const labelStyle = active ? 'text-[#D4916E] font-semibold' : 'text-[#6B6B6B]';
 
-                return `${separator} <button type="button" onclick="setTab('${t}')"
-                    class="ui-transition pressable px-4 py-2.5 border-b-2 -mb-px flex items-center gap-1.5 ${active ? (isUrgentTab ? 'border-red-600' : 'border-[#D4916E]') : 'border-transparent'}">
-                    <span class="text-[13px] whitespace-nowrap ${labelStyle}">${isUrgentTab ? '🔴 Urgent' : t}</span>
+                return `<button type="button" onclick="setTab('${t}')"
+                    class="ui-transition pressable px-4 py-2.5 border-b-2 -mb-px flex items-center gap-1.5 ${active ? 'border-[#D4916E]' : 'border-transparent'}">
+                    <span class="text-[13px] whitespace-nowrap ${labelStyle}">${t}</span>
                     <span class="px-1.5 py-0.5 rounded-full text-[10px] ${badgeStyle}">${count}</span>
                 </button>`;
             }).join('');

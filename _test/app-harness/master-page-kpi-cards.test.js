@@ -195,6 +195,8 @@ if (scriptMatch) {
 ;EXPORTS.state = state;
 EXPORTS.updateDashboard = updateDashboard;
 EXPORTS.setTab = setTab;
+EXPORTS.renderTabBar = renderTabBar;
+EXPORTS.STATUS_TABS = STATUS_TABS;
 `;
 
   try {
@@ -202,7 +204,19 @@ EXPORTS.setTab = setTab;
     vm.runInContext(SCRIPT_CODE, sandbox);
     ok("Script evaluated cleanly", true);
 
-    const { state, updateDashboard, setTab } = sandbox.EXPORTS;
+    const { state, updateDashboard, setTab, renderTabBar, STATUS_TABS } = sandbox.EXPORTS;
+
+    // Verify STATUS_TABS no longer includes redundant tabs
+    eq("STATUS_TABS has 4 workflow stage tabs", STATUS_TABS.length, 4);
+    ok("STATUS_TABS includes 'PR No. Ready'", STATUS_TABS.includes("PR No. Ready"));
+    ok("STATUS_TABS includes 'UM Verified'", STATUS_TABS.includes("UM Verified"));
+    ok("STATUS_TABS includes 'LIS System Approved'", STATUS_TABS.includes("LIS System Approved"));
+    ok("STATUS_TABS includes 'PO No. Ready'", STATUS_TABS.includes("PO No. Ready"));
+
+    const removedTabs = ["All", "Urgent", "Expired", "Expiring Soon", "Complete", "Cancelled"];
+    removedTabs.forEach(removed => {
+      ok(`STATUS_TABS does not include '${removed}'`, !STATUS_TABS.includes(removed));
+    });
 
     // Mock data with various statuses
     state.allData = [
@@ -212,10 +226,19 @@ EXPORTS.setTab = setTab;
       { Id: "4", UrgentFlag: false, ProcessStatus: "UM Verified", QuotationExpiryDate: "2026-10-09" } // Expiring Soon (diff < 3)
     ];
 
+    // Test renderTabBar() only outputs workflow tabs
+    renderTabBar();
+    const tabBarHtml = elements.get("tabBar").innerHTML;
+    ok("tabBar renders PR No. Ready", tabBarHtml.includes("PR No. Ready"));
+    ok("tabBar renders UM Verified", tabBarHtml.includes("UM Verified"));
+    removedTabs.forEach(removed => {
+      ok(`tabBar does not render '${removed}'`, !tabBarHtml.includes(`setTab('${removed}')`));
+    });
+
     // Test updateDashboard()
     updateDashboard();
     eq("kpi-total displays 4", elements.get("kpi-total").innerText, "4");
-    eq("kpi-urgent displays 2", elements.get("kpi-urgent").innerText, "2");
+    eq("kpi-urgent displays 1 (excluding cancelled)", elements.get("kpi-urgent").innerText, "1");
     eq("kpi-finished displays 1", elements.get("kpi-finished").innerText, "1");
     eq("kpi-cancelled displays 1", elements.get("kpi-cancelled").innerText, "1");
 

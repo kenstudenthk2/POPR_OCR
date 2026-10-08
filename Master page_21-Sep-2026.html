@@ -4943,7 +4943,7 @@
                             }
                             
                             case "UMVerified": {
-                                const reviewed = item[dvColumnKey] === "Y"
+                                const reviewed = item[dvColumnKey]?.toUpperCase()?.trim() === "Y"
                                 masterRecord[masterKey] = reviewed;
                                 break;
                             }
@@ -6200,9 +6200,9 @@
         }
 
         function closeModal() {
-            if (state.currentRecord) {
-                persistCurrentRecord(false, true);
-            }
+            // if (state.currentRecord) {
+            //     persistCurrentRecord(false, true);
+            // }
 
             const modal = document.getElementById('editModal');
             modal.classList.add('hidden');
@@ -6511,7 +6511,7 @@
 
             closeCancelModal();
             showToast("Record cancelled successfully.", "warning");
-            closeModal();
+            persistCurrentRecord(true, true);
             processData();
         }
 
@@ -6530,7 +6530,7 @@
 
             closeReopenModal();
             showToast("Record re-opened successfully.", "success");
-            closeModal();
+            persistCurrentRecord(true, true);
             processData();
         }
 

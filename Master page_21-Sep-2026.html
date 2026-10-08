@@ -7247,8 +7247,11 @@
                         payload.admin_hkdusd = prCurrency;
                         payload.admin_pramounthkd = prAmountHkd;
                         payload.admin_pramountusd = prAmountUsd;
-                        payload.admin_hkd = isHkd ? prAmountNum : null;
-                        payload.admin_usdx0020x002fx0020others = isUsd ? prAmountVal : null;
+                        if (isHkd) {
+                            payload.admin_hkd = String(prAmountNum);
+                        } else if (isUsd) {
+                            payload.admin_usdx0020x002fx0020others = String(prAmountNum);
+                        }
                     }
                     if (record.Currency !== undefined) payload.admin_hkdusd = (String(record.Currency).toUpperCase() === "USD") ? "USD" : "HKD";
 
@@ -7401,6 +7404,7 @@
             if (!state.currentRecord) return;
             const item = state.allData.find(d => d.Id === state.currentRecord.Id);
             if (item) {
+                item.ProcessStatus = null;
                 item.ProcessStatus = evaluateWorkflowState(item);
             }
 
@@ -7692,7 +7696,7 @@
                 const requiredFields = STAGE_REQUIRED_FIELDS[STAGES[idx]] || [];
                 requiredFields.forEach(field => {
                     const element = document.getElementById(field.id);
-                    if (element && element.disabled) return;
+                    if (element) return;
                     const value = getFieldValue(field);
 
                     const isPlaceholder = field.id === 'edit-btb' && value === '-- Select --';

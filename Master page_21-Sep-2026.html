@@ -5215,13 +5215,21 @@
             bar.innerHTML = STATUS_TABS.map(t => {
                 let count = 0;
 
+                /**
+                 * @param {IRecord} item - The record to check.
+                 * @returns {boolean} - True if the item is progress tracked, false otherwise.
+                 */
+                function isItemProgressTracked(item){
+                    return item.ProcessStatus !== 'Cancelled' && item.ProcessStatus !== 'Complete';
+                }
+
                 if (t === 'All') {
                     count = state.allData.length;
                 } else if (t === 'Urgent') {
-                    count = state.allData.filter(item => Boolean(item.UrgentFlag)).length;
+                    count = state.allData.filter(item => Boolean(item.UrgentFlag) && isItemProgressTracked(item)).length;
                 } else if (t === "Expired") {
                     count = state.allData.filter(item => {
-                        if (item.ProcessStatus === 'Cancelled') return false;
+                        if (!isItemProgressTracked(item)) return false;
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -5232,7 +5240,7 @@
                     }).length;
                 } else if (t === 'Expiring Soon') {
                     count = state.allData.filter(item => {
-                        if (item.ProcessStatus === 'Cancelled') return false;
+                        if (!isItemProgressTracked(item)) return false;
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -5289,6 +5297,14 @@
             const fProductType = (document.getElementById('flt-producttype')?.value || document.getElementById('flt-servicetype')?.value || '').toLowerCase();
             const todayHKT = getCurrentHKTDate();
 
+            
+            /**
+             * @param {IRecord} item - The record to check.
+             * @returns {boolean} - True if the item is progress tracked, false otherwise.
+             */
+            function isItemProgressTracked(item){
+                return item.ProcessStatus !== 'Cancelled' && item.ProcessStatus !== 'Complete';
+            }
             state.filteredData = state.allData.filter(item => {
                 const mSearch = Object.values(item).some(val => String(val).toLowerCase().includes(search));
 
@@ -5296,9 +5312,11 @@
                 if (state.activeTab === "All") {
                     mTab = true;
                 } else if (state.activeTab === "Urgent") {
-                    mTab = Boolean(item.UrgentFlag);
+                    if (isItemProgressTracked(item)) {
+                        mTab = Boolean(item.UrgentFlag);
+                    }
                 } else if (state.activeTab === "Expired") {
-                    if (item.ProcessStatus !== 'Cancelled') {
+                    if (isItemProgressTracked(item)) {
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -5307,7 +5325,7 @@
                         }
                     }
                 } else if (state.activeTab === "Expiring Soon") {
-                    if (item.ProcessStatus !== 'Cancelled') {
+                    if (isItemProgressTracked(item)) {
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6559,6 +6577,7 @@
             ],
 
             'LIS System Approved': [
+                { id: 'edit-pr-approved', label : 'PR Request Approved'},
             ],
 
             'PO No. Ready': [

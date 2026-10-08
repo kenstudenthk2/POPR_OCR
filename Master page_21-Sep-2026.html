@@ -282,46 +282,116 @@
 </head>
 <body>
 
-    <div class="w-full flex flex-col xl:flex-row xl:justify-between xl:items-center gap-5 px-5 md:px-8 py-6">
-        <div>
-            <div class="text-[clamp(28px,3vw,44px)] leading-[1.05] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Master List Management System - dev</div>
-            <div class="mt-2 max-w-2xl text-[15px] leading-6 text-[var(--muted)]">Browse, filter, and manage automated workflow records.</div>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-[1.5px] border-[#C5BEB6] rounded-full w-[260px]">
-                <span class="text-[#6B6B6B] text-[13px]">🔍</span>
-                <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search by ID, Vendor, Customer…"
-                    aria-label="Search records"
-                    class="flex-1 text-[14px] outline-none bg-transparent placeholder:text-[#6B6B6B]">
+    <!-- Main Application Header -->
+    <header class="w-full max-w-[1600px] mx-auto px-5 md:px-8 pt-6 pb-2 flex flex-col gap-4">
+        <!-- Row 1: Brand Identity & Primary System Action -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[var(--line)]/70">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF9900] to-[#E68500] text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                        <path d="M3 9h18"/>
+                        <path d="M9 21V9"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-[clamp(22px,2.4vw,32px)] leading-tight font-bold text-[var(--ink)] tracking-tight" style="font-family:'Space Grotesk', system-ui, sans-serif;">
+                            Master List Management System
+                        </h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            DEV
+                        </span>
+                    </div>
+                    <p class="mt-1 text-[13.5px] leading-5 text-[var(--muted)]">
+                        Browse, filter, and manage automated workflow records.
+                    </p>
+                </div>
             </div>
-            <button type="button" onclick="toggleFilters()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                Filter Data
-            </button>
 
-            <!-- Column Customization Button -->
-            <button type="button" onclick="openColumnModal()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                🔧 Column
-            </button>
-
-            <div id="main-loader" class="loader hidden"></div>
-            <button type="button" onclick="initApp()"
-                class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[1.5px] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">
-                Refresh Data
-            </button>
-
-            <button type="button" onclick="openExcelView()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                📊 Excel View
-            </button>
-
-            <button type="button" onclick="openCosControlModal()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                📋 COS Control File
-            </button>
+            <!-- Primary Action: Refresh Data & Loader -->
+            <div class="flex items-center gap-2.5 self-start md:self-auto shrink-0">
+                <div id="main-loader" class="loader hidden"></div>
+                <button type="button" onclick="initApp()" id="btn-refresh-data"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">
+                    <svg id="refresh-icon-svg" class="w-4 h-4 shrink-0 transition-transform duration-500 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                        <path d="M16 16h5v5"></path>
+                    </svg>
+                    <span>Refresh Data</span>
+                </button>
+            </div>
         </div>
-    </div>
+
+        <!-- Row 2: Search Bar & Management Action Controls -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--line)] shadow-[0px_4px_16px_0px_rgba(29,29,31,0.04)]">
+            <!-- Expanded Search Bar -->
+            <div class="relative flex-1 lg:max-w-xl">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8C8C]">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                </span>
+                <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search records by ID, Vendor, Customer, PO No…"
+                    aria-label="Search records"
+                    class="w-full pl-10 pr-10 py-2.5 bg-white border-[1.5px] border-[#D2D2D7] rounded-lg text-[13.5px] text-[var(--ink)] placeholder:text-[#8C8C8C] outline-none field-control focus:border-[var(--orange)] focus:ring-2 focus:ring-amber-500/20">
+                <button type="button" id="clearSearchBtn" onclick="clearGlobalSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#8C8C8C] hover:text-[var(--ink)]" title="Clear search">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Action Controls Group -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="toggleFilters()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    <span>Filter Data</span>
+                </button>
+
+                <!-- Column Customization Button -->
+                <button type="button" onclick="openColumnModal()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                        <path d="M9 3v18"></path>
+                        <path d="M15 3v18"></path>
+                    </svg>
+                    <span>Column</span>
+                </button>
+
+                <button type="button" onclick="openExcelView()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#107C41] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <path d="M8 13h8"></path>
+                        <path d="M8 17h8"></path>
+                        <path d="M11 9v10"></path>
+                    </svg>
+                    <span>Excel View</span>
+                </button>
+
+                <button type="button" onclick="openCosControlModal()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#2563EB] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                        <path d="m9 15 2 2 4-4"></path>
+                    </svg>
+                    <span>COS Control File</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
     <div class="max-w-[1600px] mx-auto px-5 md:px-8 pb-10 flex flex-col gap-6">
 
@@ -1229,29 +1299,51 @@
                 <div class="flex items-center gap-2">
                     <!-- Column Customization Button -->
                     <button type="button" onclick="openExcelColumnModal()"
-                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                        🔧 Column
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                            <path d="M9 3v18"></path>
+                            <path d="M15 3v18"></path>
+                        </svg>
+                        <span>Column</span>
                     </button>
                     <button
                         type="button"
                         onclick="exportExcelViewToCsv()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        ⬇ Export CSV
+                        <svg class="w-3.5 h-3.5 shrink-0 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Export CSV</span>
                     </button>
                     <button
                         type="button"
                         onclick="exportExcelViewToXLSX()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        📊 Export XLSX
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#107C41]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M8 13h8"></path>
+                            <path d="M8 17h8"></path>
+                            <path d="M11 9v10"></path>
+                        </svg>
+                        <span>Export XLSX</span>
                     </button>
                     <button
                         type="button"
                         onclick="openCosControlModal()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        📋 COS Control File
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#2563EB]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                            <path d="m9 15 2 2 4-4"></path>
+                        </svg>
+                        <span>COS Control File</span>
                     </button>
                     <button
                         type="button"
@@ -1927,6 +2019,11 @@
             if (loader) {
                 if (show) loader.classList.remove('hidden');
                 else loader.classList.add('hidden');
+            }
+            const refreshIcon = document.getElementById('refresh-icon-svg');
+            if (refreshIcon) {
+                if (show) refreshIcon.classList.add('animate-spin');
+                else refreshIcon.classList.remove('animate-spin');
             }
         }
 
@@ -5757,7 +5854,30 @@
             kpiCancelled && (kpiCancelled.innerText = kpi.cancelled.toString());
         }
 
-        function handleSearch() { state.currentPage = 1; applyFilters(); }
+        function handleSearch() {
+            const input = document.getElementById('globalSearch');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (clearBtn && input) {
+                if (input.value && input.value.trim().length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            }
+            state.currentPage = 1;
+            applyFilters();
+        }
+
+        function clearGlobalSearch() {
+            const input = document.getElementById('globalSearch');
+            if (input) {
+                input.value = '';
+                const clearBtn = document.getElementById('clearSearchBtn');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                handleSearch();
+            }
+        }
+
         function toggleFilters() { document.getElementById('filterPanel').classList.toggle('hidden'); }
 
         function renderTabBar() {

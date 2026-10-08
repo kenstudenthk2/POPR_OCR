@@ -1062,6 +1062,9 @@
                                             <span class="text-[13px] font-bold text-[var(--ink)]">
                                                 UM Verification
                                             </span>
+                                            <span class="text-[11px] font-bold text-[var(--red)]">
+                                                **Before sending the approval , please review the Attachment URL to ensure that the folder contains all required attachments.**
+                                            </span>
 <button
     type="button"
     id="btn-send-approval"
@@ -1241,7 +1244,7 @@
                                     <input type="date" id="edit-mark-receipt-date" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
 
-                                <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2">
+                                <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2 hidden">
                                     <div class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] flex flex-col justify-between gap-3 relative" id="poApprovalSection">
                                         <div class="flex flex-col gap-1">
                                             <div class="flex items-center justify-between relative">
@@ -1481,6 +1484,9 @@
                         <p class="text-[12px] text-[var(--muted)]" id="remark-modal-subtitle">Generate To Supplier Remark and BTB Remark (To Buyer)</p>
                     </div>
                 </div>
+                <button id="btn-copy-paymentguide" type="button" onclick="copyPaymentDoc()" class="ml-auto mr-2 ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">
+                    Copy Payment Guideline Path
+                </button>
                 <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
             </div>
 
@@ -3999,6 +4005,18 @@
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+            }
+        }
+
+        function copyPaymentDoc(){
+            const documentPath = "\\\\10.5.9.36\\\\csd-admin\\CSD\\Guidelines\\PO-Mark-Receipt(GFIN_PU-wef-20251110)\\Payment-Instruction-Guideline\\SB\\SB Payment Instructions Guideline Ver V20260720_SB.docx"
+            globalThis?.navigator.clipboard.writeText(documentPath)
+            const btn = document.getElementById("btn-copy-paymentguide")
+            if(btn) {
+                btn.innerText = "Copied!"
+                setTimeout(() => {
+                btn.innerText = "Copy Payment Guideline Path"
+                }, 2000)
             }
         }
 
@@ -6742,24 +6760,28 @@
             const cancelBtn = document.getElementById('btn-cancel-record');
             const container = document.getElementById('editModalTabContent');
 
-            if (currentStatus === 'Complete') {
-                // TODO: why are we unlocking the fields after completion?
-                const controls = container.querySelectorAll('input, select, textarea, button');
-                controls.forEach(control => {
-                    if (PERMANENTLY_DISABLED_FIELD_IDS.has(control.id)) {
-                        if (control.id === 'edit-pair-account-code' && control.tagName === 'SELECT') {
-                            control.disabled = false;
-                            control.classList.remove('cursor-not-allowed');
-                            return;
-                        }
-                        control.disabled = true;
-                        control.classList.add('cursor-not-allowed');
-                        return;
-                    }
+            const controls = container.querySelectorAll('input, select, textarea, button');
+            
+            const disabledStyle = ["bg-gray-100", "cursor-not-allowed", "opacity-50"];
+            controls.forEach(control => {
+                if (
+                    currentStatus === 'Complete' || 
+                    currentStatus === 'Cancelled' ||
+                    (
+                        PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
+                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT')
+                    )
+                ) {
+                    control.disabled = true;
+                    control.classList.add(...disabledStyle);
+                }
+                else {
                     control.disabled = false;
-                    control.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-50');
-                });
-                
+                    control.classList.remove(...disabledStyle);
+                }
+            });
+            
+            if (currentStatus === 'Complete') {
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -6773,15 +6795,6 @@
                     cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
                 }
-
-                const inputs = container.querySelectorAll('input, select, textarea, button');
-                inputs.forEach(el => {
-                    el.disabled = true;
-                    if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
-                        el.classList.add('bg-gray-100', 'cursor-not-allowed');
-                    }
-                });
-
                 if (saveBtn) {
                     saveBtn.disabled = true;
                     saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -6897,7 +6910,7 @@
         }
 
         function isStageFieldsComplete(record, stageName) {
-            const fields = STAGEREQUIREDFIELDS[stageName] || [];
+            const fields = STAGE_REQUIRED_FIELDS[stageName] || [];
             return fields.every(f => {
                 const key = FIELD_ID_TO_RECORD_KEY[f.id]; 
                 if (!key) {
@@ -7293,11 +7306,6 @@
             ],
 
             'Complete': [
-                { id: 'edit-prno', label: 'PR No.' },
-                { id: 'edit-pono', label: 'PO No.' },
-                { id: 'edit-podate', label: 'PO Issue Date' },
-                { id: 'edit-poamount', label: 'PO Amount HKD' },
-                { id: 'edit-po-receipt-date', label: 'PO Receipt Date' }
             ],
 
             'Cancelled': []

@@ -7116,7 +7116,7 @@
 
                         if (element) {
                             element.classList.add('is-invalid');
-                            if (element.type !== 'checkbox')
+                            // if (element.type !== 'checkbox')
                                 element.addEventListener("change", valiateFieldOnChange);
                             // todo: Attach on input listener to remove is-invalid class when user corrects the input
                         }

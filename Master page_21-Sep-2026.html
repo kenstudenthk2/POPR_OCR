@@ -5383,6 +5383,7 @@
                admin_reviewapproval: "Y" | "N" | null;
                admin_yx0020x002fx0020n: "Y" | "N" | null;
                admin_prapprovalrequeststatus: "Y" | "N" | null;
+               admin_processstatus: number | string | null;
           }} IDVColumnTypeOverrride
           
           @typedef {
@@ -5564,9 +5565,14 @@
                                 masterRecord[masterKey] = formatDateForInput(item[dvColumnKey])
                                 break;
                             // special cases
-                            case "ProcessStatus":
-                                masterRecord[masterKey] = item[dvColumnKey] || "PR No. Ready";
+                            case "ProcessStatus":{
+                                let statusValue = item[dvColumnKey];
+                                if (typeof statusValue === 'number') {
+                                    statusValue = PROCESS_STATUS_MAP[statusValue]
+                                }
+                                masterRecord[masterKey] = statusValue || "PR No. Ready";
                                 break;
+                            }
                             case "Flagged":
                                 masterRecord.UrgentFlag = !!(item.admin_flagged);
                                 break;

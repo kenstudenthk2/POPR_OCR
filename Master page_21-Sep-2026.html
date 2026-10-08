@@ -405,31 +405,37 @@
         </div>
 
         <!-- KPI Dashboard -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" id="kpiDashboard">
+            <button type="button" onclick="setTab('All')" data-tab="All" id="kpi-card-all" title="Filter by Total Records (All)"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--blue)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--blue)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--blue)] shrink-0"></span>Total Records</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-total">0</div>
-            </div>
-                        <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
-                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--amber)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shrink-0"></span>Pending Tasks</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-pending">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Urgent')" data-tab="Urgent" id="kpi-card-urgent" title="Filter by Urgent Tasks"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--red)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--red)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--red)] shrink-0"></span>Urgent Tasks</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-urgent" data-alias-id="kpi-pending">0</div>
+            </button>
+            <button type="button" onclick="setTab('Expired')" data-tab="Expired" id="kpi-card-expired" title="Filter by Quotation Expired"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--purple)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--purple)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--purple)] shrink-0"></span>Quotation Expired</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-expired">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Expiring Soon')" data-tab="Expiring Soon" id="kpi-card-expiring-soon" title="Filter by Expiring Soon"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--orange)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--orange)] shrink-0"></span>Expiring Soon</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-upcoming">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Complete')" data-tab="Complete" id="kpi-card-complete" title="Filter by Completed Tasks"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--Lgreen)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--Lgreen)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--Lgreen)] shrink-0"></span>Completed Tasks</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-finished">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Cancelled')" data-tab="Cancelled" id="kpi-card-cancelled" title="Filter by Cancelled Records"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--gray)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gray)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--gray)] shrink-0"></span>Cancelled Records</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--gray)]" id="kpi-cancelled">0</div>
-            </div>
+            </button>
         </div>
 
         <div id="filterPanel" class="hidden panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -5963,8 +5969,9 @@
         function updateDashboard() {
             const todayHKT = getCurrentHKTDate();
 
-            let kpi = { total: state.allData.length, finished: 0, pending: 0, expired: 0, upcoming: 0, cancelled: 0 };
+            let kpi = { total: state.allData.length, urgent: 0, finished: 0, pending: 0, expired: 0, upcoming: 0, cancelled: 0 };
             state.allData.forEach(i => {
+                if (Boolean(i.UrgentFlag)) kpi.urgent++;
                 if (i.ProcessStatus === 'Cancelled') {
                     kpi.cancelled++;
                 } else {
@@ -5988,16 +5995,20 @@
 
             const kpiTotal = document.getElementById("kpi-total");
             kpiTotal && (kpiTotal.innerText = kpi.total.toString());
+            const kpiUrgent = document.getElementById("kpi-urgent");
+            kpiUrgent && (kpiUrgent.innerText = kpi.urgent.toString());
+            const kpiPending = document.getElementById("kpi-pending") || document.querySelector('[data-alias-id="kpi-pending"]');
+            kpiPending && (kpiPending.innerText = (kpi.urgent !== undefined ? kpi.urgent : kpi.pending).toString());
             const kpiFinished = document.getElementById("kpi-finished");
             kpiFinished && (kpiFinished.innerText = kpi.finished.toString());
-            const kpiPending = document.getElementById("kpi-pending");
-            kpiPending && (kpiPending.innerText = kpi.pending.toString());
             const kpiExpired = document.getElementById("kpi-expired");
             kpiExpired && (kpiExpired.innerText = kpi.expired.toString());
             const kpiUpcoming = document.getElementById("kpi-upcoming");
             kpiUpcoming && (kpiUpcoming.innerText = kpi.upcoming.toString());
             const kpiCancelled = document.getElementById("kpi-cancelled");
             kpiCancelled && (kpiCancelled.innerText = kpi.cancelled.toString());
+
+            updateKpiCardActiveStates();
         }
 
         function handleSearch() {
@@ -6025,6 +6036,41 @@
         }
 
         function toggleFilters() { document.getElementById('filterPanel').classList.toggle('hidden'); }
+
+        const KPI_ACTIVE_STYLES = {
+            'All': { border: 'border-[var(--blue)]', ring: 'ring-blue-500/30' },
+            'Urgent': { border: 'border-[var(--red)]', ring: 'ring-red-500/30' },
+            'Expired': { border: 'border-[var(--purple)]', ring: 'ring-purple-500/30' },
+            'Expiring Soon': { border: 'border-[var(--orange)]', ring: 'ring-amber-500/30' },
+            'Complete': { border: 'border-[var(--Lgreen)]', ring: 'ring-green-500/30' },
+            'Cancelled': { border: 'border-[var(--gray)]', ring: 'ring-gray-400/30' }
+        };
+
+        function updateKpiCardActiveStates() {
+            const cards = document.querySelectorAll('.kpi-card-btn');
+            if (!cards || cards.length === 0) return;
+
+            cards.forEach(btn => {
+                const tab = btn.getAttribute('data-tab');
+                const isActive = state.activeTab === tab;
+                const activeStyle = KPI_ACTIVE_STYLES[tab] || { border: 'border-[var(--orange)]', ring: 'ring-amber-500/30' };
+
+                // Clear previous active highlights
+                Object.values(KPI_ACTIVE_STYLES).forEach(s => {
+                    btn.classList.remove(s.border, s.ring);
+                });
+                btn.classList.remove('ring-2', 'bg-[#FFFDF7]');
+
+                if (isActive) {
+                    btn.classList.remove('border-[var(--line)]', 'bg-white/95');
+                    btn.classList.add(activeStyle.border, 'ring-2', activeStyle.ring, 'bg-[#FFFDF7]');
+                    btn.setAttribute('aria-pressed', 'true');
+                } else {
+                    btn.classList.add('border-[var(--line)]', 'bg-white/95');
+                    btn.setAttribute('aria-pressed', 'false');
+                }
+            });
+        }
 
         function renderTabBar() {
             const bar = document.getElementById('tabBar');
@@ -6089,6 +6135,8 @@
                     <span class="px-1.5 py-0.5 rounded-full text-[10px] ${badgeStyle}">${count}</span>
                 </button>`;
             }).join('');
+
+            updateKpiCardActiveStates();
         }
 
         function setTab(tab) {

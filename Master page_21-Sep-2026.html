@@ -768,6 +768,10 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Vendor</label>
                                     <input type="text" id="edit-vendor" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
+                                <div class="flex flex-col gap-1.5 md:col-start-2">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Quotation No.</label>
+                                    <input type="text" id="edit-quotationno" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
                                 <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">PR Reference</label>
                                     <input type="text" id="edit-prref" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
@@ -943,11 +947,6 @@
                                         ></span>
                                     </div>
                                 </div>
-                                    
-                                <div class="flex flex-col gap-1.5">
-                                    <label class="text-[12px] font-semibold text-[var(--muted)]">No.</label>
-                                    <input type="text" id="edit-no" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                                </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Buyer</label>
                                     <input type="text" id="edit-buyer" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
@@ -979,10 +978,6 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Ratio of Overall Swapping / Revenue</label>
                                     <input type="number" step="0.0001" id="edit-ratio-swapping-revenue" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                                </div>
-                                <div class="col-span-1 md:col-span-2 flex flex-col gap-1.5">
-                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Remark</label>
-                                    <textarea id="edit-pr-remark" rows="2" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y"></textarea>
                                 </div>
                                 <div class="col-span-1 md:col-span-2 flex text-[12px] font-semibold text-[var(--muted)]">
                                     <span class="mr-1">Attachment URL:</span>
@@ -1440,7 +1435,7 @@
 
                         <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
                             <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
-                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}</span>
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}</span>
                         </div>
 
                         <textarea id="modal-supplier-remark" rows="11"
@@ -1633,6 +1628,7 @@
                 QuotationStartDate?: string;    // Quotation Start Date (admin_quotationstartdates)
                 QuotationEndDate?: string;      // Quotation End Date (admin_quotationenddates)
                 QuotationExpiryDate: string;    // Quotation Expiry Date (admin_quotationexpirydate)
+                QuotationNo?: string;           // Quotation No. (admin_quotationno)
                 Vendor: string;                 // Vendor (admin_vendor)
                 PRReference?: string;           // PR Reference (admin_prx0020reference)
                 PRDescription?: string;         // PR Description (admin_prx0020description)
@@ -1756,6 +1752,7 @@
             { key: "POReceiptDate", label: "PO Receipt Date", visible: false, sortable: true },
             { key: "QuotationStartDate", label: "Quotation Start Date", visible: false, sortable: true },
             { key: "QuotationEndDate", label: "Quotation End Date", visible: false, sortable: true },
+            { key: "QuotationNo", label: "Quotation No.", visible: false, sortable: true },
             { key: "IPTUnitMgr", label: "IPT Unit Mgr", visible: false, sortable: true },
             { key: "UID", label: "UID #", visible: false, sortable: true },
             { key: "Remarks", label: "Remarks", visible: false, sortable: true },
@@ -3160,6 +3157,171 @@
             return DEMO_SUPPLIER_REMARKS;
         }
 
+        /* --- Sales Name & Contact Lookup (cre5c_btb_sales_name__contact) --- */
+        const SALES_CONTACT_LOOKUP_CONFIG = {
+            entity: "cre5c_btb_sales_name__contact",
+            altEntity: "cre5c_btb_sales_name__contacts",
+            select: [
+                "admin_salesx0020name",
+                "admin_salesx0020contactx0020number"
+            ],
+            fields: {
+                salesName: "admin_salesx0020name",
+                salesContactNumber: "admin_salesx0020contactx0020number"
+            }
+        };
+
+        let cachedSalesContactRows = null;
+
+        function getSalesRowName(row) {
+            if (!row) return "";
+            if (row.admin_salesx0020name != null) return String(row.admin_salesx0020name).trim();
+            if (row.admin_sales_name != null) return String(row.admin_sales_name).trim();
+            if (row.admin_salesname != null) return String(row.admin_salesname).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("sales") && lk.includes("name")) {
+                    return String(row[k] != null ? row[k] : "").trim();
+                }
+            }
+            return "";
+        }
+
+        function getSalesRowContactNumber(row) {
+            if (!row) return "";
+            if (row.admin_salesx0020contactx0020number != null) return String(row.admin_salesx0020contactx0020number).trim();
+            if (row.admin_sales_contact_number != null) return String(row.admin_sales_contact_number).trim();
+            if (row.admin_salescontactnumber != null) return String(row.admin_salescontactnumber).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("sales") && (lk.includes("contact") || lk.includes("number") || lk.includes("phone"))) {
+                    return String(row[k] != null ? row[k] : "").trim();
+                }
+            }
+            return "";
+        }
+
+        async function fetchSalesContactRows() {
+            if (cachedSalesContactRows && cachedSalesContactRows.length > 0) {
+                return cachedSalesContactRows;
+            }
+            const webApi = getDataverseWebApi();
+            if (!webApi) return null;
+
+            const config = SALES_CONTACT_LOOKUP_CONFIG;
+            const query = "?$select=" + config.select.join(",");
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedSalesContactRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e1) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedSalesContactRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e2) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedSalesContactRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e3) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedSalesContactRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e4) {}
+
+            return null;
+        }
+
+        function lookupSalesContactInfo(salesNameValue, rows = cachedSalesContactRows) {
+            const val = String(salesNameValue || '').trim();
+            if (!val) {
+                return {
+                    salesName: "",
+                    salesContactNumber: ""
+                };
+            }
+
+            // 1. Match in Dataverse table cre5c_btb_sales_name__contact rows if available
+            if (Array.isArray(rows) && rows.length > 0) {
+                const valUpper = val.toUpperCase();
+                const valKey = personNameKey(val);
+
+                let matched = rows.find(r => getSalesRowName(r).toUpperCase() === valUpper);
+                if (!matched && valKey) {
+                    matched = rows.find(r => personNameKey(getSalesRowName(r)) === valKey);
+                }
+                if (!matched) {
+                    matched = rows.find(r => {
+                        const rn = getSalesRowName(r).toUpperCase();
+                        return rn && (rn.includes(valUpper) || valUpper.includes(rn));
+                    });
+                }
+                if (matched) {
+                    return {
+                        salesName: getSalesRowName(matched) || val,
+                        salesContactNumber: getSalesRowContactNumber(matched),
+                        rawRow: matched
+                    };
+                }
+            }
+
+            // 2. Fallback to BTB_SALES_CONTACTS
+            const valKey = personNameKey(val);
+            const valUpper = val.toUpperCase();
+            const contact = BTB_SALES_CONTACTS.find(c =>
+                c.key.toUpperCase() === valUpper ||
+                (valKey && personNameKey(c.key) === valKey) ||
+                (valKey && personNameKey(c.name) === valKey) ||
+                c.name.toUpperCase() === valUpper
+            ) || null;
+
+            if (contact) {
+                return {
+                    salesName: contact.key || [contact.title, contact.name].filter(Boolean).join(" ") || val,
+                    salesContactNumber: contact.phone || "",
+                    contactObj: contact
+                };
+            }
+
+            return {
+                salesName: val,
+                salesContactNumber: ""
+            };
+        }
+
+        function findSalesContactMatch(handledByValue, salesOptions) {
+            if (!handledByValue) return "";
+            const targetUpper = String(handledByValue).trim().toUpperCase();
+            const targetKey = personNameKey(handledByValue);
+
+            if (Array.isArray(salesOptions) && salesOptions.length > 0) {
+                const exact = salesOptions.find(opt => opt.trim().toUpperCase() === targetUpper);
+                if (exact) return exact;
+
+                if (targetKey) {
+                    const keyMatch = salesOptions.find(opt => personNameKey(opt) === targetKey);
+                    if (keyMatch) return keyMatch;
+                }
+            }
+
+            const legacyMatch = findSalesContact(handledByValue);
+            return legacyMatch ? legacyMatch.key : "";
+        }
+
         function monthsBetween(startVal, endVal) {
             const s = formatDateForInput(startVal);
             const e = formatDateForInput(endVal);
@@ -3197,7 +3359,7 @@
             return lines.join("\n");
         }
 
-        function interpolateRemark(template, fields = {}, contact = null, adminName = null) {
+        function interpolateRemark(template, fields = {}, contact = null, adminName = null, salesLookup = null) {
             if (!template) return "";
             const s = String(template);
             if (!s.includes("{") || !s.includes("}")) return s;
@@ -3208,11 +3370,30 @@
             const periodStr = (fVal("quotationStartDate") || fVal("quotationEndDate"))
                 ? `${fVal("quotationStartDate")} to ${fVal("quotationEndDate")} (${periodMths})`
                 : "";
-            const contactLine = contact
-                ? `For case details, please contact ${[contact.title, contact.name].filter(Boolean).join(" ")} at ${contact.phone}`
+
+            // Resolve sales contact information from salesLookup parameter, contact, DOM, or fields
+            let salesInfo = salesLookup;
+            if (!salesInfo) {
+                const salesVal = (contact && (contact.key || contact.name)) ||
+                    (typeof document !== "undefined" && document.getElementById('remark-sales-contact')?.value) ||
+                    fVal("handledBy") || "";
+                salesInfo = lookupSalesContactInfo(salesVal, cachedSalesContactRows);
+            }
+
+            const resolvedSalesName = (salesInfo && salesInfo.salesName) || (contact ? (contact.key || contact.name) : "");
+            const resolvedSalesPhone = (salesInfo && salesInfo.salesContactNumber) || (contact ? (contact.phone || "") : "");
+
+            const contactLine = (resolvedSalesName || contact)
+                ? (contact && contact.title
+                    ? `For case details, please contact ${[contact.title, contact.name].filter(Boolean).join(" ")} at ${resolvedSalesPhone}`
+                    : `For case details, please contact ${resolvedSalesName} at ${resolvedSalesPhone}`.trim())
                 : "For case details, please contact";
-            const contactName = contact ? [contact.title, contact.name].filter(Boolean).join(" ") : "";
-            const contactPhone = contact ? (contact.phone || "") : "";
+            const contactName = resolvedSalesName || (contact ? [contact.title, contact.name].filter(Boolean).join(" ") : "");
+            const contactPhone = resolvedSalesPhone || (contact ? (contact.phone || "") : "");
+
+            const adminObj = BTB_ADMINS.find(a => a.name === adminName);
+            const adminPhone = adminObj ? (adminObj.phone || "") : (adminName ? "" : "28833100");
+            const adminNameOnly = adminName || fVal("issueBy") || "Mandy Lee";
             const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
 
             const map = {
@@ -3227,12 +3408,32 @@
                 "description": fVal("poPrDescription"),
                 "pr issued by": issuedBy,
                 "issued by": issuedBy,
+                "issue by": adminNameOnly,
+                "issue by phone no.": adminPhone,
+                "issue by phone no": adminPhone,
+                "issue by phone": adminPhone,
+                "issue by contact number": adminPhone,
+                "issued by phone no.": adminPhone,
+                "issued by phone no": adminPhone,
+                "issued by phone": adminPhone,
                 "admin name": adminName || "",
                 "admin": adminName || "",
+                "admin phone": adminPhone,
                 "contact": contactLine,
                 "sales contact": contactLine,
                 "contact name": contactName,
                 "contact phone": contactPhone,
+                "sales name": resolvedSalesName,
+                "salesname": resolvedSalesName,
+                "sales contact name": resolvedSalesName,
+                "sales contact number": resolvedSalesPhone,
+                "sales contact no.": resolvedSalesPhone,
+                "sales contact no": resolvedSalesPhone,
+                "salescontactnumber": resolvedSalesPhone,
+                "sales contact phone": resolvedSalesPhone,
+                "sales phone number": resolvedSalesPhone,
+                "sales phone": resolvedSalesPhone,
+                "sales number": resolvedSalesPhone,
                 "period": periodStr,
                 "quotation start date": fVal("quotationStartDate"),
                 "quotation end date": fVal("quotationEndDate"),
@@ -3269,7 +3470,7 @@
                 quotationStartDate: { value: val('edit-quotation-start-date', 'QuotationStartDate') },
                 quotationEndDate: { value: val('edit-quotation-end-date', 'QuotationEndDate') },
                 poPrDescription: { value: val('edit-description', 'PRDescription') },
-                quotation: { value: val('edit-prref', 'PRReference') },
+                quotation: { value: val('edit-quotationno', 'QuotationNo') || val('edit-prref', 'PRReference') },
                 contractNo: { value: val('edit-contract', 'ContractNo') },
                 atqRefNo: { value: val('edit-title', 'Title') },
                 hkd: { value: val('edit-pramount', 'PRAmount') },
@@ -3332,16 +3533,44 @@
                 subtitle.innerText = `Record: ${state.currentRecord.Title || state.currentRecord.Id || 'Current Record'}`;
             }
 
-            // 1. Populate Sales Name dropdown
-            const salesSelect = document.getElementById('remark-sales-contact');
-            if (salesSelect) {
-                salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
-                    BTB_SALES_CONTACTS.map(c => `<option value="${escapeHtml(c.key)}">${escapeHtml(c.key)}</option>`).join('');
-                const autoSales = findSalesContact(fields.handledBy.value);
-                if (autoSales) salesSelect.value = autoSales.key;
+            // 1. Load sales contact rows from Dataverse if not cached
+            if (!cachedSalesContactRows) {
+                try {
+                    cachedSalesContactRows = await fetchSalesContactRows();
+                } catch (_e) {
+                    cachedSalesContactRows = null;
+                }
             }
 
-            // 2. Populate Admin Name dropdown
+            // 2. Populate Sales Name dropdown
+            const salesSelect = document.getElementById('remark-sales-contact');
+            if (salesSelect) {
+                const salesOptions = [];
+                const seenSales = new Set();
+                if (Array.isArray(cachedSalesContactRows) && cachedSalesContactRows.length > 0) {
+                    for (const r of cachedSalesContactRows) {
+                        const name = getSalesRowName(r);
+                        if (name && !seenSales.has(name.toUpperCase())) {
+                            seenSales.add(name.toUpperCase());
+                            salesOptions.push(name);
+                        }
+                    }
+                }
+                for (const c of BTB_SALES_CONTACTS) {
+                    if (c.key && !seenSales.has(c.key.toUpperCase())) {
+                        seenSales.add(c.key.toUpperCase());
+                        salesOptions.push(c.key);
+                    }
+                }
+
+                salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
+                    salesOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+
+                const autoSales = findSalesContactMatch(fields.handledBy.value, salesOptions);
+                if (autoSales) salesSelect.value = autoSales;
+            }
+
+            // 3. Populate Admin Name dropdown
             const adminSelect = document.getElementById('remark-admin-name');
             if (adminSelect) {
                 adminSelect.innerHTML = BTB_ADMINS.map(a => `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`).join('');
@@ -3349,7 +3578,7 @@
                 adminSelect.value = autoAdmin;
             }
 
-            // 3. Load supplier remark rows if not cached
+            // 4. Load supplier remark rows if not cached
             if (!cachedSupplierRemarkRows) {
                 try {
                     cachedSupplierRemarkRows = await fetchSupplierRemarkRows();
@@ -3359,7 +3588,7 @@
             }
             const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
 
-            // 4. Populate Case Type dropdown
+            // 5. Populate Case Type dropdown
             const caseSelect = document.getElementById('remark-case-type');
             if (caseSelect) {
                 const seenCcc = new Set();
@@ -3387,7 +3616,7 @@
                 if (matchedCcc) caseSelect.value = matchedCcc;
             }
 
-            // 5. Generate and set initial remarks text
+            // 6. Generate and set initial remarks text
             rebuildRemarksFromModalState();
 
             modal.classList.remove('hidden');
@@ -3407,12 +3636,21 @@
             const salesKey = document.getElementById('remark-sales-contact')?.value || '';
             const adminName = document.getElementById('remark-admin-name')?.value || BTB_ADMIN_NAMES[0];
             const caseType = document.getElementById('remark-case-type')?.value || '';
-            const contact = BTB_SALES_CONTACTS.find(c => c.key === salesKey) || null;
+
+            // Look up sales contact from cre5c_btb_sales_name__contact or BTB_SALES_CONTACTS
+            const salesInfo = lookupSalesContactInfo(salesKey, cachedSalesContactRows);
+            const contactFromStatic = BTB_SALES_CONTACTS.find(c => c.key === salesKey) || null;
+            const effectiveContact = contactFromStatic || (salesInfo && salesInfo.salesName ? {
+                key: salesInfo.salesName,
+                title: "",
+                name: salesInfo.salesName,
+                phone: salesInfo.salesContactNumber
+            } : null);
 
             // BTB Remark text
             const btbTextarea = document.getElementById('modal-btb-remark');
             if (btbTextarea) {
-                btbTextarea.value = contact ? buildBtbRemark(contact, adminName, false) : '';
+                btbTextarea.value = effectiveContact ? buildBtbRemark(effectiveContact, adminName, false) : '';
             }
 
             // To Supplier Remark text
@@ -3429,20 +3667,28 @@
                     }
                     if (matchedRow) {
                         const rawRemark = getRowRemark(matchedRow);
-                        supplierTextarea.value = interpolateRemark(rawRemark, fields, contact, adminName);
+                        supplierTextarea.value = interpolateRemark(rawRemark, fields, effectiveContact, adminName, salesInfo);
                     } else {
-                        supplierTextarea.value = buildToSupplierRemark(caseType, fields, contact, true, adminName);
+                        supplierTextarea.value = buildToSupplierRemark(caseType, fields, effectiveContact, true, adminName);
                     }
                 } else {
                     const existingFormRemark = (document.getElementById('edit-remarks')?.value) || (state.currentRecord && state.currentRecord.Remarks) || '';
                     if (!supplierTextarea.value) {
                         supplierTextarea.value = existingFormRemark;
                     }
+                    if (supplierTextarea.value && supplierTextarea.value.includes('{') && supplierTextarea.value.includes('}')) {
+                        supplierTextarea.value = interpolateRemark(supplierTextarea.value, fields, effectiveContact, adminName, salesInfo);
+                    }
                 }
             }
         }
 
-        function handleRemarkSalesContactChange(key) {
+        async function handleRemarkSalesContactChange(key) {
+            if (!cachedSalesContactRows && getDataverseWebApi()) {
+                try {
+                    await fetchSalesContactRows();
+                } catch (_e) {}
+            }
             rebuildRemarksFromModalState();
         }
 
@@ -3456,10 +3702,18 @@
 
         function copyRemarkText(textareaId) {
             const el = document.getElementById(textareaId);
-            const val = el ? el.value : '';
+            let val = el ? el.value : '';
             if (!val) {
                 showToast('Nothing to copy.', 'warning');
                 return;
+            }
+            if (textareaId === 'modal-supplier-remark' && val.includes('{') && val.includes('}')) {
+                const fields = getRemarkFields();
+                const salesKey = document.getElementById('remark-sales-contact')?.value || '';
+                const adminName = document.getElementById('remark-admin-name')?.value || BTB_ADMIN_NAMES[0];
+                const salesInfo = lookupSalesContactInfo(salesKey, cachedSalesContactRows);
+                val = interpolateRemark(val, fields, null, adminName, salesInfo);
+                el.value = val;
             }
             if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(val).then(() => {
@@ -3488,8 +3742,19 @@
         }
 
         function applyRemarksToRecord() {
-            const supplierText = document.getElementById('modal-supplier-remark')?.value || '';
+            const supplierEl = document.getElementById('modal-supplier-remark');
+            let supplierText = supplierEl?.value || '';
             const btbText = document.getElementById('modal-btb-remark')?.value || '';
+
+            if (supplierText && supplierText.includes('{') && supplierText.includes('}')) {
+                const fields = getRemarkFields();
+                const salesKey = document.getElementById('remark-sales-contact')?.value || '';
+                const adminName = document.getElementById('remark-admin-name')?.value || BTB_ADMIN_NAMES[0];
+                const salesInfo = lookupSalesContactInfo(salesKey, cachedSalesContactRows);
+                supplierText = interpolateRemark(supplierText, fields, null, adminName, salesInfo);
+                if (supplierEl) supplierEl.value = supplierText;
+            }
+
             const targetRemarks = supplierText || btbText;
 
             const formRemarks = document.getElementById('edit-remarks');
@@ -4669,6 +4934,7 @@
             "admin_quotationstartdates"         : "QuotationStartDate",
             "admin_quotationenddates"           : "QuotationEndDate",
             "admin_quotationexpirydate"         : "QuotationExpiryDate",
+            "admin_quotationno"                 : "QuotationNo",
             "admin_vendor"                      : "Vendor",
             "admin_prx0020reference"            : "PRReference",
             "admin_prx0020description"          : "PRDescription",
@@ -4777,7 +5043,7 @@
                         "admin_prx0020reference", "admin_prx0020description", "admin_uidx0020x0023", "admin_issuex0020by",
                         "admin_chargex0020ccc", "admin_worksx0020orderx0020code", "admin_accountx0020code",
                         "admin_prx0020issuedx0020on", "admin_prx0020nox002e", "admin_handledx0020byx0020",
-                        "admin_iptx0020unitx0020mgr", "admin_quotationstartdates", "admin_quotationenddates",
+                        "admin_iptx0020unitx0020mgr", "admin_quotationstartdates", "admin_quotationenddates", "admin_quotationno",
                         "admin_btbtype", "admin_totalrevenue", "admin_nox002e", "admin_recx0027dx0020datex0020",
                         "admin_pox0020nox002e", "admin_pox0020date", "admin_receiptx0020date",
                         "admin_pox0020amountx0020hkx0024", "admin_umx002fmgr", "admin_prx0020issuedx0020month",
@@ -5933,9 +6199,13 @@
                 updateFieldLockingAndApprovalUI(activeStatus);
                 return;
             }
-            const umReviewInfoDiv = document.getElementById('um-review-info')
+            const umReviewInfoDiv = document.getElementById('um-review-info');
             if (umReviewInfoDiv) {
-                umReviewInfoDiv.classList.toggle('hidden', !curRecord.UMVerified);
+                if (curRecord.UMVerified) {
+                    umReviewInfoDiv.classList.remove('hidden');
+                } else {
+                    umReviewInfoDiv.classList.add('hidden');
+                }
             }
             const sendApprovalButton = document.getElementById('btn-send-approval');
             if (sendApprovalButton) {
@@ -6432,6 +6702,7 @@
                     if (record.QuotationStartDate !== undefined) payload.admin_quotationstartdates = record.QuotationStartDate || null;
                     if (record.QuotationEndDate !== undefined) payload.admin_quotationenddates = record.QuotationEndDate || null;
                     if (record.QuotationExpiryDate !== undefined) payload.admin_quotationexpirydate = record.QuotationExpiryDate || null;
+                    if (record.QuotationNo !== undefined) payload.admin_quotationno = record.QuotationNo || null;
                     if (record.StartDate !== undefined) payload.admin_contractstartdate = record.StartDate || null;
                     if (record.EndDate !== undefined) payload.admin_contractenddate = record.EndDate || null;
                     if (record.LicenseReceiveDate !== undefined) payload.admin_licensereceivedate = record.LicenseReceiveDate || null;
@@ -6636,6 +6907,7 @@
             'edit-quotation-end-date': 'QuotationEndDate',
             'edit-quotationexpiry': 'QuotationExpiryDate',
             'edit-vendor': 'Vendor',
+            'edit-quotationno': 'QuotationNo',
             'edit-prref': 'PRReference',
             'edit-description': 'PRDescription',
 

@@ -84,7 +84,14 @@ function getMockElement(id) {
         classes: new Set(),
         remove(...cls) { cls.forEach(c => this.classes.delete(c)); },
         add(...cls) { cls.forEach(c => this.classes.add(c)); },
-        contains(c) { return this.classes.has(c); }
+        contains(c) { return this.classes.has(c); },
+        toggle(c, force) {
+          const has = this.classes.has(c);
+          const shouldAdd = force !== undefined ? !!force : !has;
+          if (shouldAdd) this.classes.add(c);
+          else this.classes.delete(c);
+          return shouldAdd;
+        }
       },
       style: {},
       setAttribute() {},

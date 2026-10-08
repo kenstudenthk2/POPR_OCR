@@ -3456,6 +3456,7 @@ function buildLisExcelPayload(values, recordId, remark) {
     // them on screen.
     quotationStartDate: v("quotationStartDate"),
     quotationEndDate:   v("quotationEndDate"),
+    quotation:   v("quotation"),
     // A real Date column on both sides, UNLIKE the two Quotation dates above
     // it -- so parseIsoDate DOES run here, and a value it cannot read (a
     // quotation that prints "TBC", or a period rather than a day) comes back
@@ -8722,6 +8723,7 @@ const DATAVERSE_SCHEMAS = {
         endDate: "admin_contractenddate",
         quotationStartDate: "admin_quotationstartdates",
         quotationEndDate: "admin_quotationenddates",
+        quotation: "admin_quotationno",
         atqRefNo: "admin_prx0020reference",
         uid: "admin_uidx0020x0023",
         issueBy: "admin_issuex0020by",
@@ -8772,6 +8774,7 @@ const DATAVERSE_SCHEMAS = {
         // run on these two.
         quotationStartDate: "admin_quotationstartdates",
         quotationEndDate: "admin_quotationenddates",
+        quotation: "admin_quotationno",
         // A real Date column, unlike the two Text ones above it -- the Manage
         // modal on Master Records already writes this same column as an ISO
         // day string (see MASTER_RECORDS_FIELD_KINDS), which is also the only
@@ -8906,6 +8909,7 @@ const DATAVERSE_SCHEMAS = {
         iptUnitMgr:         "admin_iptx0020unitx0020mgr",
         quotationStartDate: "admin_quotationstartdates",
         quotationEndDate:   "admin_quotationenddates",
+        quotation:          "admin_quotationno",
         poDate:             "admin_pox0020date",
         receiptDate:        "admin_receiptx0020date",
         poAmountHkd:        "admin_pox0020amountx0020hkx0024",
@@ -10697,7 +10701,7 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
   // SCHEMA.lis.fields/.select, so neither can double back and outrank the
   // value the row is showing -- see the write map's own note on productType.
   const LIS_EXCEL_ROW_IDS = ["customerName", "vendor", "contractNo", "prAmount",
-    "contractStartDate", "contractEndDate", "quotationStartDate", "quotationEndDate",
+    "contractStartDate", "contractEndDate", "quotation", "quotationStartDate", "quotationEndDate",
     "quotationExpireDate", "handledBy", "iptUnitMgr", "contractRevenue", "productType"];
   const lisExcelValues = () => {
     const out = {};
@@ -12197,7 +12201,7 @@ class Semaphore {
 // const N8N_SAVE_ONEDRIVE_URL = "";
 const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
-const GROUP_RATIO = 0.7;
+const CHUNK_GROUP_RATIO = 0.7;
 
 /**
  * @param {ISerializedFile[]} serializedFiles
@@ -12232,12 +12236,12 @@ function sliceFiles(serializedFiles, chunkSize) {
       reqSize += chunk.length;
       chunkManifestItem.chunks.push(chunkName);
 
-      if (reqSize >= chunkSize * GROUP_RATIO) {
+      if (reqSize >= chunkSize * CHUNK_GROUP_RATIO) {
         reqList.push(reqAttachments);
         reqAttachments = [];
         reqSize = 0;
       }
-      // reuse request when chunk utilization is below GROUP_RATIO
+      // reuse request when chunk utilization is below CHUNK_GROUP_RATIO
     }
     chunkManifest.push(chunkManifestItem);
   }
@@ -12305,7 +12309,6 @@ async function splitUpload(serializedFiles, recordId, chunkSize, onProgress) {
   return response;
 }
 
-// const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
 /**
  * @param {string} recordId
@@ -12316,10 +12319,6 @@ async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
-  // const postObj = {
-  //   recordId,
-  //   attachments: []
-  // }
   const emailFile = attachments["Vendor Quotation"].fileObj;
 
   const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {

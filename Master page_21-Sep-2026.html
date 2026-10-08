@@ -681,7 +681,7 @@
                 </div>
 
                 <!-- Tab Content Sections -->
-                <div>
+                <div id="editModalTabContent">
                     <!-- TAB 1: Request Information Card -->
                     <div id="tab-request" class="modal-tab-pane">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
@@ -1073,7 +1073,7 @@
                                 </div>
                                 <div class="col-span-1 md:col-span-2 flex text-[12px] font-semibold text-[var(--muted)]">
                                     <span class="mr-1">Attachment URL:</span>
-                                    <a id="review-attachment-url" class="text-[var(--blue)] underline"></a>
+                                    <a id="review-attachment-url" class="text-[var(--blue)] underline" target="_blank"></a>
                                 </div>
 
                                 <!-- PR Action Control inside PR Info Tab -->
@@ -1083,6 +1083,9 @@
                                         <div class="flex flex-col gap-3">
                                             <span class="text-[13px] font-bold text-[var(--ink)]">
                                                 UM Verification
+                                            </span>
+                                            <span class="text-[11px] font-bold text-[var(--red)]">
+                                                **Before sending the approval , please review the Attachment URL to ensure that the folder contains all required attachments.**
                                             </span>
 <button
     type="button"
@@ -1263,7 +1266,7 @@
                                     <input type="date" id="edit-mark-receipt-date" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
 
-                                <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2">
+                                <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2 hidden">
                                     <div class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] flex flex-col justify-between gap-3 relative" id="poApprovalSection">
                                         <div class="flex flex-col gap-1">
                                             <div class="flex items-center justify-between relative">
@@ -1503,6 +1506,9 @@
                         <p class="text-[12px] text-[var(--muted)]" id="remark-modal-subtitle">Generate To Supplier Remark and BTB Remark (To Buyer)</p>
                     </div>
                 </div>
+                <button id="btn-copy-paymentguide" type="button" onclick="copyPaymentDoc()" class="ml-auto mr-2 ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">
+                    Copy Payment Guideline Path
+                </button>
                 <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
             </div>
 
@@ -1819,7 +1825,7 @@
             @typedef { keyof IRecord } IColumnKey
         */
 
-        /** @type {Record<string, {toHKD: number}>} */
+        /** @type {Record<string, {toHKD: number, toUSD: number}>} */
         const CURRENCY_CONFIG = {
             HKD: {
                 // symbol: "HKD",
@@ -4141,6 +4147,18 @@
             }
         }
 
+        function copyPaymentDoc(){
+            const documentPath = "\\\\10.5.9.36\\\\csd-admin\\CSD\\Guidelines\\PO-Mark-Receipt(GFIN_PU-wef-20251110)\\Payment-Instruction-Guideline\\SB\\SB Payment Instructions Guideline Ver V20260720_SB.docx"
+            globalThis?.navigator.clipboard.writeText(documentPath)
+            const btn = document.getElementById("btn-copy-paymentguide")
+            if(btn) {
+                btn.innerText = "Copied!"
+                setTimeout(() => {
+                btn.innerText = "Copy Payment Guideline Path"
+                }, 2000)
+            }
+        }
+
         function rebuildRemarksFromModalState() {
             const fields = getRemarkFields();
             const salesKey = document.getElementById('remark-sales-contact')?.value || '';
@@ -5513,7 +5531,9 @@
             "admin_reviewapproval"              : "UMVerified",
             "admin_umrevieweddatetime"          : "ReviewDate",
             "admin_umreviewapprovername"        : "UMReviewer",
-            "admin_reviewdocumenturl"           : "ReviewDocumentURL"
+            "admin_reviewdocumenturl"           : "ReviewDocumentURL",
+
+            "admin_prapprovalrequeststatus"     : "PRRequestApproved" 
 
 
         });
@@ -5523,6 +5543,8 @@
           @typedef {{
                admin_reviewapproval: "Y" | "N" | null;
                admin_yx0020x002fx0020n: "Y" | "N" | null;
+               admin_prapprovalrequeststatus: "Y" | "N" | null;
+               admin_processstatus: number | string | null;
           }} IDVColumnTypeOverrride
           
           @typedef {
@@ -5706,9 +5728,14 @@
                                 masterRecord[masterKey] = formatDateForInput(item[dvColumnKey])
                                 break;
                             // special cases
-                            case "ProcessStatus":
-                                masterRecord[masterKey] = item[dvColumnKey] || "PR No. Ready";
+                            case "ProcessStatus":{
+                                let statusValue = item[dvColumnKey];
+                                if (typeof statusValue === 'number') {
+                                    statusValue = PROCESS_DV_STATUS_MAP[statusValue]
+                                }
+                                masterRecord[masterKey] = statusValue || "PR No. Ready";
                                 break;
+                            }
                             case "Flagged":
                                 masterRecord.UrgentFlag = !!(item.admin_flagged);
                                 break;
@@ -5736,9 +5763,13 @@
                                 }
                                 break;
                             }
-                            
+                            case "PRRequestApproved": {
+                                const approved = item[dvColumnKey]?.toUpperCase()?.trim() === "Y"
+                                masterRecord[masterKey] = approved;
+                                break;
+                            }
                             case "UMVerified": {
-                                const reviewed = item[dvColumnKey] === "Y"
+                                const reviewed = item[dvColumnKey]?.toUpperCase()?.trim() === "Y"
                                 masterRecord[masterKey] = reviewed;
                                 break;
                             }
@@ -5927,6 +5958,11 @@
         }
 
         // Requirement 1: Updated evaluateWorkflowState function
+        /**
+         * Evaluates the workflow state of a record based on its properties.
+         * @param {IRecord} record - The record to evaluate.
+         * @returns {string} - The evaluated workflow state.
+         */
         function evaluateWorkflowState(record) {
 
             if (record.ProcessStatus === "Cancelled") {
@@ -6080,13 +6116,21 @@
             bar.innerHTML = STATUS_TABS.map(t => {
                 let count = 0;
 
+                /**
+                 * @param {IRecord} item - The record to check.
+                 * @returns {boolean} - True if the item is progress tracked, false otherwise.
+                 */
+                function isItemProgressTracked(item){
+                    return item.ProcessStatus !== 'Cancelled' && item.ProcessStatus !== 'Complete';
+                }
+
                 if (t === 'All') {
                     count = state.allData.length;
                 } else if (t === 'Urgent') {
-                    count = state.allData.filter(item => Boolean(item.UrgentFlag)).length;
+                    count = state.allData.filter(item => Boolean(item.UrgentFlag) && isItemProgressTracked(item)).length;
                 } else if (t === "Expired") {
                     count = state.allData.filter(item => {
-                        if (item.ProcessStatus === 'Cancelled') return false;
+                        if (!isItemProgressTracked(item)) return false;
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6097,7 +6141,7 @@
                     }).length;
                 } else if (t === 'Expiring Soon') {
                     count = state.allData.filter(item => {
-                        if (item.ProcessStatus === 'Cancelled') return false;
+                        if (!isItemProgressTracked(item)) return false;
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6156,6 +6200,14 @@
             const fProductType = (document.getElementById('flt-producttype')?.value || document.getElementById('flt-servicetype')?.value || '').toLowerCase();
             const todayHKT = getCurrentHKTDate();
 
+            
+            /**
+             * @param {IRecord} item - The record to check.
+             * @returns {boolean} - True if the item is progress tracked, false otherwise.
+             */
+            function isItemProgressTracked(item){
+                return item.ProcessStatus !== 'Cancelled' && item.ProcessStatus !== 'Complete';
+            }
             state.filteredData = state.allData.filter(item => {
                 const mSearch = Object.values(item).some(val => String(val).toLowerCase().includes(search));
 
@@ -6163,9 +6215,11 @@
                 if (state.activeTab === "All") {
                     mTab = true;
                 } else if (state.activeTab === "Urgent") {
-                    mTab = Boolean(item.UrgentFlag);
+                    if (isItemProgressTracked(item)) {
+                        mTab = Boolean(item.UrgentFlag);
+                    }
                 } else if (state.activeTab === "Expired") {
-                    if (item.ProcessStatus !== 'Cancelled') {
+                    if (isItemProgressTracked(item)) {
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6174,7 +6228,7 @@
                         }
                     }
                 } else if (state.activeTab === "Expiring Soon") {
-                    if (item.ProcessStatus !== 'Cancelled') {
+                    if (isItemProgressTracked(item)) {
                         const parts = item.QuotationExpiryDate?.split('-');
                         if (parts && parts.length === 3) {
                             const expiryDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -6898,26 +6952,30 @@
         function updateFieldLockingAndApprovalUI(currentStatus) {
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
-            const container = document.getElementById('modalFormContainer');
+            const container = document.getElementById('editModalTabContent');
 
-            if (currentStatus === 'Complete') {
-                // TODO: why are we unlocking the fields after completion?
-                const controls = container.querySelectorAll('input, select, textarea, button');
-                controls.forEach(control => {
-                    if (PERMANENTLY_DISABLED_FIELD_IDS.has(control.id)) {
-                        if (control.id === 'edit-pair-account-code' && control.tagName === 'SELECT') {
-                            control.disabled = false;
-                            control.classList.remove('cursor-not-allowed');
-                            return;
-                        }
-                        control.disabled = true;
-                        control.classList.add('cursor-not-allowed');
-                        return;
-                    }
+            const controls = container.querySelectorAll('input, select, textarea, button');
+            
+            const disabledStyle = ["bg-gray-100", "cursor-not-allowed", "opacity-50"];
+            controls.forEach(control => {
+                if (
+                    currentStatus === 'Complete' || 
+                    currentStatus === 'Cancelled' ||
+                    (
+                        PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
+                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT')
+                    )
+                ) {
+                    control.disabled = true;
+                    control.classList.add(...disabledStyle);
+                }
+                else {
                     control.disabled = false;
-                    control.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-50');
-                });
-                
+                    control.classList.remove(...disabledStyle);
+                }
+            });
+            
+            if (currentStatus === 'Complete') {
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -6931,15 +6989,6 @@
                     cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
                 }
-
-                const inputs = container.querySelectorAll('input, select, textarea, button');
-                inputs.forEach(el => {
-                    el.disabled = true;
-                    if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
-                        el.classList.add('bg-gray-100', 'cursor-not-allowed');
-                    }
-                });
-
                 if (saveBtn) {
                     saveBtn.disabled = true;
                     saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -7055,7 +7104,7 @@
         }
 
         function isStageFieldsComplete(record, stageName) {
-            const fields = STAGEREQUIREDFIELDS[stageName] || [];
+            const fields = STAGE_REQUIRED_FIELDS[stageName] || [];
             return fields.every(f => {
                 const key = FIELD_ID_TO_RECORD_KEY[f.id]; 
                 if (!key) {
@@ -7071,9 +7120,9 @@
         }
 
         function closeModal() {
-            if (state.currentRecord) {
-                persistCurrentRecord(false, true);
-            }
+            // if (state.currentRecord) {
+            //     persistCurrentRecord(false, true);
+            // }
 
             const modal = document.getElementById('editModal');
             modal.classList.add('hidden');
@@ -7185,6 +7234,14 @@
             "UM Verified": 3,
             "LIS System Approved": 4,
             "PO No. Ready": 5
+        };
+        const PROCESS_DV_STATUS_MAP = {
+            0: "Complete",
+            1: "Cancelled",
+            2: "PR No. Ready",
+            3: "UM Verified",
+            4: "LIS System Approved",
+            5: "PO No. Ready"
         };
 
         async function persistRecordToDataverse(record) {
@@ -7387,7 +7444,7 @@
 
             closeCancelModal();
             showToast("Record cancelled successfully.", "warning");
-            closeModal();
+            persistCurrentRecord(true, true);
             processData();
         }
 
@@ -7406,7 +7463,7 @@
 
             closeReopenModal();
             showToast("Record re-opened successfully.", "success");
-            closeModal();
+            persistCurrentRecord(true, true);
             processData();
         }
 
@@ -7435,6 +7492,7 @@
             ],
 
             'LIS System Approved': [
+                { id: 'edit-pr-approved', label : 'PR Request Approved'},
             ],
 
             'PO No. Ready': [
@@ -7446,11 +7504,6 @@
             ],
 
             'Complete': [
-                { id: 'edit-prno', label: 'PR No.' },
-                { id: 'edit-pono', label: 'PO No.' },
-                { id: 'edit-podate', label: 'PO Issue Date' },
-                { id: 'edit-poamount', label: 'PO Amount HKD' },
-                { id: 'edit-po-receipt-date', label: 'PO Receipt Date' }
             ],
 
             'Cancelled': []
@@ -7706,7 +7759,7 @@
 
                         if (element) {
                             element.classList.add('is-invalid');
-                            if (element.type !== 'checkbox')
+                            // if (element.type !== 'checkbox')
                                 element.addEventListener("change", valiateFieldOnChange);
                             // todo: Attach on input listener to remove is-invalid class when user corrects the input
                         }
@@ -7841,6 +7894,11 @@ function sendApprovalRequest() {
 async function triggerApprovalFlow() {
 
     const record = state.currentRecord;
+    const amountInHKD = (record.Currency.toUpperCase() === "USD") ?
+        record.PRAmount * CURRENCY_CONFIG.USD.toHKD : 
+        record.PRAmount;
+    const approvalConfig = PR_APPROVE_CONFIG[record.BTBType]
+    const needApproval = approvalConfig.findIndex(({threshold})=> amountInHKD >= threshold) >= 0;
 
     try {
 
@@ -7852,9 +7910,8 @@ async function triggerApprovalFlow() {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-
-                    recordId: record.Id
-
+                    recordId: record.Id,
+                    skipPRApproval: needApproval? null : "Y",
                 })
             }
         );

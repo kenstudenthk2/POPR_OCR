@@ -282,46 +282,116 @@
 </head>
 <body>
 
-    <div class="w-full flex flex-col xl:flex-row xl:justify-between xl:items-center gap-5 px-5 md:px-8 py-6">
-        <div>
-            <div class="text-[clamp(28px,3vw,44px)] leading-[1.05] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Master List Management System - dev</div>
-            <div class="mt-2 max-w-2xl text-[15px] leading-6 text-[var(--muted)]">Browse, filter, and manage automated workflow records.</div>
-        </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-[1.5px] border-[#C5BEB6] rounded-full w-[260px]">
-                <span class="text-[#6B6B6B] text-[13px]">🔍</span>
-                <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search by ID, Vendor, Customer…"
-                    aria-label="Search records"
-                    class="flex-1 text-[14px] outline-none bg-transparent placeholder:text-[#6B6B6B]">
+    <!-- Main Application Header -->
+    <header class="w-full max-w-[1600px] mx-auto px-5 md:px-8 pt-6 pb-2 flex flex-col gap-4">
+        <!-- Row 1: Brand Identity & Primary System Action -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[var(--line)]/70">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF9900] to-[#E68500] text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                        <path d="M3 9h18"/>
+                        <path d="M9 21V9"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-[clamp(22px,2.4vw,32px)] leading-tight font-bold text-[var(--ink)] tracking-tight" style="font-family:'Space Grotesk', system-ui, sans-serif;">
+                            Master List Management System
+                        </h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            DEV
+                        </span>
+                    </div>
+                    <p class="mt-1 text-[13.5px] leading-5 text-[var(--muted)]">
+                        Browse, filter, and manage automated workflow records.
+                    </p>
+                </div>
             </div>
-            <button type="button" onclick="toggleFilters()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                Filter Data
-            </button>
 
-            <!-- Column Customization Button -->
-            <button type="button" onclick="openColumnModal()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                🔧 Column
-            </button>
-
-            <div id="main-loader" class="loader hidden"></div>
-            <button type="button" onclick="initApp()"
-                class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[1.5px] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">
-                Refresh Data
-            </button>
-
-            <button type="button" onclick="openExcelView()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                📊 Excel View
-            </button>
-
-            <button type="button" onclick="openCosControlModal()"
-                class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                📋 COS Control File
-            </button>
+            <!-- Primary Action: Refresh Data & Loader -->
+            <div class="flex items-center gap-2.5 self-start md:self-auto shrink-0">
+                <div id="main-loader" class="loader hidden"></div>
+                <button type="button" onclick="initApp()" id="btn-refresh-data"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">
+                    <svg id="refresh-icon-svg" class="w-4 h-4 shrink-0 transition-transform duration-500 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                        <path d="M16 16h5v5"></path>
+                    </svg>
+                    <span>Refresh Data</span>
+                </button>
+            </div>
         </div>
-    </div>
+
+        <!-- Row 2: Search Bar & Management Action Controls -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--line)] shadow-[0px_4px_16px_0px_rgba(29,29,31,0.04)]">
+            <!-- Expanded Search Bar -->
+            <div class="relative flex-1 lg:max-w-xl">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8C8C]">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                </span>
+                <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search records by ID, Vendor, Customer, PO No…"
+                    aria-label="Search records"
+                    class="w-full pl-10 pr-10 py-2.5 bg-white border-[1.5px] border-[#D2D2D7] rounded-lg text-[13.5px] text-[var(--ink)] placeholder:text-[#8C8C8C] outline-none field-control focus:border-[var(--orange)] focus:ring-2 focus:ring-amber-500/20">
+                <button type="button" id="clearSearchBtn" onclick="clearGlobalSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#8C8C8C] hover:text-[var(--ink)]" title="Clear search">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Action Controls Group -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="toggleFilters()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    <span>Filter Data</span>
+                </button>
+
+                <!-- Column Customization Button -->
+                <button type="button" onclick="openColumnModal()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                        <path d="M9 3v18"></path>
+                        <path d="M15 3v18"></path>
+                    </svg>
+                    <span>Column</span>
+                </button>
+
+                <button type="button" onclick="openExcelView()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#107C41] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <path d="M8 13h8"></path>
+                        <path d="M8 17h8"></path>
+                        <path d="M11 9v10"></path>
+                    </svg>
+                    <span>Excel View</span>
+                </button>
+
+                <button type="button" onclick="openCosControlModal()"
+                    class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#2563EB] transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                        <path d="m9 15 2 2 4-4"></path>
+                    </svg>
+                    <span>COS Control File</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
     <div class="max-w-[1600px] mx-auto px-5 md:px-8 pb-10 flex flex-col gap-6">
 
@@ -1229,29 +1299,51 @@
                 <div class="flex items-center gap-2">
                     <!-- Column Customization Button -->
                     <button type="button" onclick="openExcelColumnModal()"
-                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
-                        🔧 Column
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                            <path d="M9 3v18"></path>
+                            <path d="M15 3v18"></path>
+                        </svg>
+                        <span>Column</span>
                     </button>
                     <button
                         type="button"
                         onclick="exportExcelViewToCsv()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        ⬇ Export CSV
+                        <svg class="w-3.5 h-3.5 shrink-0 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Export CSV</span>
                     </button>
                     <button
                         type="button"
                         onclick="exportExcelViewToXLSX()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        📊 Export XLSX
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#107C41]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M8 13h8"></path>
+                            <path d="M8 17h8"></path>
+                            <path d="M11 9v10"></path>
+                        </svg>
+                        <span>Export XLSX</span>
                     </button>
                     <button
                         type="button"
                         onclick="openCosControlModal()"
-                        class="ui-transition pressable px-3.5 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]"
+                        class="ui-transition pressable inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]"
                     >
-                        📋 COS Control File
+                        <svg class="w-3.5 h-3.5 shrink-0 text-[#2563EB]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                            <path d="m9 15 2 2 4-4"></path>
+                        </svg>
+                        <span>COS Control File</span>
                     </button>
                     <button
                         type="button"
@@ -1435,7 +1527,7 @@
 
                         <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
                             <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
-                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}</span>
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}</span>
                         </div>
 
                         <textarea id="modal-supplier-remark" rows="11"
@@ -1927,6 +2019,11 @@
             if (loader) {
                 if (show) loader.classList.remove('hidden');
                 else loader.classList.add('hidden');
+            }
+            const refreshIcon = document.getElementById('refresh-icon-svg');
+            if (refreshIcon) {
+                if (show) refreshIcon.classList.add('animate-spin');
+                else refreshIcon.classList.remove('animate-spin');
             }
         }
 
@@ -3322,6 +3419,221 @@
             return legacyMatch ? legacyMatch.key : "";
         }
 
+        async function fetchRecordBtbAndUid(recordId) {
+            if (!recordId) return null;
+            const api = getDataverseWebApi();
+            if (!api) return null;
+            const entityName = (state.currentRecord && state.currentRecord._entityName) || currentDataverseEntityName || "admin_btb_lis_excel_datas";
+            const select = "admin_title,admin_btbtype,admin_uidx0020x0023";
+
+            let entity = null;
+            try {
+                const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                const res = await api.retrieveMultipleRecords(entityName, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    entity = res.entities[0];
+                }
+            } catch (_e1) {}
+
+            if (!entity) {
+                try {
+                    const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                    const res = await api.retrieveMultipleRecords("admin_btb_lis_excel_data", query);
+                    if (res && res.entities && res.entities.length > 0) {
+                        entity = res.entities[0];
+                    }
+                } catch (_e2) {}
+            }
+
+            if (!entity) {
+                try {
+                    const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'";
+                    const res = await api.retrieveMultipleRecords(entityName, query);
+                    if (res && res.entities && res.entities.length > 0) {
+                        entity = res.entities[0];
+                    }
+                } catch (_e3) {}
+            }
+
+            if (entity) {
+                const rawBtb = entity.admin_btbtype !== undefined ? entity.admin_btbtype : entity.new_btb_type;
+                let normalizedBtb = "";
+                if (rawBtb != null) {
+                    const s = String(rawBtb).trim();
+                    const u = s.toUpperCase();
+                    if (u === "BTB" || u === "Y") normalizedBtb = "BTB";
+                    else if (u === "NON-BTB" || u === "NON BTB" || u === "N" || u === "NBTB") normalizedBtb = "NON-BTB";
+                    else normalizedBtb = s;
+                }
+                const uidVal = entity.admin_uidx0020x0023 != null ? String(entity.admin_uidx0020x0023).trim() : "";
+
+                if (state.currentRecord) {
+                    if (normalizedBtb) state.currentRecord.BTBType = normalizedBtb;
+                    if (uidVal) state.currentRecord.UID = uidVal;
+                }
+                const btbEl = document.getElementById('edit-btb');
+                if (btbEl && normalizedBtb) btbEl.value = normalizedBtb;
+                const uidEl = document.getElementById('edit-uid');
+                if (uidEl && uidVal) uidEl.value = uidVal;
+
+                return {
+                    admin_btbtype: normalizedBtb,
+                    admin_uidx0020x0023: uidVal,
+                    raw: entity
+                };
+            }
+
+            return null;
+        }
+
+        /* --- Admin User List Lookup (admin_btb_admin_user_list) --- */
+        const ADMIN_USER_LOOKUP_CONFIG = {
+            entity: "admin_btb_admin_user_list",
+            altEntity: "admin_btb_admin_user_lists",
+            select: [
+                "admin_admin1emailaddress"
+            ],
+            fields: {
+                email: "admin_admin1emailaddress"
+            }
+        };
+
+        let cachedAdminUserListRows = null;
+
+        function getAdminRowName(row) {
+            if (!row) return "";
+            if (row.admin_admin1name != null) return String(row.admin_admin1name).trim();
+            if (row.admin_name != null) return String(row.admin_name).trim();
+            if (row.admin_title != null) return String(row.admin_title).trim();
+            if (row.admin_admin != null) return String(row.admin_admin).trim();
+            if (row.name != null) return String(row.name).trim();
+            if (row.title != null) return String(row.title).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("name") || lk.includes("admin") || lk.includes("title")) {
+                    if (!lk.includes("email") && !lk.includes("mail") && !lk.includes("phone")) {
+                        const val = String(row[k] != null ? row[k] : "").trim();
+                        if (val && !val.includes("@")) return val;
+                    }
+                }
+            }
+            return "";
+        }
+
+        function getAdminRowEmail(row) {
+            if (!row) return "";
+            if (row.admin_admin1emailaddress != null) return String(row.admin_admin1emailaddress).trim();
+            if (row.admin_emailaddress != null) return String(row.admin_emailaddress).trim();
+            if (row.admin_email != null) return String(row.admin_email).trim();
+            if (row.email != null) return String(row.email).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("email") || lk.includes("mail")) {
+                    return String(row[k] != null ? row[k] : "").trim();
+                }
+            }
+            return "";
+        }
+
+        async function fetchAdminUserList() {
+            if (cachedAdminUserListRows && cachedAdminUserListRows.length > 0) {
+                return cachedAdminUserListRows;
+            }
+            const webApi = getDataverseWebApi();
+            if (!webApi) return null;
+
+            const config = ADMIN_USER_LOOKUP_CONFIG;
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e1) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "?$select=admin_admin1emailaddress");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e2) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e3) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "?$select=admin_admin1emailaddress");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e4) {}
+
+            return null;
+        }
+
+        function lookupAdminEmail(adminNameValue, rows = cachedAdminUserListRows) {
+            const target = String(adminNameValue || '').trim();
+            if (!target) return "";
+
+            if (Array.isArray(rows) && rows.length > 0) {
+                const targetUpper = target.toUpperCase();
+                const targetKey = personNameKey(target);
+
+                // 1. Exact match on admin row name
+                let matched = rows.find(r => getAdminRowName(r).toUpperCase() === targetUpper);
+
+                // 2. Match on personNameKey
+                if (!matched && targetKey) {
+                    matched = rows.find(r => personNameKey(getAdminRowName(r)) === targetKey);
+                }
+
+                // 3. Match if any field in the row contains the admin name
+                if (!matched) {
+                    matched = rows.find(r => {
+                        const rn = getAdminRowName(r).toUpperCase();
+                        return rn && (rn.includes(targetUpper) || targetUpper.includes(rn));
+                    });
+                }
+
+                // 4. Match if email contains the name tokens
+                if (!matched && targetKey) {
+                    const tokens = targetKey.split(/\s+/).filter(t => t.length > 2);
+                    if (tokens.length > 0) {
+                        matched = rows.find(r => {
+                            const em = getAdminRowEmail(r).toLowerCase();
+                            return tokens.every(tk => em.includes(tk));
+                        });
+                    }
+                }
+
+                // 5. Fallback: if only 1 row in table, use that row's email
+                if (!matched && rows.length === 1) {
+                    matched = rows[0];
+                }
+
+                if (matched) {
+                    const email = getAdminRowEmail(matched);
+                    if (email) return email;
+                }
+            }
+
+            const adminObj = BTB_ADMINS.find(a =>
+                a.name.toUpperCase() === target.toUpperCase() ||
+                personNameKey(a.name) === personNameKey(target)
+            );
+            if (adminObj && adminObj.email) return adminObj.email;
+
+            return "";
+        }
+
         function monthsBetween(startVal, endVal) {
             const s = formatDateForInput(startVal);
             const e = formatDateForInput(endVal);
@@ -3395,6 +3707,10 @@
             const adminPhone = adminObj ? (adminObj.phone || "") : (adminName ? "" : "28833100");
             const adminNameOnly = adminName || fVal("issueBy") || "Mandy Lee";
             const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
+            const adminEmail = lookupAdminEmail(adminNameOnly, cachedAdminUserListRows);
+
+            const btbTypeValue = fVal("btbType") || (state.currentRecord && (state.currentRecord.BTBType || state.currentRecord.admin_btbtype)) || "";
+            const uidValue = fVal("uid") || (state.currentRecord && (state.currentRecord.UID || state.currentRecord.admin_uidx0020x0023)) || "";
 
             const map = {
                 "enduser": fVal("customerName"),
@@ -3416,6 +3732,15 @@
                 "issued by phone no.": adminPhone,
                 "issued by phone no": adminPhone,
                 "issued by phone": adminPhone,
+                "issued by email address": adminEmail,
+                "issued by email": adminEmail,
+                "issued by email addr": adminEmail,
+                "issue by email address": adminEmail,
+                "issue by email": adminEmail,
+                "issue by email addr": adminEmail,
+                "admin email address": adminEmail,
+                "admin email": adminEmail,
+                "admin user email": adminEmail,
                 "admin name": adminName || "",
                 "admin": adminName || "",
                 "admin phone": adminPhone,
@@ -3434,6 +3759,15 @@
                 "sales phone number": resolvedSalesPhone,
                 "sales phone": resolvedSalesPhone,
                 "sales number": resolvedSalesPhone,
+                "btb type": btbTypeValue,
+                "btbtype": btbTypeValue,
+                "btb": btbTypeValue,
+                "uid #": uidValue,
+                "uid#": uidValue,
+                "uid": uidValue,
+                "uid no": uidValue,
+                "uid no.": uidValue,
+                "uid number": uidValue,
                 "period": periodStr,
                 "quotation start date": fVal("quotationStartDate"),
                 "quotation end date": fVal("quotationEndDate"),
@@ -3476,7 +3810,9 @@
                 hkd: { value: val('edit-pramount', 'PRAmount') },
                 chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') || val('edit-charge-ccc', 'ChargeCCC') },
                 handledBy: { value: val('edit-handledby', 'HandledBy') },
-                issueBy: { value: val('edit-issue-by', 'IssueBy') }
+                issueBy: { value: val('edit-issue-by', 'IssueBy') },
+                btbType: { value: val('edit-btb', 'BTBType') },
+                uid: { value: val('edit-uid', 'UID') }
             };
         }
 
@@ -3527,10 +3863,20 @@
             const modal = document.getElementById('remarkModal');
             if (!modal) return;
 
+            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+
+            // Look up this record's admin_btbtype & admin_uidx0020x0023 by record ID if connected to Dataverse
+            if (recordId && getDataverseWebApi()) {
+                try {
+                    await fetchRecordBtbAndUid(recordId);
+                } catch (_e) {}
+            }
+
             const fields = getRemarkFields();
             const subtitle = document.getElementById('remark-modal-subtitle');
-            if (subtitle && state.currentRecord) {
-                subtitle.innerText = `Record: ${state.currentRecord.Title || state.currentRecord.Id || 'Current Record'}`;
+            if (subtitle && (state.currentRecord || recordId)) {
+                subtitle.innerText = `Record: ${recordId || 'Current Record'}`;
             }
 
             // 1. Load sales contact rows from Dataverse if not cached
@@ -3571,10 +3917,35 @@
             }
 
             // 3. Populate Admin Name dropdown
+            if (!cachedAdminUserListRows && getDataverseWebApi()) {
+                try {
+                    cachedAdminUserListRows = await fetchAdminUserList();
+                } catch (_e) {
+                    cachedAdminUserListRows = null;
+                }
+            }
             const adminSelect = document.getElementById('remark-admin-name');
             if (adminSelect) {
-                adminSelect.innerHTML = BTB_ADMINS.map(a => `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`).join('');
-                const autoAdmin = findBtbAdminName(fields.issueBy.value) || BTB_ADMIN_NAMES[0];
+                const adminOptions = [];
+                const seenAdmins = new Set();
+                if (Array.isArray(cachedAdminUserListRows) && cachedAdminUserListRows.length > 0) {
+                    for (const r of cachedAdminUserListRows) {
+                        const name = getAdminRowName(r);
+                        if (name && !seenAdmins.has(name.toUpperCase())) {
+                            seenAdmins.add(name.toUpperCase());
+                            adminOptions.push(name);
+                        }
+                    }
+                }
+                for (const a of BTB_ADMINS) {
+                    if (a.name && !seenAdmins.has(a.name.toUpperCase())) {
+                        seenAdmins.add(a.name.toUpperCase());
+                        adminOptions.push(a.name);
+                    }
+                }
+
+                adminSelect.innerHTML = adminOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                const autoAdmin = findBtbAdminName(fields.issueBy.value) || (adminOptions.length > 0 ? adminOptions[0] : BTB_ADMIN_NAMES[0]);
                 adminSelect.value = autoAdmin;
             }
 
@@ -3692,11 +4063,24 @@
             rebuildRemarksFromModalState();
         }
 
-        function handleRemarkAdminNameChange(name) {
+        async function handleRemarkAdminNameChange(name) {
+            if (!cachedAdminUserListRows && getDataverseWebApi()) {
+                try {
+                    await fetchAdminUserList();
+                } catch (_e) {}
+            }
             rebuildRemarksFromModalState();
         }
 
-        function handleRemarkCaseTypeChange(caseType) {
+        async function handleRemarkCaseTypeChange(caseType) {
+            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+            const fields = getRemarkFields();
+            if (recordId && (!fields.btbType.value || !fields.uid.value) && getDataverseWebApi()) {
+                try {
+                    await fetchRecordBtbAndUid(recordId);
+                } catch (_e) {}
+            }
             rebuildRemarksFromModalState();
         }
 
@@ -5482,7 +5866,30 @@
             kpiCancelled && (kpiCancelled.innerText = kpi.cancelled.toString());
         }
 
-        function handleSearch() { state.currentPage = 1; applyFilters(); }
+        function handleSearch() {
+            const input = document.getElementById('globalSearch');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (clearBtn && input) {
+                if (input.value && input.value.trim().length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            }
+            state.currentPage = 1;
+            applyFilters();
+        }
+
+        function clearGlobalSearch() {
+            const input = document.getElementById('globalSearch');
+            if (input) {
+                input.value = '';
+                const clearBtn = document.getElementById('clearSearchBtn');
+                if (clearBtn) clearBtn.classList.add('hidden');
+                handleSearch();
+            }
+        }
+
         function toggleFilters() { document.getElementById('filterPanel').classList.toggle('hidden'); }
 
         function renderTabBar() {

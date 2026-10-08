@@ -33,6 +33,9 @@ assert(html.includes("admin_salesx0020name"), "HTML includes column name 'admin_
 assert(html.includes("admin_salesx0020contactx0020number"), "HTML includes column name 'admin_salesx0020contactx0020number'");
 assert(html.includes("{Sales Name}"), "HTML hint includes {Sales Name}");
 assert(html.includes("{Sales Contact Number}"), "HTML hint includes {Sales Contact Number}");
+assert(html.includes("admin_btb_admin_user_list"), "HTML includes table name 'admin_btb_admin_user_list'");
+assert(html.includes("admin_admin1emailaddress"), "HTML includes column name 'admin_admin1emailaddress'");
+assert(html.includes("{Issued by Email address}"), "HTML hint includes {Issued by Email address}");
 
 // ── 2. Script Execution in Sandbox ───────────────────────────────────────────
 const scriptMatch = html.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/i);
@@ -53,6 +56,17 @@ const mockSalesDataverseRows = [
   }
 ];
 
+const mockAdminUserDataverseRows = [
+  {
+    admin_admin1name: "Lee, Mandy MY",
+    admin_admin1emailaddress: "mandy.my.lee@pccw.com"
+  },
+  {
+    admin_admin1name: "Chow, Alice SW",
+    admin_admin1emailaddress: "alice.sw.chow@pccw.com"
+  }
+];
+
 const mockSupplierRemarkDataverseRows = [
   {
     admin_ccc: "Others",
@@ -64,6 +78,17 @@ const mockSupplierRemarkDataverseRows = [
       "5) Period: {Period}",
       "6) Purchase of {Purchase of}"
     ].join("\n")
+  },
+  {
+    admin_ccc: "C600",
+    admin_reamrk: [
+      "1 {BTB Type}",
+      "2. {UID #}",
+      "3. Customer information as the below:",
+      "   EU: {Enduser}",
+      "   Address: {Customer Address}",
+      "   Contact: {Customer Contact Person}"
+    ].join("\n")
   }
 ];
 
@@ -72,8 +97,24 @@ const mockWebApi = {
     if (entity === "cre5c_btb_sales_name__contact" || entity === "cre5c_btb_sales_name__contacts") {
       return { entities: mockSalesDataverseRows };
     }
+    if (entity === "admin_btb_admin_user_list" || entity === "admin_btb_admin_user_lists") {
+      return { entities: mockAdminUserDataverseRows };
+    }
     if (entity === "admin_btb_supplier_remark" || entity === "admin_btb_supplier_remarks") {
       return { entities: mockSupplierRemarkDataverseRows };
+    }
+    if (entity === "admin_btb_lis_excel_datas" || entity === "admin_btb_lis_excel_data") {
+      if (query && query.includes("ATQ-202608-00404-V01-1")) {
+        return {
+          entities: [
+            {
+              admin_title: "ATQ-202608-00404-V01-1",
+              admin_btbtype: "BTB",
+              admin_uidx0020x0023: "UID-8899"
+            }
+          ]
+        };
+      }
     }
     return { entities: [] };
   }
@@ -172,10 +213,15 @@ EXPORTS.getSalesRowContactNumber = getSalesRowContactNumber;
 EXPORTS.fetchSalesContactRows = fetchSalesContactRows;
 EXPORTS.lookupSalesContactInfo = lookupSalesContactInfo;
 EXPORTS.findSalesContactMatch = findSalesContactMatch;
+EXPORTS.fetchRecordBtbAndUid = fetchRecordBtbAndUid;
+EXPORTS.lookupAdminEmail = lookupAdminEmail;
+EXPORTS.fetchAdminUserList = fetchAdminUserList;
 EXPORTS.interpolateRemark = interpolateRemark;
 EXPORTS.openRemarkModal = openRemarkModal;
 EXPORTS.rebuildRemarksFromModalState = rebuildRemarksFromModalState;
 EXPORTS.handleRemarkSalesContactChange = handleRemarkSalesContactChange;
+EXPORTS.handleRemarkCaseTypeChange = handleRemarkCaseTypeChange;
+EXPORTS.handleRemarkAdminNameChange = handleRemarkAdminNameChange;
 EXPORTS.state = state;
 `;
 
@@ -316,5 +362,70 @@ vm.runInContext(SCRIPT_CODE, sandbox, { filename: "master-page-script.js" });
     "handleRemarkSalesContactChange dynamically updates To Supplier Remark to custom Dataverse agent"
   );
 
-  console.log("\nALL CHECKS PASSED: Sales Name and Contact Number lookup verified successfully.");
+  // ── 7. BTB Type and UID # Lookup Test (from clipboard-1791368443206.png) ────
+  // Record: ATQ-202608-00404-V01-1, Case Type: C600
+  // Template:
+  // 1 {BTB Type}
+  // 2. {UID #}
+  // 3. Customer information as the below:
+  //    EU: UNION HOSPITAL test
+
+  const btbUidLookup = await sandbox.EXPORTS.fetchRecordBtbAndUid("ATQ-202608-00404-V01-1");
+  assert(btbUidLookup.admin_btbtype === "BTB", "fetchRecordBtbAndUid resolves admin_btbtype to 'BTB'");
+  assert(btbUidLookup.admin_uidx0020x0023 === "UID-8899", "fetchRecordBtbAndUid resolves admin_uidx0020x0023 to 'UID-8899'");
+
+  sandbox.EXPORTS.state.currentRecord = {
+    Id: "ATQ-202608-00404-V01-1",
+    Title: "ATQ-202608-00404-V01-1",
+    CustomerName: "UNION HOSPITAL test",
+    Vendor: "Vendor ABC",
+    HandledBy: "Leung, Sammi SM",
+    IssueBy: "Lee, Mandy MY",
+    ChargeCCC: "C600",
+    Remarks: ""
+  };
+  getMockElement("edit-title").value = "ATQ-202608-00404-V01-1";
+  getMockElement("edit-customer").value = "UNION HOSPITAL test";
+  getMockElement("edit-vendor").value = "Vendor ABC";
+  getMockElement("edit-handledby").value = "";
+  getMockElement("edit-issue-by").value = "Lee, Mandy MY";
+  getMockElement("edit-pair-charge-ccc").value = "C600";
+  getMockElement("edit-btb").value = "";
+  getMockElement("edit-uid").value = "";
+
+  await sandbox.EXPORTS.openRemarkModal();
+
+  const caseSelect = getMockElement("remark-case-type");
+  caseSelect.value = "C600";
+  await sandbox.EXPORTS.handleRemarkCaseTypeChange("C600");
+
+  const c600SupplierTextarea = getMockElement("modal-supplier-remark");
+  assert(
+    c600SupplierTextarea.value.includes("1 BTB"),
+    "To Supplier Remark interpolates {BTB Type} with looked up admin_btbtype 'BTB'"
+  );
+  assert(
+    c600SupplierTextarea.value.includes("2. UID-8899"),
+    "To Supplier Remark interpolates {UID #} with looked up admin_uidx0020x0023 'UID-8899'"
+  );
+  assert(
+    c600SupplierTextarea.value.includes("EU: UNION HOSPITAL test"),
+    "To Supplier Remark retains customer name 'UNION HOSPITAL test'"
+  );
+
+  // ── 8. Issued by Email address Lookup Test ────────────────────────────────
+  const adminEmail = sandbox.EXPORTS.lookupAdminEmail("Lee, Mandy MY", mockAdminUserDataverseRows);
+  assert(adminEmail === "mandy.my.lee@pccw.com", "lookupAdminEmail resolves 'mandy.my.lee@pccw.com'");
+
+  const emailTemplate = "Contact admin: {Issue by} at {Issued by Email address}";
+  const emailResult = interpolateRemark(emailTemplate, fields, null, "Lee, Mandy MY");
+  assert(
+    emailResult.includes("Contact admin: Lee, Mandy MY at mandy.my.lee@pccw.com"),
+    "interpolateRemark replaces {Issued by Email address} with looked up admin_admin1emailaddress"
+  );
+
+  const aliceEmail = sandbox.EXPORTS.lookupAdminEmail("Chow, Alice SW", mockAdminUserDataverseRows);
+  assert(aliceEmail === "alice.sw.chow@pccw.com", "lookupAdminEmail resolves 'alice.sw.chow@pccw.com' for Chow, Alice SW");
+
+  console.log("\nALL CHECKS PASSED: Sales Name, Contact Number, BTB Type, UID #, and Issued by Email address lookups verified successfully.");
 })();

@@ -23,7 +23,7 @@ const ok = (label, cond) => eq(label, !!cond, true);
 
 // 1. Markup verification
 ok("Main navigation has COS Control File button",
-  HTML.includes('onclick="openCosControlModal()"') && HTML.includes('📋 COS Control File'));
+  HTML.includes('onclick="openCosControlModal()"') && HTML.includes('COS Control File'));
 
 ok("Excel View modal header has COS Control File button",
   HTML.includes('onclick="openCosControlModal()"') && HTML.includes('id="excelViewModal"'));

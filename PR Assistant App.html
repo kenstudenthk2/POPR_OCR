@@ -12000,7 +12000,7 @@ class Semaphore {
 // const N8N_SAVE_ONEDRIVE_URL = "";
 const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
-const GROUP_RATIO = 0.7;
+const CHUNK_GROUP_RATIO = 0.7;
 
 /**
  * @param {ISerializedFile[]} serializedFiles
@@ -12035,12 +12035,12 @@ function sliceFiles(serializedFiles, chunkSize) {
       reqSize += chunk.length;
       chunkManifestItem.chunks.push(chunkName);
 
-      if (reqSize >= chunkSize * GROUP_RATIO) {
+      if (reqSize >= chunkSize * CHUNK_GROUP_RATIO) {
         reqList.push(reqAttachments);
         reqAttachments = [];
         reqSize = 0;
       }
-      // reuse request when chunk utilization is below GROUP_RATIO
+      // reuse request when chunk utilization is below CHUNK_GROUP_RATIO
     }
     chunkManifest.push(chunkManifestItem);
   }
@@ -12108,7 +12108,6 @@ async function splitUpload(serializedFiles, recordId, chunkSize, onProgress) {
   return response;
 }
 
-// const N8N_SAVE_ONEDRIVE_URL = "https://d1u4t2v5sfu1y7.cloudfront.net/webhook/c109d139-821d-40d6-a929-05eb276892cd";
 
 /**
  * @param {string} recordId
@@ -12119,10 +12118,6 @@ async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
-  // const postObj = {
-  //   recordId,
-  //   attachments: []
-  // }
   const emailFile = attachments["Vendor Quotation"].fileObj;
 
   const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {

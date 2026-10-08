@@ -7281,7 +7281,7 @@ async function triggerApprovalFlow() {
                 body: JSON.stringify({
 
                     recordId: record.Id,
-                    skipApproval: needApproval? "N" : "Y",
+                    skipApproval: needApproval? null : "Y",
                 })
             }
         );

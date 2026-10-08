@@ -5568,7 +5568,7 @@
                             case "ProcessStatus":{
                                 let statusValue = item[dvColumnKey];
                                 if (typeof statusValue === 'number') {
-                                    statusValue = PROCESS_STATUS_MAP[statusValue]
+                                    statusValue = PROCESS_DV_STATUS_MAP[statusValue]
                                 }
                                 masterRecord[masterKey] = statusValue || "PR No. Ready";
                                 break;
@@ -7027,6 +7027,14 @@
             "UM Verified": 3,
             "LIS System Approved": 4,
             "PO No. Ready": 5
+        };
+        const PROCESS_DV_STATUS_MAP = {
+            0: "Complete",
+            1: "Cancelled",
+            2: "PR No. Ready",
+            3: "UM Verified",
+            4: "LIS System Approved",
+            5: "PO No. Ready"
         };
 
         async function persistRecordToDataverse(record) {

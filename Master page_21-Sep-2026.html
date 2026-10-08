@@ -7110,8 +7110,11 @@
                         payload.admin_hkdusd = prCurrency;
                         payload.admin_pramounthkd = prAmountHkd;
                         payload.admin_pramountusd = prAmountUsd;
-                        payload.admin_hkd = isHkd ? prAmountNum : null;
-                        payload.admin_usdx0020x002fx0020others = isUsd ? prAmountVal : null;
+                        if (isHkd) {
+                            payload.admin_hkd = String(prAmountNum);
+                        } else if (isUsd) {
+                            payload.admin_usdx0020x002fx0020others = String(prAmountNum);
+                        }
                     }
                     if (record.Currency !== undefined) payload.admin_hkdusd = (String(record.Currency).toUpperCase() === "USD") ? "USD" : "HKD";
 

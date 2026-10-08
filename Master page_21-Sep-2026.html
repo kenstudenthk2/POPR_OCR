@@ -7696,7 +7696,7 @@
                 const requiredFields = STAGE_REQUIRED_FIELDS[STAGES[idx]] || [];
                 requiredFields.forEach(field => {
                     const element = document.getElementById(field.id);
-                    if (element) return;
+                    if (!element) return;
                     const value = getFieldValue(field);
 
                     const isPlaceholder = field.id === 'edit-btb' && value === '-- Select --';

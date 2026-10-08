@@ -675,7 +675,7 @@
                 </div>
 
                 <!-- Tab Content Sections -->
-                <div>
+                <div id="editModalTabContent">
                     <!-- TAB 1: Request Information Card -->
                     <div id="tab-request" class="modal-tab-pane">
                         <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
@@ -6740,7 +6740,7 @@
         function updateFieldLockingAndApprovalUI(currentStatus) {
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
-            const container = document.getElementById('modalFormContainer');
+            const container = document.getElementById('editModalTabContent');
 
             if (currentStatus === 'Complete') {
                 // TODO: why are we unlocking the fields after completion?

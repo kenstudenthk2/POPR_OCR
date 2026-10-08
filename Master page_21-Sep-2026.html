@@ -1701,7 +1701,7 @@
             @typedef { keyof IRecord } IColumnKey
         */
 
-        /** @type {Record<string, {toHKD: number}>} */
+        /** @type {Record<string, {toHKD: number, toUSD: number}>} */
         const CURRENCY_CONFIG = {
             HKD: {
                 // symbol: "HKD",
@@ -5391,6 +5391,11 @@
         }
 
         // Requirement 1: Updated evaluateWorkflowState function
+        /**
+         * Evaluates the workflow state of a record based on its properties.
+         * @param {IRecord} record - The record to evaluate.
+         * @returns {string} - The evaluated workflow state.
+         */
         function evaluateWorkflowState(record) {
 
             if (record.ProcessStatus === "Cancelled") {
@@ -5408,7 +5413,7 @@
             }
 
             // Stage 3
-            if (record.PRRequestApproved !== true) {
+            if (record.PRRequestApproved !== true && amountInHKD < ) {
                 return "LIS System Approved";
             }
 
@@ -7251,6 +7256,11 @@ function sendApprovalRequest() {
 async function triggerApprovalFlow() {
 
     const record = state.currentRecord;
+    const amountInHKD = (record.Currency.toUpperCase() === "USD") ?
+        record.PRAmount * CURRENCY_CONFIG.USD.toHKD : 
+        record.PRAmount;
+    const approvalConfig = PR_APPROVE_CONFIG[record.BTBType]
+    const needApproval = approvalConfig.findIndex(({threshold})=> amountInHKD >= threshold) >= 0;
 
     try {
 
@@ -7263,8 +7273,8 @@ async function triggerApprovalFlow() {
                 },
                 body: JSON.stringify({
 
-                    recordId: record.Id
-
+                    recordId: record.Id,
+                    skipApproval: needApproval? "N" : "Y",
                 })
             }
         );

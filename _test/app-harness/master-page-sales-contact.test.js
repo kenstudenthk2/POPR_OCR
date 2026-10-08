@@ -401,8 +401,8 @@ vm.runInContext(SCRIPT_CODE, sandbox, { filename: "master-page-script.js" });
 
   const c600SupplierTextarea = getMockElement("modal-supplier-remark");
   assert(
-    c600SupplierTextarea.value.includes("1 BTB"),
-    "To Supplier Remark interpolates {BTB Type} with looked up admin_btbtype 'BTB'"
+    c600SupplierTextarea.value.includes("1 Back-to-Back"),
+    "To Supplier Remark interpolates {BTB Type} with converted 'Back-to-Back'"
   );
   assert(
     c600SupplierTextarea.value.includes("2. UID-8899"),

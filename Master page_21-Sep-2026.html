@@ -405,31 +405,37 @@
         </div>
 
         <!-- KPI Dashboard -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" id="kpiDashboard">
+            <button type="button" onclick="setTab('All')" data-tab="All" id="kpi-card-all" title="Filter by Total Records (All)"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--blue)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--blue)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--blue)] shrink-0"></span>Total Records</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-total">0</div>
-            </div>
-                        <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
-                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--amber)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--amber)] shrink-0"></span>Pending Tasks</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-pending">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Urgent')" data-tab="Urgent" id="kpi-card-urgent" title="Filter by Urgent Tasks"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--red)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--red)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--red)] shrink-0"></span>Urgent Tasks</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-urgent" data-alias-id="kpi-pending">0</div>
+            </button>
+            <button type="button" onclick="setTab('Expired')" data-tab="Expired" id="kpi-card-expired" title="Filter by Quotation Expired"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--purple)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--purple)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--purple)] shrink-0"></span>Quotation Expired</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-expired">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Expiring Soon')" data-tab="Expiring Soon" id="kpi-card-expiring-soon" title="Filter by Expiring Soon"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--orange)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--orange)] shrink-0"></span>Expiring Soon</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-upcoming">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Complete')" data-tab="Complete" id="kpi-card-complete" title="Filter by Completed Tasks"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--Lgreen)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--Lgreen)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--Lgreen)] shrink-0"></span>Completed Tasks</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-finished">0</div>
-            </div>
-            <div class="panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4">
+            </button>
+            <button type="button" onclick="setTab('Cancelled')" data-tab="Cancelled" id="kpi-card-cancelled" title="Filter by Cancelled Records"
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--gray)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gray)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--gray)] shrink-0"></span>Cancelled Records</div>
                 <div class="mt-2 text-[26px] font-bold text-[var(--gray)]" id="kpi-cancelled">0</div>
-            </div>
+            </button>
         </div>
 
         <div id="filterPanel" class="hidden panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -732,6 +738,22 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Name</label>
                                     <input type="text" id="edit-customer" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Contact Person</label>
+                                    <input type="text" id="edit-customer-contact-person" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Contact No.</label>
+                                    <input type="text" id="edit-customer-contact-no" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Email Address</label>
+                                    <input type="email" id="edit-customer-email-address" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <div class="col-span-1 md:col-span-2 flex flex-col gap-1.5">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Customer Address</label>
+                                    <input type="text" id="edit-customer-address" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Product Type</label>
@@ -1533,7 +1555,7 @@
 
                         <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
                             <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
-                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}</span>
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}, {Contract Start Date}, {Contract End Date}, {Customer Address}, {Customer Contact Person}, {Customer Contact No.}, {Customer Email Address}</span>
                         </div>
 
                         <textarea id="modal-supplier-remark" rows="11"
@@ -1717,6 +1739,10 @@
                 Brand?: string;                 // admin_Model
                 Model?: string;                 // admin_Brand
                 CustomerName: string;           // Customer Name (admin_customerx0020name)
+                CustomerAddress?: string;       // Customer Address (admin_customeraddress)
+                CustomerContactPerson?: string; // Customer Contact Person (admin_customercontactperson)
+                CustomerContactNo?: string;     // Customer Contact No. (admin_customercontactno)
+                CustomerEmailAddress?: string;  // Customer Email Address (admin_customeremailaddress)
                 ProductType?: string;           // Product Type (admin_producttype)
                 HandledBy: string;              // Handled By (admin_handledx0020byx0020)
                 IPTUnitMgr: string;             // IPT Unit Mgr (admin_iptx0020unitx0020mgr)
@@ -1833,6 +1859,10 @@
             // Core identity & primary columns
             { key: "Title", label: "Record ID", visible: true, sortable: true },
             { key: "CustomerName", label: "Customer Name", visible: true, sortable: true },
+            { key: "CustomerAddress", label: "Customer Address", visible: false, sortable: true },
+            { key: "CustomerContactPerson", label: "Customer Contact Person", visible: false, sortable: true },
+            { key: "CustomerContactNo", label: "Customer Contact No.", visible: false, sortable: true },
+            { key: "CustomerEmailAddress", label: "Customer Email Address", visible: false, sortable: true },
             { key: "Vendor", label: "Vendor", visible: true, sortable: true },
             { key: "BTBType", label: "BTB / NON-BTB", visible: true, sortable: true },
             { key: "PRAmount", label: "PR Amount", visible: true, sortable: true },
@@ -3430,7 +3460,7 @@
             const api = getDataverseWebApi();
             if (!api) return null;
             const entityName = (state.currentRecord && state.currentRecord._entityName) || currentDataverseEntityName || "admin_btb_lis_excel_datas";
-            const select = "admin_title,admin_btbtype,admin_uidx0020x0023";
+            const select = "admin_title,admin_btbtype,admin_uidx0020x0023,admin_customeraddress,admin_customercontactperson,admin_customercontactno,admin_customeremailaddress,admin_contractstartdate,admin_contractenddate,admin_quotationno";
 
             let entity = null;
             try {
@@ -3473,14 +3503,41 @@
                 }
                 const uidVal = entity.admin_uidx0020x0023 != null ? String(entity.admin_uidx0020x0023).trim() : "";
 
+                const custAddr = entity.admin_customeraddress != null ? String(entity.admin_customeraddress).trim() : "";
+                const custContactPerson = entity.admin_customercontactperson != null ? String(entity.admin_customercontactperson).trim() : "";
+                const custContactNo = entity.admin_customercontactno != null ? String(entity.admin_customercontactno).trim() : "";
+                const custEmail = entity.admin_customeremailaddress != null ? String(entity.admin_customeremailaddress).trim() : "";
+                const startDateVal = entity.admin_contractstartdate != null ? formatDateForInput(entity.admin_contractstartdate) : "";
+                const endDateVal = entity.admin_contractenddate != null ? formatDateForInput(entity.admin_contractenddate) : "";
+                const quotNoVal = entity.admin_quotationno != null ? String(entity.admin_quotationno).trim() : "";
+
                 if (state.currentRecord) {
                     if (normalizedBtb) state.currentRecord.BTBType = normalizedBtb;
                     if (uidVal) state.currentRecord.UID = uidVal;
+                    if (custAddr && !state.currentRecord.CustomerAddress) state.currentRecord.CustomerAddress = custAddr;
+                    if (custContactPerson && !state.currentRecord.CustomerContactPerson) state.currentRecord.CustomerContactPerson = custContactPerson;
+                    if (custContactNo && !state.currentRecord.CustomerContactNo) state.currentRecord.CustomerContactNo = custContactNo;
+                    if (custEmail && !state.currentRecord.CustomerEmailAddress) state.currentRecord.CustomerEmailAddress = custEmail;
+                    if (startDateVal && !state.currentRecord.StartDate) state.currentRecord.StartDate = startDateVal;
+                    if (endDateVal && !state.currentRecord.EndDate) state.currentRecord.EndDate = endDateVal;
+                    if (quotNoVal && !state.currentRecord.QuotationNo) state.currentRecord.QuotationNo = quotNoVal;
                 }
                 const btbEl = document.getElementById('edit-btb');
                 if (btbEl && normalizedBtb) btbEl.value = normalizedBtb;
                 const uidEl = document.getElementById('edit-uid');
                 if (uidEl && uidVal) uidEl.value = uidVal;
+
+                const setIfEmpty = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && !el.value && val) el.value = val;
+                };
+                setIfEmpty('edit-customer-address', custAddr);
+                setIfEmpty('edit-customer-contact-person', custContactPerson);
+                setIfEmpty('edit-customer-contact-no', custContactNo);
+                setIfEmpty('edit-customer-email-address', custEmail);
+                setIfEmpty('edit-startdate', startDateVal);
+                setIfEmpty('edit-enddate', endDateVal);
+                setIfEmpty('edit-quotationno', quotNoVal);
 
                 return {
                     admin_btbtype: normalizedBtb,
@@ -3682,7 +3739,13 @@
             const s = String(template);
             if (!s.includes("{") || !s.includes("}")) return s;
 
-            const fVal = key => (fields[key] && fields[key].value) || "";
+            const fVal = key => {
+                if (!fields) return "";
+                const v = fields[key];
+                if (v && typeof v === "object" && v.value !== undefined) return v.value != null ? String(v.value) : "";
+                if (v != null && typeof v !== "object") return String(v);
+                return "";
+            };
             const months = monthsBetween(fVal("quotationStartDate"), fVal("quotationEndDate"));
             const periodMths = months != null ? `${months} Mths` : "Mths";
             const periodStr = (fVal("quotationStartDate") || fVal("quotationEndDate"))
@@ -3715,8 +3778,25 @@
             const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
             const adminEmail = lookupAdminEmail(adminNameOnly, cachedAdminUserListRows);
 
-            const btbTypeValue = fVal("btbType") || (state.currentRecord && (state.currentRecord.BTBType || state.currentRecord.admin_btbtype)) || "";
+            const rawBtbTypeValue = fVal("btbType") || fVal("BTBType") || fVal("admin_btbtype") || (state.currentRecord && (state.currentRecord.BTBType || state.currentRecord.admin_btbtype)) || "";
+            let btbTypeValue = rawBtbTypeValue;
+            if (rawBtbTypeValue) {
+                const upperBtb = String(rawBtbTypeValue).trim().toUpperCase();
+                if (upperBtb === "BTB" || upperBtb === "Y" || upperBtb === "BACK-TO-BACK" || upperBtb === "BACK TO BACK") {
+                    btbTypeValue = "Back-to-Back";
+                } else if (upperBtb === "NON-BTB" || upperBtb === "NON BTB" || upperBtb === "NBTB" || upperBtb === "N" || upperBtb === "NON BACK-TO-BACK" || upperBtb === "NON BACK TO BACK") {
+                    btbTypeValue = "Non Back-To-Back";
+                }
+            }
             const uidValue = fVal("uid") || (state.currentRecord && (state.currentRecord.UID || state.currentRecord.admin_uidx0020x0023)) || "";
+
+            const contractStartDateVal = fVal("contractStartDate") || fVal("StartDate") || fVal("admin_contractstartdate") || (state.currentRecord && (state.currentRecord.StartDate || state.currentRecord.admin_contractstartdate)) || "";
+            const contractEndDateVal = fVal("contractEndDate") || fVal("EndDate") || fVal("admin_contractenddate") || (state.currentRecord && (state.currentRecord.EndDate || state.currentRecord.admin_contractenddate)) || "";
+            const customerAddressVal = fVal("customerAddress") || fVal("CustomerAddress") || fVal("admin_customeraddress") || (state.currentRecord && (state.currentRecord.CustomerAddress || state.currentRecord.admin_customeraddress)) || "";
+            const customerContactPersonVal = fVal("customerContactPerson") || fVal("CustomerContactPerson") || fVal("admin_customercontactperson") || (state.currentRecord && (state.currentRecord.CustomerContactPerson || state.currentRecord.admin_customercontactperson)) || "";
+            const customerContactNoVal = fVal("customerContactNo") || fVal("CustomerContactNo") || fVal("admin_customercontactno") || (state.currentRecord && (state.currentRecord.CustomerContactNo || state.currentRecord.admin_customercontactno)) || "";
+            const customerEmailAddressVal = fVal("customerEmailAddress") || fVal("CustomerEmailAddress") || fVal("admin_customeremailaddress") || (state.currentRecord && (state.currentRecord.CustomerEmailAddress || state.currentRecord.admin_customeremailaddress)) || "";
+            const quotationNoVal = fVal("quotationNo") || fVal("QuotationNo") || fVal("admin_quotationno") || fVal("quotation") || (state.currentRecord && (state.currentRecord.QuotationNo || state.currentRecord.admin_quotationno)) || "";
 
             const map = {
                 "enduser": fVal("customerName"),
@@ -3775,10 +3855,54 @@
                 "uid no.": uidValue,
                 "uid number": uidValue,
                 "period": periodStr,
+
+                // Contract Start Date (admin_contractstartdate)
+                "contract start date": contractStartDateVal,
+                "contractstartdate": contractStartDateVal,
+                "contract start": contractStartDateVal,
+
+                // Contract End Date (admin_contractenddate)
+                "contract end date": contractEndDateVal,
+                "contractenddate": contractEndDateVal,
+                "contract end": contractEndDateVal,
+
+                // Customer Address (admin_customeraddress)
+                "customer address": customerAddressVal,
+                "customeraddress": customerAddressVal,
+                "customer addr": customerAddressVal,
+                "address": customerAddressVal,
+
+                // Customer Contact Person (admin_customercontactperson)
+                "customer contact person": customerContactPersonVal,
+                "customercontactperson": customerContactPersonVal,
+                "customer contact person name": customerContactPersonVal,
+                "customer contact": customerContactPersonVal,
+
+                // Customer Contact No. (admin_customercontactno)
+                "customer contact no.": customerContactNoVal,
+                "customer contact no": customerContactNoVal,
+                "customer contact number": customerContactNoVal,
+                "customercontactno": customerContactNoVal,
+                "customer contact phone": customerContactNoVal,
+                "customer phone no.": customerContactNoVal,
+                "customer phone no": customerContactNoVal,
+                "customer phone": customerContactNoVal,
+
+                // Customer Email Address (admin_customeremailaddress)
+                "customer email address": customerEmailAddressVal,
+                "customer email": customerEmailAddressVal,
+                "customeremailaddress": customerEmailAddressVal,
+                "customer email addr": customerEmailAddressVal,
+
+                // Quotation No (admin_quotationno)
+                "quotation no": quotationNoVal,
+                "quotation no.": quotationNoVal,
+                "quotationno": quotationNoVal,
+                "quotation number": quotationNoVal,
+                "quotation": quotationNoVal,
+
                 "quotation start date": fVal("quotationStartDate"),
                 "quotation end date": fVal("quotationEndDate"),
-                "quotation no": fVal("quotation"),
-                "quotation": fVal("quotation"),
                 "contract no": fVal("contractNo"),
                 "agreement number": fVal("contractNo"),
                 "atq ref no": fVal("atqRefNo"),
@@ -3792,33 +3916,48 @@
 
             return s.replace(/\{([^}]+)\}/g, (match, key) => {
                 const k = key.trim().toLowerCase();
-                return Object.prototype.hasOwnProperty.call(map, k) ? map[k] : match;
+                if (Object.prototype.hasOwnProperty.call(map, k)) return map[k];
+                const normalized = k.replace(/[_-]/g, ' ').replace(/\s+/g, ' ');
+                if (Object.prototype.hasOwnProperty.call(map, normalized)) return map[normalized];
+                return match;
             });
         }
 
         function getRemarkFields() {
             const rec = state.currentRecord || {};
-            const val = (id, recKey) => {
+            const val = (id, recKey, altKey) => {
                 const el = document.getElementById(id);
                 if (el && el.value !== undefined && el.value !== '') return el.value;
-                return rec[recKey] != null ? String(rec[recKey]) : '';
+                if (rec[recKey] != null && rec[recKey] !== '') return String(rec[recKey]);
+                if (altKey && rec[altKey] != null && rec[altKey] !== '') return String(rec[altKey]);
+                if (recKey && rec['admin_' + recKey.toLowerCase()] != null && rec['admin_' + recKey.toLowerCase()] !== '') {
+                    return String(rec['admin_' + recKey.toLowerCase()]);
+                }
+                return '';
             };
 
             return {
-                customerName: { value: val('edit-customer', 'CustomerName') },
-                vendor: { value: val('edit-vendor', 'Vendor') },
-                quotationStartDate: { value: val('edit-quotation-start-date', 'QuotationStartDate') },
-                quotationEndDate: { value: val('edit-quotation-end-date', 'QuotationEndDate') },
-                poPrDescription: { value: val('edit-description', 'PRDescription') },
-                quotation: { value: val('edit-quotationno', 'QuotationNo') || val('edit-prref', 'PRReference') },
-                contractNo: { value: val('edit-contract', 'ContractNo') },
-                atqRefNo: { value: val('edit-title', 'Title') },
-                hkd: { value: val('edit-pramount', 'PRAmount') },
-                chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') || val('edit-charge-ccc', 'ChargeCCC') },
-                handledBy: { value: val('edit-handledby', 'HandledBy') },
-                issueBy: { value: val('edit-issue-by', 'IssueBy') },
-                btbType: { value: val('edit-btb', 'BTBType') },
-                uid: { value: val('edit-uid', 'UID') }
+                customerName: { value: val('edit-customer', 'CustomerName', 'admin_customerx0020name') },
+                customerAddress: { value: val('edit-customer-address', 'CustomerAddress', 'admin_customeraddress') },
+                customerContactPerson: { value: val('edit-customer-contact-person', 'CustomerContactPerson', 'admin_customercontactperson') },
+                customerContactNo: { value: val('edit-customer-contact-no', 'CustomerContactNo', 'admin_customercontactno') },
+                customerEmailAddress: { value: val('edit-customer-email-address', 'CustomerEmailAddress', 'admin_customeremailaddress') },
+                vendor: { value: val('edit-vendor', 'Vendor', 'admin_vendor') },
+                quotationStartDate: { value: val('edit-quotation-start-date', 'QuotationStartDate', 'admin_quotationstartdates') },
+                quotationEndDate: { value: val('edit-quotation-end-date', 'QuotationEndDate', 'admin_quotationenddates') },
+                poPrDescription: { value: val('edit-description', 'PRDescription', 'admin_prx0020description') },
+                quotation: { value: val('edit-quotationno', 'QuotationNo', 'admin_quotationno') || val('edit-prref', 'PRReference') },
+                quotationNo: { value: val('edit-quotationno', 'QuotationNo', 'admin_quotationno') },
+                contractNo: { value: val('edit-contract', 'ContractNo', 'admin_contractx0020nox002e') },
+                contractStartDate: { value: val('edit-startdate', 'StartDate', 'admin_contractstartdate') },
+                contractEndDate: { value: val('edit-enddate', 'EndDate', 'admin_contractenddate') },
+                atqRefNo: { value: val('edit-title', 'Title', 'admin_title') },
+                hkd: { value: val('edit-pramount', 'PRAmount', 'admin_hkd') },
+                chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') || val('edit-charge-ccc', 'ChargeCCC', 'admin_chargex0020ccc') },
+                handledBy: { value: val('edit-handledby', 'HandledBy', 'admin_handledx0020byx0020') },
+                issueBy: { value: val('edit-issue-by', 'IssueBy', 'admin_issuex0020by') },
+                btbType: { value: val('edit-btb', 'BTBType', 'admin_btbtype') },
+                uid: { value: val('edit-uid', 'UID', 'admin_uidx0020x0023') }
             };
         }
 
@@ -5327,6 +5466,10 @@
             "admin_brand"                       : "Brand",
             "admin_model"                       : "Model",
             "admin_customerx0020name"           : "CustomerName",
+            "admin_customeraddress"             : "CustomerAddress",
+            "admin_customercontactperson"       : "CustomerContactPerson",
+            "admin_customercontactno"           : "CustomerContactNo",
+            "admin_customeremailaddress"        : "CustomerEmailAddress",
             "admin_producttype"                 : "ProductType",
             "admin_handledx0020byx0020"         : "HandledBy",
             "admin_iptx0020unitx0020mgr"        : "IPTUnitMgr",
@@ -5443,7 +5586,9 @@
                     // 2. Try minimal confirmed core columns query
                     const coreCols = [
                         "admin_sbreportgenrated",
-                        "admin_title", "admin_customerx0020name", "admin_vendor", "admin_hkd",
+                        "admin_title", "admin_customerx0020name", "admin_customeraddress",
+                        "admin_customercontactperson", "admin_customercontactno", "admin_customeremailaddress",
+                        "admin_vendor", "admin_hkd",
                         "admin_hkdusd",
                         "admin_contractx0020nox002e", "admin_contractstartdate", "admin_contractenddate",
                         "admin_prx0020reference", "admin_prx0020description", "admin_uidx0020x0023", "admin_issuex0020by",
@@ -5651,6 +5796,10 @@
                     Id: "1",
                     Title: "REQ-2026-001",
                     CustomerName: "Acme Corporation",
+                    CustomerAddress: "123 Business Road, Central, Hong Kong",
+                    CustomerContactPerson: "Alice Wong",
+                    CustomerContactNo: "91234567",
+                    CustomerEmailAddress: "alice.wong@acme.com",
                     Vendor: "TechSupplier Ltd",
                     BTBType: "BTB",
                     PRAmount: 1250000,
@@ -5658,6 +5807,9 @@
                     HandledBy: "John Doe",
                     PRNo: "6306168",
                     PONo: "",
+                    QuotationNo: "QT-2026-001",
+                    StartDate: "2026-01-01",
+                    EndDate: "2026-12-31",
                     UMVerified: true,
                     PRRequestApproved: false,
                     UrgentFlag: true,
@@ -5853,8 +6005,9 @@
         function updateDashboard() {
             const todayHKT = getCurrentHKTDate();
 
-            let kpi = { total: state.allData.length, finished: 0, pending: 0, expired: 0, upcoming: 0, cancelled: 0 };
+            let kpi = { total: state.allData.length, urgent: 0, finished: 0, pending: 0, expired: 0, upcoming: 0, cancelled: 0 };
             state.allData.forEach(i => {
+                if (Boolean(i.UrgentFlag)) kpi.urgent++;
                 if (i.ProcessStatus === 'Cancelled') {
                     kpi.cancelled++;
                 } else {
@@ -5878,16 +6031,20 @@
 
             const kpiTotal = document.getElementById("kpi-total");
             kpiTotal && (kpiTotal.innerText = kpi.total.toString());
+            const kpiUrgent = document.getElementById("kpi-urgent");
+            kpiUrgent && (kpiUrgent.innerText = kpi.urgent.toString());
+            const kpiPending = document.getElementById("kpi-pending") || document.querySelector('[data-alias-id="kpi-pending"]');
+            kpiPending && (kpiPending.innerText = (kpi.urgent !== undefined ? kpi.urgent : kpi.pending).toString());
             const kpiFinished = document.getElementById("kpi-finished");
             kpiFinished && (kpiFinished.innerText = kpi.finished.toString());
-            const kpiPending = document.getElementById("kpi-pending");
-            kpiPending && (kpiPending.innerText = kpi.pending.toString());
             const kpiExpired = document.getElementById("kpi-expired");
             kpiExpired && (kpiExpired.innerText = kpi.expired.toString());
             const kpiUpcoming = document.getElementById("kpi-upcoming");
             kpiUpcoming && (kpiUpcoming.innerText = kpi.upcoming.toString());
             const kpiCancelled = document.getElementById("kpi-cancelled");
             kpiCancelled && (kpiCancelled.innerText = kpi.cancelled.toString());
+
+            updateKpiCardActiveStates();
         }
 
         function handleSearch() {
@@ -5915,6 +6072,41 @@
         }
 
         function toggleFilters() { document.getElementById('filterPanel').classList.toggle('hidden'); }
+
+        const KPI_ACTIVE_STYLES = {
+            'All': { border: 'border-[var(--blue)]', ring: 'ring-blue-500/30' },
+            'Urgent': { border: 'border-[var(--red)]', ring: 'ring-red-500/30' },
+            'Expired': { border: 'border-[var(--purple)]', ring: 'ring-purple-500/30' },
+            'Expiring Soon': { border: 'border-[var(--orange)]', ring: 'ring-amber-500/30' },
+            'Complete': { border: 'border-[var(--Lgreen)]', ring: 'ring-green-500/30' },
+            'Cancelled': { border: 'border-[var(--gray)]', ring: 'ring-gray-400/30' }
+        };
+
+        function updateKpiCardActiveStates() {
+            const cards = document.querySelectorAll('.kpi-card-btn');
+            if (!cards || cards.length === 0) return;
+
+            cards.forEach(btn => {
+                const tab = btn.getAttribute('data-tab');
+                const isActive = state.activeTab === tab;
+                const activeStyle = KPI_ACTIVE_STYLES[tab] || { border: 'border-[var(--orange)]', ring: 'ring-amber-500/30' };
+
+                // Clear previous active highlights
+                Object.values(KPI_ACTIVE_STYLES).forEach(s => {
+                    btn.classList.remove(s.border, s.ring);
+                });
+                btn.classList.remove('ring-2', 'bg-[#FFFDF7]');
+
+                if (isActive) {
+                    btn.classList.remove('border-[var(--line)]', 'bg-white/95');
+                    btn.classList.add(activeStyle.border, 'ring-2', activeStyle.ring, 'bg-[#FFFDF7]');
+                    btn.setAttribute('aria-pressed', 'true');
+                } else {
+                    btn.classList.add('border-[var(--line)]', 'bg-white/95');
+                    btn.setAttribute('aria-pressed', 'false');
+                }
+            });
+        }
 
         function renderTabBar() {
             const bar = document.getElementById('tabBar');
@@ -5987,6 +6179,8 @@
                     <span class="px-1.5 py-0.5 rounded-full text-[10px] ${badgeStyle}">${count}</span>
                 </button>`;
             }).join('');
+
+            updateKpiCardActiveStates();
         }
 
         function setTab(tab) {
@@ -7161,6 +7355,10 @@
                     if (record.ReviewDate !== undefined) payload.admin_reviewdate = record.ReviewDate || null;
 
                     // 7. General Text Fields
+                    if (record.CustomerAddress !== undefined) payload.admin_customeraddress = record.CustomerAddress || null;
+                    if (record.CustomerContactPerson !== undefined) payload.admin_customercontactperson = record.CustomerContactPerson || null;
+                    if (record.CustomerContactNo !== undefined) payload.admin_customercontactno = record.CustomerContactNo || null;
+                    if (record.CustomerEmailAddress !== undefined) payload.admin_customeremailaddress = record.CustomerEmailAddress || null;
                     if (record.IssueBy !== undefined) payload.admin_issuex0020by = record.IssueBy || null;
                     if (record.Brand !== undefined) payload.admin_brand = record.Brand || null;
                     if (record.Model !== undefined) payload.admin_model = record.Model || null;
@@ -7334,6 +7532,10 @@
             'edit-brand': 'Brand',
             'edit-model': 'Model',
             'edit-customer': 'CustomerName',
+            'edit-customer-address': 'CustomerAddress',
+            'edit-customer-contact-person': 'CustomerContactPerson',
+            'edit-customer-contact-no': 'CustomerContactNo',
+            'edit-customer-email-address': 'CustomerEmailAddress',
             'edit-product-type': 'ProductType',
             'edit-handledby': 'HandledBy',
             'edit-ipt-unit-mgr': 'IPTUnitMgr',

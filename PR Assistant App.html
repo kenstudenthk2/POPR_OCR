@@ -911,7 +911,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.27.5";
+const APP_VERSION = "5.28.0";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -3129,12 +3129,31 @@ function buildAtqExcelPayload(fieldsSnapshot, recordId) {
   });
 }
 
+async function findExistingAtqExcelRecordId(recordId, webApi) {
+  if (!webApi || !recordId) return null;
+  const source = (typeof DATAVERSE_ATQ_EXCEL_SOURCE !== "undefined" && DATAVERSE_ATQ_EXCEL_SOURCE) || (SCHEMA && SCHEMA.atqExcel);
+  if (!source) return null;
+  const response = await webApi.retrieveMultipleRecords(
+    source.entity, dataverseVerifyQuery(recordId, source));
+  const entity = response.entities && response.entities[0];
+  if (!entity) return null;
+  return entity[source.entity + "id"] || "";
+}
+
 async function writeAtqExcelRecord(fieldsSnapshot, recordId, alreadyWritten, markWritten, webApi) {
   if (alreadyWritten || !recordId) return "";
   try {
     const payload = buildAtqExcelPayload(fieldsSnapshot, recordId);
     if (webApi) {
-      await webApi.createRecord(SCHEMA.atqExcel.entity, payload);
+      let existingAtqId = null;
+      try {
+        existingAtqId = await findExistingAtqExcelRecordId(recordId, webApi);
+      } catch (e) {}
+      if (existingAtqId) {
+        await webApi.updateRecord(SCHEMA.atqExcel.entity, existingAtqId, payload);
+      } else {
+        await webApi.createRecord(SCHEMA.atqExcel.entity, payload);
+      }
     } else {
       console.warn("parent.Xrm.WebApi not detected. Skipping BTB_ATQ_Excel write (Demo / Standalone mode).");
     }
@@ -3144,6 +3163,78 @@ async function writeAtqExcelRecord(fieldsSnapshot, recordId, alreadyWritten, mar
     console.error(err);
     return "Sent to n8n, but could not write the BTB_ATQ_Excel row: " + (err.message || String(err));
   }
+}
+
+// Format a raw process status value or choice code into its human-readable label.
+function formatProcessStatusLabel(rawStatus, formattedVal) {
+  if (formattedVal) return formattedVal;
+  if (rawStatus == null || rawStatus === "") return "";
+  const PROCESS_STATUS_LABELS = {
+    0: "Complete",
+    1: "Cancelled",
+    2: "PR No. Ready",
+    3: "UM Verified",
+    4: "LIS System Approved",
+    5: "PO No. Ready",
+    100000000: "New Create",
+    100000001: "Data Verifying",
+    100000002: "Return to SB",
+    100000003: "PO Waiting",
+    100000004: "Create LIS",
+    100000005: "Finished",
+  };
+  return Object.prototype.hasOwnProperty.call(PROCESS_STATUS_LABELS, rawStatus)
+    ? PROCESS_STATUS_LABELS[rawStatus]
+    : String(rawStatus);
+}
+
+// Queries Dataverse (or local records in demo/standalone) to check whether a
+// BTB_LIS_Excel_Datas row with this Record_ID already exists, returning its
+// customer name, ID, and process status.
+async function checkExistingLisRecord(recordId, webApi, localRecords) {
+  if (!recordId) return null;
+  const entityName = (SCHEMA && SCHEMA.lis && SCHEMA.lis.entity) || "admin_btb_lis_excel_datas";
+  const titleField = (SCHEMA && SCHEMA.lis && SCHEMA.lis.titleField) || "admin_title";
+  const custField = (SCHEMA && SCHEMA.lis && SCHEMA.lis.fields && SCHEMA.lis.fields.customerName) || "admin_customerx0020name";
+  const statusField = (SCHEMA && SCHEMA.lis && SCHEMA.lis.fields && SCHEMA.lis.fields.processStatus) || "admin_processstatus";
+
+  if (webApi) {
+    try {
+      const escaped = String(recordId).replace(/'/g, "''");
+      const query = `?$select=${titleField},${custField},${statusField}&$filter=${titleField} eq '${escaped}'`;
+      const response = await webApi.retrieveMultipleRecords(entityName, query);
+      const entity = response && response.entities && response.entities[0];
+      if (entity) {
+        return {
+          id: entity[entityName + "id"] || entity.id || "",
+          recordId: entity[titleField] || recordId,
+          customerName: entity[custField] || "",
+          processStatus: entity[statusField],
+          formattedStatus: entity[`${statusField}@OData.Community.Display.V1.FormattedValue`] || "",
+          raw: entity,
+        };
+      }
+    } catch (err) {
+      console.warn("checkExistingLisRecord query failed:", err);
+    }
+  }
+
+  if (Array.isArray(localRecords)) {
+    const rec = localRecords.find(r => r && (r.recordId === recordId || r.id === recordId));
+    if (rec) {
+      const pStatus = rec.processStatus !== undefined ? rec.processStatus : (rec.status !== undefined ? rec.status : null);
+      return {
+        id: rec.id || "",
+        recordId: rec.recordId || recordId,
+        customerName: rec.customerName || "",
+        processStatus: pStatus,
+        formattedStatus: rec.status || "",
+        raw: rec,
+      };
+    }
+  }
+
+  return null;
 }
 
 // The Cost sheet's one-character Back-to-Back reading, said the way every
@@ -3217,12 +3308,24 @@ function buildLisStartPayload(fieldsSnapshot, recordId, uidValue, btbType, creat
 
 // `btbType`, `atqNo`, and `itemNo` are optional trailing arguments so existing
 // calls without them keep their exact behaviour.
-async function writeLisStartRecord(fieldsSnapshot, recordId, uidValue, alreadyWritten, markWritten, webApi, btbType, atqNo, itemNo) {
+// `existingId` is optional: when provided (or discovered in Dataverse), updateRecord
+// is used instead of createRecord to prevent duplicate records for the same Record_ID.
+async function writeLisStartRecord(fieldsSnapshot, recordId, uidValue, alreadyWritten, markWritten, webApi, btbType, atqNo, itemNo, existingId) {
   if (alreadyWritten || !recordId) return "";
   try {
     const payload = buildLisStartPayload(fieldsSnapshot, recordId, uidValue, btbType, null, atqNo, itemNo);
     if (webApi) {
-      await webApi.createRecord(SCHEMA.lis.entity, payload);
+      let targetId = existingId;
+      if (!targetId && typeof findExistingLisRecordId === "function") {
+        try {
+          targetId = await findExistingLisRecordId(recordId, webApi);
+        } catch (e) {}
+      }
+      if (targetId) {
+        await webApi.updateRecord(SCHEMA.lis.entity, targetId, payload);
+      } else {
+        await webApi.createRecord(SCHEMA.lis.entity, payload);
+      }
     } else {
       console.warn("parent.Xrm.WebApi not detected. Skipping BTB_LIS_Excel_Datas stub write (Demo / Standalone mode).");
     }
@@ -3230,7 +3333,7 @@ async function writeLisStartRecord(fieldsSnapshot, recordId, uidValue, alreadyWr
     return "";
   } catch (err) {
     console.error(err);
-    return "Could not create the BTB_LIS_Excel_Datas row: " + (err.message || String(err));
+    return "Could not " + (existingId ? "update" : "create") + " the BTB_LIS_Excel_Datas row: " + (err.message || String(err));
   }
 }
 
@@ -6845,7 +6948,8 @@ function PrpoExtractedFieldsCard({ attachments, fields, census, openSource, onEd
   closeViewer, viewerTarget, activeTab, defaultDoc, openWorkspaceViewer,
   crosschecks, dismissedDiffs, toggleDismissDiff, setField, emailSubject,
   addDocInputRef, pendingDocStatuses, addDocError, onAddDocument,
-  n8nState, sendToN8n, n8nReady, adminMode, records, lisStartWritten, filterProcessedItems = false, processedItems = {} }) {
+  n8nState, sendToN8n, n8nReady, adminMode, records, lisStartWritten, filterProcessedItems = false, processedItems = {},
+  checkingExisting = false }) {
   // All three, always, and in one place: `viewerTarget` falls back to the tab's
   // default document while `viewerExpanded` is set, so clearing `viewer` on its
   // own reopens the panel on a different document instead of closing it. The
@@ -7100,7 +7204,7 @@ function PrpoExtractedFieldsCard({ attachments, fields, census, openSource, onEd
                 the row above makes both columns the same height). */}
             <div className="mt-auto flex justify-end">
               <button type="button" onClick={sendToN8n}
-                disabled={n8nState === "sending" || (!adminMode && !n8nReady.files.length)}
+                disabled={checkingExisting || n8nState === "sending" || (!adminMode && !n8nReady.files.length)}
                 title={adminMode
                   ? "Admin mode: skip the n8n webhook and continue to Verify Table"
                   : n8nReady.files.length
@@ -7110,7 +7214,7 @@ function PrpoExtractedFieldsCard({ attachments, fields, census, openSource, onEd
                     ? "The documents in the role slots carry no file to send"
                     : "Assign a document to a role slot first — there is nothing to send"}
                 className="group inline-flex items-center gap-2.5 min-h-12 font-bold fs-15-22 rounded-full bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border border-transparent hover:border-[var(--orange-dark)] px-5 py-2.5 ui-transition disabled:bg-[var(--line)] disabled:text-white disabled:opacity-100 disabled:cursor-not-allowed disabled:hover:bg-[var(--line)] disabled:border-transparent active:scale-95">
-                <span>{n8nState === "sending" ? "Sending…" : n8nState === "sent" ? "✓ Sent" : adminMode ? "Skip n8n →" : "Start"}</span>
+                <span>{checkingExisting ? "Checking…" : n8nState === "sending" ? "Sending…" : n8nState === "sent" ? "✓ Sent" : adminMode ? "Skip n8n →" : "Start"}</span>
                 <Icon name="chevronRight" className="w-4 h-4 transition-transform duration-300 ease-in-out group-hover:translate-x-1" />
               </button>
             </div>
@@ -7366,8 +7470,10 @@ function n8nMetadataForSend(fields, attachments, itemIndex, census) {
   };
 }
 
-function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fields, setField, setFieldAuto, applyMatches, applyUid, detectFromRoles, goProcess, goVerify, onN8nSent, demoMode, adminMode, toggleDemo, openViewer, viewer, closeViewer, crosschecks, dismissedDiffs, toggleDismissDiff, itemIndex, setItemIndex, selectItem, resetRecordData, itemSelectionLocked, lockItemSelection, itemRecordIds, savedRecordIds, itemPickHint, clearItemPickHint, atqExcelRecordId, atqExcelAlreadyWritten, markAtqExcelWritten, lisStartUid, lisStartAlreadyWritten, markLisStartWritten, census, autoCensus, roleOverrides, setRoleOverrides, emailSubject, onUploadComplete, records, lisStartWritten, filterProcessedItems = false, processedItems = {} }) {
+function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fields, setField, setFieldAuto, applyMatches, applyUid, detectFromRoles, goProcess, goVerify, onN8nSent, demoMode, adminMode, toggleDemo, openViewer, viewer, closeViewer, crosschecks, dismissedDiffs, toggleDismissDiff, itemIndex, setItemIndex, selectItem, resetRecordData, itemSelectionLocked, lockItemSelection, itemRecordIds, savedRecordIds, itemPickHint, clearItemPickHint, atqExcelRecordId, atqExcelAlreadyWritten, markAtqExcelWritten, lisStartUid, lisStartAlreadyWritten, markLisStartWritten, census, autoCensus, roleOverrides, setRoleOverrides, emailSubject, onUploadComplete, records, lisStartWritten, filterProcessedItems = false, processedItems = {}, goRecords }) {
   const parsedCount = Object.values(attachments).filter(a => a.parsed).length;
+  const [checkingExisting, setCheckingExisting] = useState(false);
+  const [existingRecordAlert, setExistingRecordAlert] = useState(null);
   const [parsingTab, setParsingTab] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
   // Set alongside statusMsg when the engine reports a numeric progress
@@ -7670,6 +7776,46 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
   };
 
   const sendToN8n = async () => {
+    const recordId = (itemRecordIds && itemRecordIds[itemIndex] && itemRecordIds[itemIndex].recordId) || atqExcelRecordId;
+    setN8nError("");
+
+    // First process: use Record_ID (admin_title) to check if this record exists in admin_btb_lis_excel_datas
+    setCheckingExisting(true);
+    let existingRecord = null;
+    const webApi = (typeof parent !== "undefined" && parent && parent.Xrm && parent.Xrm.WebApi) || writeApi();
+    if (recordId) {
+      try {
+        existingRecord = await checkExistingLisRecord(recordId, webApi, records);
+      } catch (checkErr) {
+        console.warn("Could not check existing LIS record:", checkErr);
+      }
+    }
+    setCheckingExisting(false);
+
+    if (existingRecord) {
+      const rawStatus = existingRecord.processStatus;
+      const formattedStatus = existingRecord.formattedStatus;
+      const hasStatusValue = (rawStatus !== null && rawStatus !== undefined && rawStatus !== "") || (formattedStatus !== null && formattedStatus !== undefined && formattedStatus !== "");
+      if (hasStatusValue) {
+        const displayStatus = formatProcessStatusLabel(rawStatus, formattedStatus);
+        const custName = existingRecord.customerName || (fields && fields.customerName && fields.customerName.value) || "—";
+        const alertData = {
+          customerName: custName,
+          recordId: recordId,
+          status: displayStatus,
+        };
+        setExistingRecordAlert(alertData);
+
+        const alertText = `Customer Name: ${custName}\nRecord ID: ${recordId}\nStatus: ${displayStatus}\n\nThis customer name and Record ID already have an existing record. Status is '${displayStatus}'. Please go to Master List to check or amend the record data.`;
+        if (typeof parent !== "undefined" && parent && parent.Xrm && parent.Xrm.Navigation && parent.Xrm.Navigation.openAlertDialog) {
+          parent.Xrm.Navigation.openAlertDialog({ text: alertText, title: "Existing Record Found" }).catch(() => {});
+        }
+        return;
+      }
+    }
+
+    const existingLisId = existingRecord ? existingRecord.id : null;
+
     if (adminMode) {
       if (lockItemSelection) lockItemSelection();
       setN8nError("");
@@ -7680,7 +7826,7 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
         lisStartAlreadyWritten, () => {
           if (markLisStartWritten) markLisStartWritten({ recordId: atqExcelRecordId, atqNo: atqNoForStart(), itemNo: itemNoForStart() });
         }, writeApi(), btbTypeForStart(),
-        atqNoForStart(), itemNoForStart());
+        atqNoForStart(), itemNoForStart(), existingLisId);
       setN8nState("sent");
       setTimeout(() => setN8nState("idle"), 1500);
       if (onN8nSent) onN8nSent();
@@ -7731,7 +7877,7 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
         lisStartAlreadyWritten, () => {
           if (markLisStartWritten) markLisStartWritten({ recordId: atqExcelRecordId, atqNo: atqNoForStart(), itemNo: itemNoForStart() });
         }, writeApi(), btbTypeForStart(),
-        atqNoForStart(), itemNoForStart());
+        atqNoForStart(), itemNoForStart(), existingLisId);
       if (onN8nSent) onN8nSent();
       if (atqExcelError || lisStartError) {
         setN8nError([atqExcelError, lisStartError].filter(Boolean).join(" "));
@@ -7942,7 +8088,8 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
               n8nState={n8nState} sendToN8n={sendToN8n} n8nReady={n8nReady} adminMode={adminMode}
               records={records} lisStartWritten={lisStartWritten}
               filterProcessedItems={filterProcessedItems}
-              processedItems={processedItems} />
+              processedItems={processedItems}
+              checkingExisting={checkingExisting} />
           </div>}
         </main>
 
@@ -7971,6 +8118,55 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
           </div>
         </aside>
       </div>
+
+      {existingRecordAlert && (
+        <div role="dialog" aria-modal="true" aria-label="Existing record alert"
+          className="modal-backdrop fixed inset-0 z-50 bg-[#1A1A1A]/60 flex items-center justify-center p-4">
+          <div className="modal-pop bg-white rounded-2xl shadow-2xl border border-[var(--line)] max-w-md w-full p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-[var(--orange-dark)]">
+              <div className="w-10 h-10 rounded-full bg-[#FFF3D6] flex items-center justify-center shrink-0">
+                <Icon name="alertTriangle" className="w-6 h-6 text-[var(--orange-dark)]" />
+              </div>
+              <div>
+                <h3 className="fs-18-22 font-bold text-[var(--ink)]">Existing Record Found</h3>
+                <p className="fs-12-15 text-[var(--muted)]">Record already exists in Master List</p>
+              </div>
+            </div>
+
+            <div className="bg-[var(--surface-soft)] rounded-xl p-4 border border-[var(--line)] flex flex-col gap-2 fs-13-16">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[var(--muted)] font-medium shrink-0">Customer Name:</span>
+                <span className="font-bold text-[var(--ink)] text-right truncate">{existingRecordAlert.customerName || "—"}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[var(--muted)] font-medium shrink-0">Record ID:</span>
+                <span className="font-bold text-[var(--orange-dark)] text-right truncate">{existingRecordAlert.recordId}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[var(--muted)] font-medium shrink-0">Status:</span>
+                <span className="font-bold text-[var(--ink)] text-right">{existingRecordAlert.status || "—"}</span>
+              </div>
+            </div>
+
+            <p className="fs-13-16 text-[var(--ink)] leading-relaxed">
+              Customer <span className="font-bold">{existingRecordAlert.customerName || "—"}</span> with Record ID <span className="font-bold text-[var(--orange-dark)]">{existingRecordAlert.recordId}</span> already has an existing record with status <span className="font-bold">{existingRecordAlert.status}</span>. Please go to <strong>Master List</strong> to check or amend the record data.
+            </p>
+
+            <div className="flex justify-end gap-3 mt-2">
+              <button type="button" onClick={() => setExistingRecordAlert(null)}
+                className="px-4 py-2 rounded-full border border-[var(--line)] bg-white fs-13-16 font-semibold text-[var(--muted)] hover:bg-[#F5F5F7] ui-transition pressable">
+                Close
+              </button>
+              {goRecords && (
+                <button type="button" onClick={() => { setExistingRecordAlert(null); goRecords(); }}
+                  className="px-5 py-2 rounded-full bg-[var(--orange)] text-[var(--ink)] fs-13-16 font-bold hover:bg-[#FFF3D6] border border-transparent hover:border-[var(--orange-dark)] ui-transition pressable">
+                  Go to Master List
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </React.Fragment>
   );
 }
@@ -8539,6 +8735,7 @@ const DATAVERSE_SCHEMAS = {
         prNo: "admin_prx0020nox002e",
         handledBy: "admin_handledx0020byx0020",
         iptUnitMgr: "admin_iptx0020unitx0020mgr",
+        processStatus: "admin_processstatus",
       },
       // The WRITE half of the same table. Separate from `fields` because the
       // two genuinely differ: the write side carries columns the Verify Table
@@ -16123,6 +16320,7 @@ function App() {
           fields={fields} setField={setField} setFieldAuto={setFieldAuto} applyMatches={applyMatches} applyUid={applyUid} detectFromRoles={detectFromRoles}
           goProcess={goProcess} goVerify={goVerify} demoMode={demoMode} adminMode={adminMode} toggleDemo={toggleDemo} openViewer={openViewer}
           onN8nSent={onSendToN8n}
+          goRecords={() => setPage("records")}
           viewer={viewer} closeViewer={closeViewer}
           crosschecks={crosschecks} dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff}
           itemIndex={itemIndex} setItemIndex={setItemIndex} selectItem={selectItem} resetRecordData={resetRecordData}

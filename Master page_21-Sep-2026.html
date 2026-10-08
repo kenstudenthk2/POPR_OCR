@@ -7461,6 +7461,7 @@
             if (!state.currentRecord) return;
             const item = state.allData.find(d => d.Id === state.currentRecord.Id);
             if (item) {
+                item.ProcessStatus = null;
                 item.ProcessStatus = evaluateWorkflowState(item);
             }
 

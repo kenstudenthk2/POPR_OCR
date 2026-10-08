@@ -4986,7 +4986,9 @@
             "admin_reviewapproval"              : "UMVerified",
             "admin_umrevieweddatetime"          : "ReviewDate",
             "admin_umreviewapprovername"        : "UMReviewer",
-            "admin_reviewdocumenturl"           : "ReviewDocumentURL"
+            "admin_reviewdocumenturl"           : "ReviewDocumentURL",
+
+            "admin_prapprovalrequeststatus"     : "PRRequestApproved" 
 
 
         });
@@ -4996,6 +4998,7 @@
           @typedef {{
                admin_reviewapproval: "Y" | "N" | null;
                admin_yx0020x002fx0020n: "Y" | "N" | null;
+               admin_prapprovalrequeststatus: "Y" | "N" | null;
           }} IDVColumnTypeOverrride
           
           @typedef {
@@ -5207,7 +5210,11 @@
                                 }
                                 break;
                             }
-                            
+                            case "PRRequestApproved": {
+                                const approved = item[dvColumnKey]?.toUpperCase()?.trim() === "Y"
+                                masterRecord[masterKey] = approved;
+                                break;
+                            }
                             case "UMVerified": {
                                 const reviewed = item[dvColumnKey]?.toUpperCase()?.trim() === "Y"
                                 masterRecord[masterKey] = reviewed;

@@ -63,7 +63,7 @@ const EXPORTS = [
   'diffDocIndexes', 'diffsForDoc', 'mapDetectedFields',
   'itemNoOf', 'anchorRecordsOf', 'anchoredRecordOf', 'recordIdFor', 'assignRecordIds',
   'recordsBearingEntry', 'fallbackBaseFor', 'buildRecordPayload', 'buildAtqExcelPayload', 'writeAtqExcelRecord',
-  'buildLisExcelPayload', 'writeLisExcelRecord', 'parseDecimal', 'parseIsoDate',
+  'buildLisExcelPayload', 'writeLisExcelRecord', 'writeLisStartRecord', 'formatProcessStatusLabel', 'checkExistingLisRecord', 'findExistingAtqExcelRecordId', 'parseDecimal', 'parseIsoDate',
   'LIS_ROW_TO_FIELD_KEY', 'seedFieldsFromLisRows',
   // The Verify Table's row list, unfiltered and filtered -- the pair is what
   // lets side-schema.test.js pin that a devOnly row is dropped on Admin
@@ -123,7 +123,8 @@ const EXPORTS = [
 // The block, minus the one line that needs a browser.
 function appSource() {
   const html = fs.readFileSync(APP_PATH, 'utf8');
-  const open = html.indexOf('<script type="text/babel-jsx" id="app-src">');
+  let open = html.indexOf('<script type="text/babel-jsx" id="app-src">');
+  if (open < 0) open = html.indexOf('<script type="text/babel" id="app-src">');
   if (open < 0) throw new Error('app-src block not found -- has the script tag been renamed?');
   const start = html.indexOf('>', open) + 1;
   const end = html.indexOf('</script>', start);

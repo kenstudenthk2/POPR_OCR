@@ -238,7 +238,7 @@ EXPORTS.STATUS_TABS = STATUS_TABS;
     // Test updateDashboard()
     updateDashboard();
     eq("kpi-total displays 4", elements.get("kpi-total").innerText, "4");
-    eq("kpi-urgent displays 2", elements.get("kpi-urgent").innerText, "2");
+    eq("kpi-urgent displays 1 (excluding cancelled)", elements.get("kpi-urgent").innerText, "1");
     eq("kpi-finished displays 1", elements.get("kpi-finished").innerText, "1");
     eq("kpi-cancelled displays 1", elements.get("kpi-cancelled").innerText, "1");
 

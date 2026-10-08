@@ -1435,7 +1435,7 @@
 
                         <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
                             <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
-                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}</span>
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}</span>
                         </div>
 
                         <textarea id="modal-supplier-remark" rows="11"
@@ -3322,6 +3322,221 @@
             return legacyMatch ? legacyMatch.key : "";
         }
 
+        async function fetchRecordBtbAndUid(recordId) {
+            if (!recordId) return null;
+            const api = getDataverseWebApi();
+            if (!api) return null;
+            const entityName = (state.currentRecord && state.currentRecord._entityName) || currentDataverseEntityName || "admin_btb_lis_excel_datas";
+            const select = "admin_title,admin_btbtype,admin_uidx0020x0023";
+
+            let entity = null;
+            try {
+                const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                const res = await api.retrieveMultipleRecords(entityName, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    entity = res.entities[0];
+                }
+            } catch (_e1) {}
+
+            if (!entity) {
+                try {
+                    const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                    const res = await api.retrieveMultipleRecords("admin_btb_lis_excel_data", query);
+                    if (res && res.entities && res.entities.length > 0) {
+                        entity = res.entities[0];
+                    }
+                } catch (_e2) {}
+            }
+
+            if (!entity) {
+                try {
+                    const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'";
+                    const res = await api.retrieveMultipleRecords(entityName, query);
+                    if (res && res.entities && res.entities.length > 0) {
+                        entity = res.entities[0];
+                    }
+                } catch (_e3) {}
+            }
+
+            if (entity) {
+                const rawBtb = entity.admin_btbtype !== undefined ? entity.admin_btbtype : entity.new_btb_type;
+                let normalizedBtb = "";
+                if (rawBtb != null) {
+                    const s = String(rawBtb).trim();
+                    const u = s.toUpperCase();
+                    if (u === "BTB" || u === "Y") normalizedBtb = "BTB";
+                    else if (u === "NON-BTB" || u === "NON BTB" || u === "N" || u === "NBTB") normalizedBtb = "NON-BTB";
+                    else normalizedBtb = s;
+                }
+                const uidVal = entity.admin_uidx0020x0023 != null ? String(entity.admin_uidx0020x0023).trim() : "";
+
+                if (state.currentRecord) {
+                    if (normalizedBtb) state.currentRecord.BTBType = normalizedBtb;
+                    if (uidVal) state.currentRecord.UID = uidVal;
+                }
+                const btbEl = document.getElementById('edit-btb');
+                if (btbEl && normalizedBtb) btbEl.value = normalizedBtb;
+                const uidEl = document.getElementById('edit-uid');
+                if (uidEl && uidVal) uidEl.value = uidVal;
+
+                return {
+                    admin_btbtype: normalizedBtb,
+                    admin_uidx0020x0023: uidVal,
+                    raw: entity
+                };
+            }
+
+            return null;
+        }
+
+        /* --- Admin User List Lookup (admin_btb_admin_user_list) --- */
+        const ADMIN_USER_LOOKUP_CONFIG = {
+            entity: "admin_btb_admin_user_list",
+            altEntity: "admin_btb_admin_user_lists",
+            select: [
+                "admin_admin1emailaddress"
+            ],
+            fields: {
+                email: "admin_admin1emailaddress"
+            }
+        };
+
+        let cachedAdminUserListRows = null;
+
+        function getAdminRowName(row) {
+            if (!row) return "";
+            if (row.admin_admin1name != null) return String(row.admin_admin1name).trim();
+            if (row.admin_name != null) return String(row.admin_name).trim();
+            if (row.admin_title != null) return String(row.admin_title).trim();
+            if (row.admin_admin != null) return String(row.admin_admin).trim();
+            if (row.name != null) return String(row.name).trim();
+            if (row.title != null) return String(row.title).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("name") || lk.includes("admin") || lk.includes("title")) {
+                    if (!lk.includes("email") && !lk.includes("mail") && !lk.includes("phone")) {
+                        const val = String(row[k] != null ? row[k] : "").trim();
+                        if (val && !val.includes("@")) return val;
+                    }
+                }
+            }
+            return "";
+        }
+
+        function getAdminRowEmail(row) {
+            if (!row) return "";
+            if (row.admin_admin1emailaddress != null) return String(row.admin_admin1emailaddress).trim();
+            if (row.admin_emailaddress != null) return String(row.admin_emailaddress).trim();
+            if (row.admin_email != null) return String(row.admin_email).trim();
+            if (row.email != null) return String(row.email).trim();
+            for (const k of Object.keys(row)) {
+                const lk = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (lk.includes("email") || lk.includes("mail")) {
+                    return String(row[k] != null ? row[k] : "").trim();
+                }
+            }
+            return "";
+        }
+
+        async function fetchAdminUserList() {
+            if (cachedAdminUserListRows && cachedAdminUserListRows.length > 0) {
+                return cachedAdminUserListRows;
+            }
+            const webApi = getDataverseWebApi();
+            if (!webApi) return null;
+
+            const config = ADMIN_USER_LOOKUP_CONFIG;
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e1) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "?$select=admin_admin1emailaddress");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e2) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e3) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "?$select=admin_admin1emailaddress");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedAdminUserListRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e4) {}
+
+            return null;
+        }
+
+        function lookupAdminEmail(adminNameValue, rows = cachedAdminUserListRows) {
+            const target = String(adminNameValue || '').trim();
+            if (!target) return "";
+
+            if (Array.isArray(rows) && rows.length > 0) {
+                const targetUpper = target.toUpperCase();
+                const targetKey = personNameKey(target);
+
+                // 1. Exact match on admin row name
+                let matched = rows.find(r => getAdminRowName(r).toUpperCase() === targetUpper);
+
+                // 2. Match on personNameKey
+                if (!matched && targetKey) {
+                    matched = rows.find(r => personNameKey(getAdminRowName(r)) === targetKey);
+                }
+
+                // 3. Match if any field in the row contains the admin name
+                if (!matched) {
+                    matched = rows.find(r => {
+                        const rn = getAdminRowName(r).toUpperCase();
+                        return rn && (rn.includes(targetUpper) || targetUpper.includes(rn));
+                    });
+                }
+
+                // 4. Match if email contains the name tokens
+                if (!matched && targetKey) {
+                    const tokens = targetKey.split(/\s+/).filter(t => t.length > 2);
+                    if (tokens.length > 0) {
+                        matched = rows.find(r => {
+                            const em = getAdminRowEmail(r).toLowerCase();
+                            return tokens.every(tk => em.includes(tk));
+                        });
+                    }
+                }
+
+                // 5. Fallback: if only 1 row in table, use that row's email
+                if (!matched && rows.length === 1) {
+                    matched = rows[0];
+                }
+
+                if (matched) {
+                    const email = getAdminRowEmail(matched);
+                    if (email) return email;
+                }
+            }
+
+            const adminObj = BTB_ADMINS.find(a =>
+                a.name.toUpperCase() === target.toUpperCase() ||
+                personNameKey(a.name) === personNameKey(target)
+            );
+            if (adminObj && adminObj.email) return adminObj.email;
+
+            return "";
+        }
+
         function monthsBetween(startVal, endVal) {
             const s = formatDateForInput(startVal);
             const e = formatDateForInput(endVal);
@@ -3395,6 +3610,10 @@
             const adminPhone = adminObj ? (adminObj.phone || "") : (adminName ? "" : "28833100");
             const adminNameOnly = adminName || fVal("issueBy") || "Mandy Lee";
             const issuedBy = adminName ? `PR Issued by ${adminIssuedBy(adminName)}` : "PR Issued by Mandy Lee@28833100";
+            const adminEmail = lookupAdminEmail(adminNameOnly, cachedAdminUserListRows);
+
+            const btbTypeValue = fVal("btbType") || (state.currentRecord && (state.currentRecord.BTBType || state.currentRecord.admin_btbtype)) || "";
+            const uidValue = fVal("uid") || (state.currentRecord && (state.currentRecord.UID || state.currentRecord.admin_uidx0020x0023)) || "";
 
             const map = {
                 "enduser": fVal("customerName"),
@@ -3416,6 +3635,15 @@
                 "issued by phone no.": adminPhone,
                 "issued by phone no": adminPhone,
                 "issued by phone": adminPhone,
+                "issued by email address": adminEmail,
+                "issued by email": adminEmail,
+                "issued by email addr": adminEmail,
+                "issue by email address": adminEmail,
+                "issue by email": adminEmail,
+                "issue by email addr": adminEmail,
+                "admin email address": adminEmail,
+                "admin email": adminEmail,
+                "admin user email": adminEmail,
                 "admin name": adminName || "",
                 "admin": adminName || "",
                 "admin phone": adminPhone,
@@ -3434,6 +3662,15 @@
                 "sales phone number": resolvedSalesPhone,
                 "sales phone": resolvedSalesPhone,
                 "sales number": resolvedSalesPhone,
+                "btb type": btbTypeValue,
+                "btbtype": btbTypeValue,
+                "btb": btbTypeValue,
+                "uid #": uidValue,
+                "uid#": uidValue,
+                "uid": uidValue,
+                "uid no": uidValue,
+                "uid no.": uidValue,
+                "uid number": uidValue,
                 "period": periodStr,
                 "quotation start date": fVal("quotationStartDate"),
                 "quotation end date": fVal("quotationEndDate"),
@@ -3476,7 +3713,9 @@
                 hkd: { value: val('edit-pramount', 'PRAmount') },
                 chargeCcc: { value: val('edit-pair-charge-ccc', 'ChargeCCC') || val('edit-charge-ccc', 'ChargeCCC') },
                 handledBy: { value: val('edit-handledby', 'HandledBy') },
-                issueBy: { value: val('edit-issue-by', 'IssueBy') }
+                issueBy: { value: val('edit-issue-by', 'IssueBy') },
+                btbType: { value: val('edit-btb', 'BTBType') },
+                uid: { value: val('edit-uid', 'UID') }
             };
         }
 
@@ -3527,10 +3766,20 @@
             const modal = document.getElementById('remarkModal');
             if (!modal) return;
 
+            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+
+            // Look up this record's admin_btbtype & admin_uidx0020x0023 by record ID if connected to Dataverse
+            if (recordId && getDataverseWebApi()) {
+                try {
+                    await fetchRecordBtbAndUid(recordId);
+                } catch (_e) {}
+            }
+
             const fields = getRemarkFields();
             const subtitle = document.getElementById('remark-modal-subtitle');
-            if (subtitle && state.currentRecord) {
-                subtitle.innerText = `Record: ${state.currentRecord.Title || state.currentRecord.Id || 'Current Record'}`;
+            if (subtitle && (state.currentRecord || recordId)) {
+                subtitle.innerText = `Record: ${recordId || 'Current Record'}`;
             }
 
             // 1. Load sales contact rows from Dataverse if not cached
@@ -3571,10 +3820,35 @@
             }
 
             // 3. Populate Admin Name dropdown
+            if (!cachedAdminUserListRows && getDataverseWebApi()) {
+                try {
+                    cachedAdminUserListRows = await fetchAdminUserList();
+                } catch (_e) {
+                    cachedAdminUserListRows = null;
+                }
+            }
             const adminSelect = document.getElementById('remark-admin-name');
             if (adminSelect) {
-                adminSelect.innerHTML = BTB_ADMINS.map(a => `<option value="${escapeHtml(a.name)}">${escapeHtml(a.name)}</option>`).join('');
-                const autoAdmin = findBtbAdminName(fields.issueBy.value) || BTB_ADMIN_NAMES[0];
+                const adminOptions = [];
+                const seenAdmins = new Set();
+                if (Array.isArray(cachedAdminUserListRows) && cachedAdminUserListRows.length > 0) {
+                    for (const r of cachedAdminUserListRows) {
+                        const name = getAdminRowName(r);
+                        if (name && !seenAdmins.has(name.toUpperCase())) {
+                            seenAdmins.add(name.toUpperCase());
+                            adminOptions.push(name);
+                        }
+                    }
+                }
+                for (const a of BTB_ADMINS) {
+                    if (a.name && !seenAdmins.has(a.name.toUpperCase())) {
+                        seenAdmins.add(a.name.toUpperCase());
+                        adminOptions.push(a.name);
+                    }
+                }
+
+                adminSelect.innerHTML = adminOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                const autoAdmin = findBtbAdminName(fields.issueBy.value) || (adminOptions.length > 0 ? adminOptions[0] : BTB_ADMIN_NAMES[0]);
                 adminSelect.value = autoAdmin;
             }
 
@@ -3692,11 +3966,24 @@
             rebuildRemarksFromModalState();
         }
 
-        function handleRemarkAdminNameChange(name) {
+        async function handleRemarkAdminNameChange(name) {
+            if (!cachedAdminUserListRows && getDataverseWebApi()) {
+                try {
+                    await fetchAdminUserList();
+                } catch (_e) {}
+            }
             rebuildRemarksFromModalState();
         }
 
-        function handleRemarkCaseTypeChange(caseType) {
+        async function handleRemarkCaseTypeChange(caseType) {
+            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+            const fields = getRemarkFields();
+            if (recordId && (!fields.btbType.value || !fields.uid.value) && getDataverseWebApi()) {
+                try {
+                    await fetchRecordBtbAndUid(recordId);
+                } catch (_e) {}
+            }
             rebuildRemarksFromModalState();
         }
 

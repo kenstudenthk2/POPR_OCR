@@ -313,7 +313,8 @@ ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP &&
     const foundUpdate = dataverseUpdates.find(u => u.id === "sub-record-guid-1");
     ok("persistRecordToDataverse saves admin_recordidsubnumber on update", foundUpdate && foundUpdate.payload && foundUpdate.payload.admin_recordidsubnumber === "Sub1");
 
-    // Test creating sub-record without dataverseId
+    // Test creating sub-record without dataverseId:
+    // Duplicates the record first, then adds the sub number value to admin_recordidsubnumber
     const subRecordToCreate = {
       Title: "REQ-2026-005",
       SubNumber: "Sub2",
@@ -321,9 +322,14 @@ ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP &&
       _entityName: "admin_btb_lis_excel_datas"
     };
 
+    const createsBefore = dataverseCreates.length;
     await X.persistRecordToDataverse(subRecordToCreate);
-    const foundCreate = dataverseCreates.find(c => c.payload && c.payload.admin_recordidsubnumber === "Sub2");
-    ok("persistRecordToDataverse creates record with admin_recordidsubnumber", !!foundCreate);
+    const foundCreate = dataverseCreates.slice(createsBefore).find(c => c.payload && c.payload.admin_title === "REQ-2026-005" && c.payload.admin_recordidsubnumber === undefined);
+    ok("persistRecordToDataverse duplicates record first in table admin_btb_lis_excel_datas", !!foundCreate);
+
+    const createdId = subRecordToCreate.dataverseId;
+    const foundSubUpdate = dataverseUpdates.find(u => u.id === createdId && u.payload && u.payload.admin_recordidsubnumber === "Sub2");
+    ok("persistRecordToDataverse then adds sub number value to column admin_recordidsubnumber", !!foundSubUpdate);
   }
 
   if (failures > 0) {

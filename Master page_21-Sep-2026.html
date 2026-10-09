@@ -107,6 +107,14 @@
             box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
         }
 
+        body.modal-open {
+            overflow: hidden !important;
+        }
+
+        #modalFormContainer {
+            overscroll-behavior: contain;
+        }
+
         .loader {
             border: 2.5px solid var(--line);
             border-top: 2.5px solid var(--orange);
@@ -582,8 +590,8 @@
     </div>
 
     <!-- Edit / Record Details Modal -->
-    <div data-z-offset="50" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-4 md:p-8 modal-backdrop" id="editModal">
-        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden border border-[var(--line)]">
+    <div data-z-offset="50" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden modal-backdrop" id="editModal">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] flex flex-col overflow-hidden border border-[var(--line)]">
             <!-- Modal Header -->
             <div class="px-6 py-4 bg-slate-50 border-b border-[var(--line)] flex items-center justify-between shrink-0">
                 <div>
@@ -611,7 +619,7 @@
                 </div>
             </div>
             
-            <div class="px-6 pb-6 overflow-y-auto flex flex-col bg-slate-50/50" id="modalFormContainer">
+            <div class="px-6 pb-6 overflow-y-auto flex-1 min-h-0 flex flex-col bg-slate-50/50" id="modalFormContainer">
 
                 <!-- Redesigned Workflow Status Tracker -->
                 <div class="bg-white mt-6 p-5 rounded-xl border border-[var(--line)] shadow-sm">
@@ -1327,17 +1335,17 @@
             </div>
 
             <!-- Modal Footer Action Toolbar -->
-            <div id="action-buttons" class="px-6 py-4 bg-white border-t border-[var(--line)] flex justify-between items-center shrink-0">
+            <div id="action-buttons" class="px-6 py-3.5 bg-white border-t border-[var(--line)] flex flex-wrap justify-between items-center gap-3 shrink-0">
                 <div>
-                    <button type="button" onclick="handleCancelOrReopenClick()" id="btn-cancel-record" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-[var(--red)] text-white hover:bg-red-700 border-[1.5px] border-transparent">
+                    <button type="button" onclick="handleCancelOrReopenClick()" id="btn-cancel-record" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--red)] text-white hover:bg-red-700 border-[1.5px] border-transparent">
                         Request Cancel
                     </button>
                 </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="closeModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
-                    <button type="button" onclick="openDuplicateModal()" id="btn-duplicate" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">Duplicate</button>
-                    <button type="button" onclick="openProceedStageModal()" id="btn-save" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Verify</button>
-                    <button type="button" onclick="saveRecord()" id="btn-save" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save Record</button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="closeModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
+                    <button type="button" onclick="openDuplicateModal()" id="btn-duplicate" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">Duplicate</button>
+                    <button type="button" onclick="openProceedStageModal()" id="btn-verify" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Verify</button>
+                    <button type="button" onclick="saveRecord()" id="btn-save" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save Record</button>
                 </div>
             </div>
         </div>
@@ -1562,8 +1570,8 @@
     </div>
 
     <!-- Remark Modal (LIS & Remark Engine: To Supplier & To Buyer Remarks) -->
-    <div id="remarkModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeRemarkModal()">
-        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden border border-slate-200/80 flex flex-col" onclick="event.stopPropagation()">
+    <div id="remarkModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 overflow-hidden modal-backdrop" onclick="if(event.target === this) closeRemarkModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] overflow-hidden border border-slate-200/80 flex flex-col" onclick="event.stopPropagation()">
             <!-- Header -->
             <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2.5">
@@ -1580,7 +1588,7 @@
             </div>
 
             <!-- Body: The exact cards from PR Assistant App LIS & Remark page -->
-            <div class="p-6 overflow-y-auto flex flex-col gap-5 bg-slate-50/40">
+            <div class="p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-5 bg-slate-50/40">
                 <!-- Top Row: Sales Name & Admin Name pickers -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Sales Name Card -->
@@ -1661,8 +1669,8 @@
     </div>
 
     <!-- COS Control File Modal -->
-    <div id="cosControlModal" data-z-offset="50" class="hidden fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeCosControlModal()">
-        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] border border-slate-200/80 overflow-hidden flex flex-col"
+    <div id="cosControlModal" data-z-offset="50" class="hidden fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 overflow-hidden modal-backdrop" onclick="if(event.target === this) closeCosControlModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] border border-slate-200/80 overflow-hidden flex flex-col"
             role="dialog" aria-label="Generate COS control file" onclick="event.stopPropagation()">
             <!-- Modal Header -->
             <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
@@ -1677,7 +1685,7 @@
             </div>
 
             <!-- Filter Controls and Record Table -->
-            <div class="p-6 overflow-y-auto flex flex-col gap-4">
+            <div class="p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
                 <!-- Period Selection Card -->
                 <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div class="flex flex-wrap items-center gap-3">
@@ -2564,10 +2572,7 @@
                         case 'Actions':
                             td.innerHTML = `
                                 <button type="button" onclick="openEditModal('${escapeHtml(String(item.Id))}')"
-                                    class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent"
-                                >
-                                    Manage
-                                </button>
+                                    class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">Manage</button>
                                 `;
                             break;
                             
@@ -4213,6 +4218,7 @@
 
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            syncBodyScrollLock();
         }
 
         function closeRemarkModal() {
@@ -4220,6 +4226,7 @@
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+                syncBodyScrollLock();
             }
         }
 
@@ -5131,6 +5138,7 @@
             if (modal) {
                 modal.classList.remove("hidden");
                 modal.classList.add("flex");
+                syncBodyScrollLock();
             }
         }
 
@@ -5139,6 +5147,7 @@
             if (modal) {
                 modal.classList.add("hidden");
                 modal.classList.remove("flex");
+                syncBodyScrollLock();
             }
         }
 
@@ -7142,13 +7151,12 @@
                 } else {
                     duplicateBtn.disabled = false;
                     duplicateBtn.classList.remove(...disabledStyle);
-
                 }
             }
 
             if (cancelBtn) {
                 cancelBtn.innerText = "Request Cancel";
-                cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-[var(--red)] text-white hover:bg-red-700 border-[1.5px] border-transparent";
+                cancelBtn.className = "ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--red)] text-white hover:bg-red-700 border-[1.5px] border-transparent";
                 cancelBtn.disabled = false;
             }
 
@@ -7172,7 +7180,7 @@
             if (currentStatus === 'Cancelled') {
                 if (cancelBtn) {
                     cancelBtn.innerText = "Re-open";
-                    cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
+                    cancelBtn.className = "ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
                 }
                 if (saveBtn) {
@@ -7274,10 +7282,30 @@
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            syncBodyScrollLock();
 
             const param = new URLSearchParams(location.search);
             param.set("record", id);
             pushQueryStr(param);
+        }
+
+        function syncBodyScrollLock() {
+            if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+            try {
+                const anyModal = Boolean(document.querySelector('.modal-backdrop:not(.hidden)'));
+                if (document.body) {
+                    if (document.body.classList) {
+                        if (anyModal) {
+                            document.body.classList.add('modal-open');
+                        } else {
+                            document.body.classList.remove('modal-open');
+                        }
+                    }
+                    if (document.body.style) {
+                        document.body.style.overflow = anyModal ? 'hidden' : '';
+                    }
+                }
+            } catch (e) {}
         }
 
         function isStageFieldsComplete(record, stageName) {
@@ -7307,6 +7335,7 @@
             state.currentRecord = null;
             resetProductTypePairUI(null);
             renderSubRecordsTab();
+            syncBodyScrollLock();
                         
             const param = new URLSearchParams(location.search);
             param.delete("record");
@@ -7500,9 +7529,15 @@
             }
 
             // Persist newly duplicated sub-records to Dataverse if connected
-            newRecords.forEach(clonedRec => {
-                persistRecordToDataverse(clonedRec);
-            });
+            (async () => {
+                for (const clonedRec of newRecords) {
+                    try {
+                        await persistRecordToDataverse(clonedRec);
+                    } catch (err) {
+                        console.warn("[MasterRecords] Failed persisting duplicated sub-record:", err);
+                    }
+                }
+            })();
 
             // Refresh UI
             applyFilters();
@@ -7870,16 +7905,31 @@
                             }
                         }
                     } else if (record.IsSubRecord && typeof api.createRecord === "function") {
-                        payload.admin_title = title;
-                        if (record.SubNumber) payload.admin_recordidsubnumber = record.SubNumber;
+                        // 1. Duplicate the record first in Dataverse table admin_btb_lis_excel_datas
+                        const createPayload = { ...payload };
+                        delete createPayload.admin_recordidsubnumber;
+                        createPayload.admin_title = title;
                         try {
-                            const createRes = await api.createRecord(entityName, payload);
-                            if (createRes && (createRes.id || createRes[entityName + "id"])) {
-                                record.dataverseId = createRes.id || createRes[entityName + "id"];
+                            const createRes = await api.createRecord(entityName, createPayload);
+                            const newId = createRes && (createRes.id || createRes[entityName + "id"]);
+                            if (newId) {
+                                record.dataverseId = newId;
+                                console.log("[MasterRecords] Successfully duplicated record in Dataverse:", title, newId);
+
+                                // 2. Then add the sub number value to column admin_recordidsubnumber
+                                if (record.SubNumber) {
+                                    try {
+                                        await api.updateRecord(entityName, newId, {
+                                            admin_recordidsubnumber: record.SubNumber
+                                        });
+                                        console.log("[MasterRecords] Successfully added sub number to duplicated record in Dataverse:", title, record.SubNumber);
+                                    } catch (subErr) {
+                                        console.warn("[MasterRecords] Failed to add sub number to duplicated record in Dataverse:", subErr);
+                                    }
+                                }
                             }
-                            console.log("[MasterRecords] Successfully created sub-record in Dataverse:", title, record.SubNumber);
                         } catch (createErr) {
-                            console.warn("[MasterRecords] Failed to create sub-record in Dataverse:", createErr);
+                            console.warn("[MasterRecords] Failed to duplicate record in Dataverse:", createErr);
                         }
                     }
             } catch (err) {

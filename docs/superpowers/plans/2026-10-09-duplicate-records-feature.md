@@ -1,6 +1,6 @@
 # Duplicate Records Feature Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement the "Duplicate" record feature in `Master page_21-Sep-2026.html` allowing users to create 1-10 copies of records with sequential Sub Numbers, parent-child relationship tracking, and full table/modal/navigation integration.
 
@@ -47,16 +47,16 @@
   - Quantity validation (1-10)
   - Collision-free sequential sub-numbering
 
-- [ ] **Step 1: Write the test file `_test/app-harness/master-page-duplicate.test.js`**
+- [x] **Step 1: Write the test file `_test/app-harness/master-page-duplicate.test.js`**
 
 Create test script evaluating the HTML, parsing DOM elements, and running JS functions in a VM sandbox matching existing `master-page-*.test.js` conventions.
 
-- [ ] **Step 2: Run the test to verify it fails on missing features**
+- [x] **Step 2: Run the test to verify it fails on missing features**
 
 Run: `node _test/app-harness/master-page-duplicate.test.js`
 Expected: FAIL (missing DOM elements and functions)
 
-- [ ] **Step 3: Commit test file**
+- [x] **Step 3: Commit test file**
 
 ```bash
 git add _test/app-harness/master-page-duplicate.test.js
@@ -79,7 +79,7 @@ git add _test/app-harness/master-page-duplicate.test.js
   - `'edit-subnumber'` in `PERMANENTLY_DISABLED_FIELD_IDS`
   - Table cell rendering for `SubNumber`
 
-- [ ] **Step 1: Add `SubNumber` to `IRecord` JSDoc and `COLUMN_CONFIG` directly after `Title`**
+- [x] **Step 1: Add `SubNumber` to `IRecord` JSDoc and `COLUMN_CONFIG` directly after `Title`**
 
 In `COLUMN_CONFIG`:
 ```javascript
@@ -87,7 +87,7 @@ In `COLUMN_CONFIG`:
 { key: "SubNumber", label: "Sub Number", visible: true, sortable: true },
 ```
 
-- [ ] **Step 2: Add `#edit-subnumber` input to HTML in `tab-request`**
+- [x] **Step 2: Add `#edit-subnumber` input to HTML in `tab-request`**
 
 Insert the Sub Number field next to Request ID in the Request Information card:
 ```html
@@ -97,11 +97,11 @@ Insert the Sub Number field next to Request ID in the Request Information card:
 </div>
 ```
 
-- [ ] **Step 3: Map `'edit-subnumber': 'SubNumber'` in `FIELD_ID_TO_RECORD_KEY` and add to `PERMANENTLY_DISABLED_FIELD_IDS`**
+- [x] **Step 3: Map `'edit-subnumber': 'SubNumber'` in `FIELD_ID_TO_RECORD_KEY` and add to `PERMANENTLY_DISABLED_FIELD_IDS`**
 
 Ensure `edit-subnumber` is always disabled and properly loaded in `openEditModal()`.
 
-- [ ] **Step 4: Update table row rendering in `renderTable` for `SubNumber`**
+- [x] **Step 4: Update table row rendering in `renderTable` for `SubNumber`**
 
 Add case for `SubNumber` in `renderTable` to render monospace clean text.
 
@@ -121,14 +121,14 @@ Add case for `SubNumber` in `renderTable` to render monospace clean text.
   - `closeDuplicateModal()`
   - `confirmDuplicateRecord()` with strict validation (1-10 whole numbers only)
 
-- [ ] **Step 1: Add `#btn-duplicate` to Record Detail Modal footer `#action-buttons`**
+- [x] **Step 1: Add `#btn-duplicate` to Record Detail Modal footer `#action-buttons`**
 
 Place right before `Verify`:
 ```html
 <button type="button" onclick="openDuplicateModal()" id="btn-duplicate" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">Duplicate</button>
 ```
 
-- [ ] **Step 2: Add `#duplicateModal` markup to the HTML**
+- [x] **Step 2: Add `#duplicateModal` markup to the HTML**
 
 Create the modal dialog matching existing confirmation modals:
 - Title: "Duplicate Record"
@@ -137,7 +137,7 @@ Create the modal dialog matching existing confirmation modals:
 - Error: `<span id="duplicate-error" class="hidden text-[12px] font-medium text-[var(--red)]">...</span>`
 - Action buttons: Cancel and Confirm
 
-- [ ] **Step 3: Implement modal control and validation functions in script**
+- [x] **Step 3: Implement modal control and validation functions in script**
 
 Implement:
 - `openDuplicateModal()`: reset quantity to `1`, clear error, open modal, focus input.
@@ -162,15 +162,15 @@ Implement:
   - `getSubRecords(parentRecordId: string): IRecord[]`
   - `duplicateRecord(sourceRecordId: string, quantity: number): IRecord[]`
 
-- [ ] **Step 1: Implement `getNextUniqueRecordId()`**
+- [x] **Step 1: Implement `getNextUniqueRecordId()`**
 
 Find highest numeric ID among records and iterate until unused, ensuring unique internal system IDs.
 
-- [ ] **Step 2: Implement `getSubRecords(parentRecordId)`**
+- [x] **Step 2: Implement `getSubRecords(parentRecordId)`**
 
 Find all records in `state.allData` where `IsSubRecord === true` and `ParentRecordId === String(parentRecordId)` (or matching parent title). Return them sorted naturally by `SubNumber` (`Sub1`, `Sub2`, ...).
 
-- [ ] **Step 3: Implement `duplicateRecord(sourceRecordId, quantity)`**
+- [x] **Step 3: Implement `duplicateRecord(sourceRecordId, quantity)`**
 
 - Resolve parent ID (if source is already a sub-record, use `source.ParentRecordId`; otherwise `source.Id`).
 - Mark parent with `IsParentRecord = true`.
@@ -182,7 +182,7 @@ Find all records in `state.allData` where `IsSubRecord === true` and `ParentReco
 - Call `applyFilters()`, `updateDashboard()`, `renderSubRecordsTab()`, and `showToast()`.
 - Return created records.
 
-- [ ] **Step 4: Protect Dataverse save from overwriting parent record on sub-records**
+- [x] **Step 4: Protect Dataverse save from overwriting parent record on sub-records**
 
 In `persistRecordToDataverse(record)`:
 Ensure that if `record.IsSubRecord` is true and `!record.dataverseId`, it does not query Dataverse by `admin_title eq '${title}'` which would match the parent record.
@@ -202,11 +202,11 @@ Ensure that if `record.IsSubRecord` is true and `!record.dataverseId`, it does n
   - Clickable sub-record cards/buttons
   - Active record visual highlighting
 
-- [ ] **Step 1: Add `#subRecordsBar` container to the top of the modal navigation bar**
+- [x] **Step 1: Add `#subRecordsBar` container to the top of the modal navigation bar**
 
 Add `#subRecordsBar` right above the navigation tabs and Urgent Case toggle row.
 
-- [ ] **Step 2: Implement `renderSubRecordsTab()`**
+- [x] **Step 2: Implement `renderSubRecordsTab()`**
 
 - Determine parent record and sub-records via `getSubRecords()`.
 - Render counter `Sub Records (N):`.
@@ -214,7 +214,7 @@ Add `#subRecordsBar` right above the navigation tabs and Urgent Case toggle row.
 - Highlight active card corresponding to `state.currentRecord.Id`.
 - Wire `onclick="openEditModal('...')"` to navigate to the clicked record.
 
-- [ ] **Step 3: Call `renderSubRecordsTab()` inside `openEditModal()`**
+- [x] **Step 3: Call `renderSubRecordsTab()` inside `openEditModal()`**
 
 Ensure the Sub Records bar updates whenever a record is opened.
 
@@ -226,12 +226,12 @@ Ensure the Sub Records bar updates whenever a record is opened.
 - Test: `_test/app-harness/master-page-duplicate.test.js`
 - Test: all `_test/app-harness/master-page-*.test.js`
 
-- [ ] **Step 1: Run the new duplicate feature tests**
+- [x] **Step 1: Run the new duplicate feature tests**
 
 Run: `node _test/app-harness/master-page-duplicate.test.js`
 Expected: ALL CHECKS PASSED.
 
-- [ ] **Step 2: Run all existing master-page tests to confirm zero regressions**
+- [x] **Step 2: Run all existing master-page tests to confirm zero regressions**
 
 Run: `node -e "const fs = require('fs'); const { execSync } = require('child_process'); const files = fs.readdirSync('_test/app-harness').filter(f => f.startsWith('master-page-') && f.endsWith('.test.js')); for (const f of files) { console.log('Running ' + f); execSync('node _test/app-harness/' + f, { stdio: 'inherit' }); }"`
 Expected: ALL CHECKS PASSED across all suites.

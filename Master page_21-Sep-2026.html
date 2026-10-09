@@ -5542,6 +5542,7 @@
                admin_yx0020x002fx0020n: "Y" | "N" | null;
                admin_prapprovalrequeststatus: "Y" | "N" | null;
                admin_processstatus: number | string | null;
+               admin_hkd: string | null;
           }} IDVColumnTypeOverrride
           
           @typedef {
@@ -6866,6 +6867,7 @@
             updateFieldLockingAndApprovalUI(activeStatus);
         }
 
+        /** @type {Set<IFieldIds>} */
         const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
             'edit-title',
             'edit-request-status',
@@ -6878,6 +6880,11 @@
             'edit-pair-charge-ccc',
             'edit-pair-account-code'
         ]);
+
+        /** @type {Set<IFieldIds>} */
+        const PERMANENTLY_ENABLED_FIELD_IDS = new Set(([
+            'edit-remarks'
+        ]));
 
         function applyPermanentlyDisabledFields() {
             PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
@@ -6901,13 +6908,16 @@
             
             const disabledStyle = ["bg-gray-100", "cursor-not-allowed", "opacity-50"];
             controls.forEach(control => {
+                const isPermanentlyDisabled = PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
+                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT');
+                const isPermanentlyEnabled = PERMANENTLY_ENABLED_FIELD_IDS.has(control.id);
                 if (
-                    currentStatus === 'Complete' || 
-                    currentStatus === 'Cancelled' ||
-                    (
-                        PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
-                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT')
-                    )
+                    isPermanentlyDisabled
+                    // || !isPermanentlyEnabled 
+                    // && (
+                    //     currentStatus === 'Complete' || 
+                    //     currentStatus === 'Cancelled'
+                    // )
                 ) {
                     control.disabled = true;
                     control.classList.add(...disabledStyle);
@@ -7457,7 +7467,7 @@
         };
 
         /**
-         * @type {Record<string, IColumnKey>}
+         * @satisfies {Record<string, IColumnKey>}
          */
         const FIELD_ID_TO_RECORD_KEY = {
             'edit-id': 'Id',
@@ -7556,7 +7566,8 @@
             
             // missing PONoReady
         };
-
+        /** @typedef {keyof typeof FIELD_ID_TO_RECORD_KEY} IFieldIds */
+    
         const CHECKBOX_FIELD_IDS = new Set(['edit-urgent-flag', 'edit-um-verified', 'edit-pr-approved']);
 
         /** @type {Record<WorkflowStage, {title: string, body: string}>} */

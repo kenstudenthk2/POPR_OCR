@@ -2116,11 +2116,13 @@
         }
         /* --- Real-Time Validations --- */
         function validatePRNo(val) {
+            return val && val.trim().length > 0;
             return /^[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePONo(val) {
-            return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
+            return val && val.trim().length > 0;
+            // return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePRNoField() {
@@ -4145,7 +4147,7 @@
         }
 
         function copyPaymentDoc(){
-            const documentPath = "\\\\10.5.9.36\\\\csd-admin\\CSD\\Guidelines\\PO-Mark-Receipt(GFIN_PU-wef-20251110)\\Payment-Instruction-Guideline\\SB\\SB Payment Instructions Guideline Ver V20260720_SB.docx"
+            const documentPath = "\\\\10.5.9.36\\\\csd-admin\\CSD\\Guidelines\\PO-Mark-Receipt(GFIN_PU-wef-20251110)\\Payment-Instruction-Guideline\\SB"
             globalThis?.navigator.clipboard.writeText(documentPath)
             const btn = document.getElementById("btn-copy-paymentguide")
             if(btn) {
@@ -5542,6 +5544,7 @@
                admin_yx0020x002fx0020n: "Y" | "N" | null;
                admin_prapprovalrequeststatus: "Y" | "N" | null;
                admin_processstatus: number | string | null;
+               admin_hkd: string | null;
           }} IDVColumnTypeOverrride
           
           @typedef {
@@ -6866,6 +6869,7 @@
             updateFieldLockingAndApprovalUI(activeStatus);
         }
 
+        /** @type {Set<IFieldIds>} */
         const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
             'edit-title',
             'edit-request-status',
@@ -6878,6 +6882,11 @@
             'edit-pair-charge-ccc',
             'edit-pair-account-code'
         ]);
+
+        /** @type {Set<IFieldIds>} */
+        const PERMANENTLY_ENABLED_FIELD_IDS = new Set(([
+            'edit-remarks'
+        ]));
 
         function applyPermanentlyDisabledFields() {
             PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
@@ -6901,13 +6910,16 @@
             
             const disabledStyle = ["bg-gray-100", "cursor-not-allowed", "opacity-50"];
             controls.forEach(control => {
+                const isPermanentlyDisabled = PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
+                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT');
+                const isPermanentlyEnabled = PERMANENTLY_ENABLED_FIELD_IDS.has(control.id);
                 if (
-                    currentStatus === 'Complete' || 
-                    currentStatus === 'Cancelled' ||
-                    (
-                        PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
-                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT')
-                    )
+                    isPermanentlyDisabled
+                    // || !isPermanentlyEnabled 
+                    // && (
+                    //     currentStatus === 'Complete' || 
+                    //     currentStatus === 'Cancelled'
+                    // )
                 ) {
                     control.disabled = true;
                     control.classList.add(...disabledStyle);
@@ -6919,10 +6931,10 @@
             });
             
             if (currentStatus === 'Complete') {
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                // if (saveBtn) {
+                //     saveBtn.disabled = false;
+                //     saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                // }
                 return;
             }
 
@@ -6932,10 +6944,10 @@
                     cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
                 }
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+                // if (saveBtn) {
+                //     saveBtn.disabled = true;
+                //     saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                // }
                 return;
             }
 
@@ -7019,12 +7031,12 @@
             const actionButtonsContainer =
                 document.getElementById('action-buttons');
 
-            if (actionButtonsContainer) {
-                actionButtonsContainer.style.display =
-                    item.ProcessStatus === 'Complete'
-                        ? 'none'
-                        : '';
-            }
+            // if (actionButtonsContainer) {
+            //     actionButtonsContainer.style.display =
+            //         item.ProcessStatus === 'Complete'
+            //             ? 'none'
+            //             : '';
+            // }
 
             switchModalTab('tab-request');
             handlePRAmount();
@@ -7457,7 +7469,7 @@
         };
 
         /**
-         * @type {Record<string, IColumnKey>}
+         * @satisfies {Record<string, IColumnKey>}
          */
         const FIELD_ID_TO_RECORD_KEY = {
             'edit-id': 'Id',
@@ -7556,7 +7568,8 @@
             
             // missing PONoReady
         };
-
+        /** @typedef {keyof typeof FIELD_ID_TO_RECORD_KEY} IFieldIds */
+    
         const CHECKBOX_FIELD_IDS = new Set(['edit-urgent-flag', 'edit-um-verified', 'edit-pr-approved']);
 
         /** @type {Record<WorkflowStage, {title: string, body: string}>} */

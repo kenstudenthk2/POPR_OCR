@@ -196,11 +196,11 @@ const X = sandbox.EXPORTS;
 
   // HKD fields in payload
   eq("HKD: admin_pramount is string", pHkd.admin_pramount, "16000");
-  eq("HKD: admin_hkd is numeric", pHkd.admin_hkd, 16000);
+  eq("HKD: admin_hkd is string", pHkd.admin_hkd, "16000");
   eq("HKD: admin_pramounthkd is string", pHkd.admin_pramounthkd, "16000");
   eq("HKD: admin_pramountusd is converted string", pHkd.admin_pramountusd, "2025.32");
   eq("HKD: admin_hkdusd is HKD", pHkd.admin_hkdusd, "HKD");
-  eq("HKD: admin_usdx0020x002fx0020others is null", pHkd.admin_usdx0020x002fx0020others, null);
+  eq("HKD: admin_usdx0020x002fx0020others is undefined for HKD", pHkd.admin_usdx0020x002fx0020others, undefined);
 
   // 5. Test persistRecordToDataverse formatting for USD
   updatedRecords.length = 0;
@@ -215,7 +215,7 @@ const X = sandbox.EXPORTS;
   const pUsd = updatedRecords[0].payload;
 
   eq("USD: admin_pramount is string", pUsd.admin_pramount, "2000");
-  eq("USD: admin_hkd is null for USD", pUsd.admin_hkd, null);
+  eq("USD: admin_hkd is undefined for USD", pUsd.admin_hkd, undefined);
   eq("USD: admin_pramounthkd is converted string", pUsd.admin_pramounthkd, "15800");
   eq("USD: admin_pramountusd is string", pUsd.admin_pramountusd, "2000");
   eq("USD: admin_hkdusd is USD", pUsd.admin_hkdusd, "USD");

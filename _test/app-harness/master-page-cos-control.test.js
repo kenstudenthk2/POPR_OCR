@@ -126,6 +126,7 @@ EXPORTS.COS_EMPTY_CELL = COS_EMPTY_CELL;
 EXPORTS.cosCellText = cosCellText;
 EXPORTS.fmtLisDate = fmtLisDate;
 EXPORTS.isSBReportGenerated = isSBReportGenerated;
+EXPORTS.isCosRecordCompleted = isCosRecordCompleted;
 EXPORTS.getRecordDateNormalized = getRecordDateNormalized;
 EXPORTS.initCosModalDates = initCosModalDates;
 EXPORTS.handleCosMonthChange = handleCosMonthChange;
@@ -215,7 +216,8 @@ const masterRecord = {
   CustomerName: "NEW CHARM MANAGEMENT LTD",
   SBReportGenerated: "",
   admin_hkdusd: "USD",
-  admin_hkd: 125000
+  admin_hkd: 125000,
+  ProcessStatus: "Complete"
 };
 
 const HEADERS = X.COS_CONTROL_COLUMNS.map(c => c.header);
@@ -374,6 +376,77 @@ ok("data row carries Vendor Name", sheetXml.includes("Nice Systems BV"));
   eq("entity is admin_btb_lis_excel_datas", update1 && update1.entity, "admin_btb_lis_excel_datas");
   eq("column admin_sbreportgenrated has date value", update1 && update1.payload && update1.payload.admin_sbreportgenrated, today + "T00:00:00Z");
   eq("column admin_sbreportgenrated on recordDv2 has date value", update2 && update2.payload && update2.payload.admin_sbreportgenrated, today + "T00:00:00Z");
+
+  // 9. Test non-completed records are disabled in COS Control File modal
+  // Direct helper checks
+  ok("isCosRecordCompleted returns true for Complete", X.isCosRecordCompleted({ ProcessStatus: "Complete" }));
+  ok("isCosRecordCompleted returns true for Completed", X.isCosRecordCompleted({ ProcessStatus: "Completed" }));
+  ok("isCosRecordCompleted returns true for admin_processstatus=0", X.isCosRecordCompleted({ admin_processstatus: 0 }));
+  ok("isCosRecordCompleted returns true for admin_processstatus='0'", X.isCosRecordCompleted({ admin_processstatus: "0" }));
+  ok("isCosRecordCompleted returns true for admin_processstatus='Completed'", X.isCosRecordCompleted({ admin_processstatus: "Completed" }));
+  ok("isCosRecordCompleted returns false for PR No. Ready", !X.isCosRecordCompleted({ ProcessStatus: "PR No. Ready" }));
+  ok("isCosRecordCompleted returns false for UM Verified", !X.isCosRecordCompleted({ ProcessStatus: "UM Verified" }));
+  ok("isCosRecordCompleted returns false for LIS System Approved", !X.isCosRecordCompleted({ ProcessStatus: "LIS System Approved" }));
+  ok("isCosRecordCompleted returns false for PO No. Ready", !X.isCosRecordCompleted({ ProcessStatus: "PO No. Ready" }));
+  ok("isCosRecordCompleted returns false for Cancelled", !X.isCosRecordCompleted({ ProcessStatus: "Cancelled" }));
+  ok("isCosRecordCompleted returns false for admin_processstatus=2", !X.isCosRecordCompleted({ admin_processstatus: 2 }));
+  ok("isCosRecordCompleted returns false for admin_processstatus=1", !X.isCosRecordCompleted({ admin_processstatus: 1 }));
+
+  // Create mixed records: completed vs non-completed
+  const recComp1 = { ...masterRecord, Title: "REC-COMP-1", Id: "REC-COMP-1", ProcessStatus: "Complete", SBReportGenerated: "" };
+  const recComp2 = { ...masterRecord, Title: "REC-COMP-2", Id: "REC-COMP-2", ProcessStatus: "Completed", SBReportGenerated: "" };
+  const recPrReady = { ...masterRecord, Title: "REC-PR-READY", Id: "REC-PR-READY", ProcessStatus: "PR No. Ready", SBReportGenerated: "" };
+  const recUmVer = { ...masterRecord, Title: "REC-UM-VER", Id: "REC-UM-VER", ProcessStatus: "UM Verified", SBReportGenerated: "" };
+  const recPoReady = { ...masterRecord, Title: "REC-PO-READY", Id: "REC-PO-READY", ProcessStatus: "PO No. Ready", SBReportGenerated: "" };
+  const recCanc = { ...masterRecord, Title: "REC-CANC", Id: "REC-CANC", ProcessStatus: "Cancelled", SBReportGenerated: "" };
+  const recDvChoice = { ...masterRecord, Title: "REC-DV-CHOICE", Id: "REC-DV-CHOICE", ProcessStatus: "", admin_processstatus: 2, SBReportGenerated: "" };
+
+  X.state.allData = [recComp1, recComp2, recPrReady, recUmVer, recPoReady, recCanc, recDvChoice];
+  X.cosModalState.hasUserModifiedSelection = false;
+  X.updateCosControlModalUI();
+
+  // Non-completed records must NOT be selected by default
+  ok("recComp1 is selected by default", X.cosModalState.selectedIds.has("REC-COMP-1"));
+  ok("recComp2 is selected by default", X.cosModalState.selectedIds.has("REC-COMP-2"));
+  ok("recPrReady is NOT selected by default", !X.cosModalState.selectedIds.has("REC-PR-READY"));
+  ok("recUmVer is NOT selected by default", !X.cosModalState.selectedIds.has("REC-UM-VER"));
+  ok("recPoReady is NOT selected by default", !X.cosModalState.selectedIds.has("REC-PO-READY"));
+  ok("recCanc is NOT selected by default", !X.cosModalState.selectedIds.has("REC-CANC"));
+  ok("recDvChoice is NOT selected by default", !X.cosModalState.selectedIds.has("REC-DV-CHOICE"));
+
+  // Check rendered HTML in cos-records-tbody
+  const renderedHtml = elements["cos-records-tbody"].innerHTML;
+  ok("tbody contains disabled checkbox for REC-PR-READY",
+    renderedHtml.includes('data-id="REC-PR-READY" disabled') || renderedHtml.includes('data-id="REC-PR-READY"') && renderedHtml.includes('disabled'));
+  ok("tbody contains disabled checkbox for REC-PO-READY",
+    renderedHtml.includes('data-id="REC-PO-READY" disabled') || renderedHtml.includes('data-id="REC-PO-READY"') && renderedHtml.includes('disabled'));
+  ok("tbody contains enabled checkbox for REC-COMP-1",
+    !renderedHtml.includes('data-id="REC-COMP-1" disabled'));
+
+  // Test Select All ignores non-completed records
+  X.toggleCosSelectAll(true);
+  ok("Select All selects recComp1", X.cosModalState.selectedIds.has("REC-COMP-1"));
+  ok("Select All selects recComp2", X.cosModalState.selectedIds.has("REC-COMP-2"));
+  ok("Select All does NOT select recPrReady", !X.cosModalState.selectedIds.has("REC-PR-READY"));
+  ok("Select All does NOT select recUmVer", !X.cosModalState.selectedIds.has("REC-UM-VER"));
+  ok("Select All does NOT select recPoReady", !X.cosModalState.selectedIds.has("REC-PO-READY"));
+  ok("Select All does NOT select recCanc", !X.cosModalState.selectedIds.has("REC-CANC"));
+  eq("Select All selects exactly 2 completed records", X.cosModalState.selectedIds.size, 2);
+
+  // Test selectCosUngeneratedOnly ignores non-completed records
+  X.selectCosUngeneratedOnly();
+  eq("selectCosUngeneratedOnly selects exactly 2 completed records", X.cosModalState.selectedIds.size, 2);
+  ok("selectCosUngeneratedOnly does NOT select recPoReady", !X.cosModalState.selectedIds.has("REC-PO-READY"));
+
+  // Test handleCosRowCheckboxChange rejects non-completed record
+  X.handleCosRowCheckboxChange({ dataset: { id: "REC-PO-READY" }, checked: true, disabled: false });
+  ok("handleCosRowCheckboxChange rejects non-completed record", !X.cosModalState.selectedIds.has("REC-PO-READY"));
+
+  // Test generateCosControlFile skips any non-completed record even if forced into selectedIds
+  X.cosModalState.selectedIds.add("REC-PO-READY");
+  X.generateCosControlFile();
+  eq("recPoReady was NOT updated with SBReportGenerated date", recPoReady.SBReportGenerated, "");
+  eq("recComp1 was updated with SBReportGenerated date", recComp1.SBReportGenerated, today);
 
   if (failures > 0) {
     console.error(`\nFAILED: ${failures} assertions failed.`);

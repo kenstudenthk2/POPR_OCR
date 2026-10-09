@@ -5,29 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Records — PR Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Funnel+Sans:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Funnel+Sans:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
     <style>
         :root {
-            --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
-            --focus-ring: 0 0 0 4px rgba(255, 153, 0, 0.28);
-            --ink: #1D1D1F;
-            --muted: #515154;
-            --line: #D2D2D7;
+            --ease-out-ui: cubic-bezier(0.16, 1, 0.3, 1);
+            --focus-ring: 0 0 0 3px rgba(245, 158, 11, 0.24);
+            --ink: #0F172A;
+            --muted: #64748B;
+            --line: #E2E8F0;
             --surface: #FFFFFF;
-            --surface-soft: #F5F5F7;
-            --charcoal: #EDE9E1;
-            --graphite: #424242;
-            --orange: #FF9900;
-            --orange-dark: #B35F00;
+            --surface-soft: #F8FAFC;
+            --charcoal: #F1F5F9;
+            --graphite: #334155;
+            --orange: #F59E0B;
+            --orange-dark: #D97706;
             --green: #15803D;
             --amber: #B45309;
             --red: #DC2626;
-            --gray: #6B7280;
-            --blue: #3b82f6;
+            --gray: #64748B;
+            --blue: #2563EB;
             --Lgreen: #16A34A;
-            --purple: #9333EA;
+            --purple: #7C3AED;
             
             --z-layer: 0;
             --z-offset: 0;
@@ -44,13 +44,14 @@
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            font-family: "Geist", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: var(--ink);
             background:
-                radial-gradient(circle at 100% 0%, rgba(255, 153, 0, 0.10), transparent 31rem),
-                linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+                radial-gradient(ellipse 90% 50% at 50% -20%, rgba(245, 158, 11, 0.05), transparent 70%),
+                linear-gradient(180deg, #FAFAFA 0%, #F1F5F9 100%);
             -webkit-font-smoothing: antialiased;
             text-rendering: optimizeLegibility;
+            min-height: 100dvh;
         }
         button, input, select, textarea { font: inherit; }
         button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
@@ -59,19 +60,19 @@
         }
         .ui-transition {
             transition-property: transform, background-color, border-color, color, opacity, box-shadow, filter;
-            transition-duration: 180ms;
+            transition-duration: 160ms;
             transition-timing-function: var(--ease-out-ui);
         }
-        .pressable:not(:disabled) { box-shadow: 0 1px 2px rgba(29, 29, 31, 0.05); }
+        .pressable:not(:disabled) { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
         @media (hover: hover) and (pointer: fine) {
-            .pressable:hover:not(:disabled) { box-shadow: 0 4px 10px rgba(29, 29, 31, 0.10); }
+            .pressable:hover:not(:disabled) { box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08); }
         }
         .pressable:active:not(:disabled) {
-            transform: scale(0.97);
-            box-shadow: 0 1px 1px rgba(29, 29, 31, 0.06);
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
         }
         .field-control {
-            transition: border-color 160ms var(--ease-out-ui), box-shadow 160ms var(--ease-out-ui);
+            transition: border-color 140ms var(--ease-out-ui), box-shadow 140ms var(--ease-out-ui), background-color 140ms var(--ease-out-ui);
         }
         .field-control:focus {
             border-color: var(--orange);
@@ -83,27 +84,35 @@
             box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
         }
         @keyframes panel-rise {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .panel-rise { animation: panel-rise 260ms var(--ease-out-ui) both; }
+        .panel-rise { animation: panel-rise 240ms var(--ease-out-ui) both; }
         @keyframes modal-backdrop-fade {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        .modal-backdrop { animation: modal-backdrop-fade 200ms ease both; }
-        @keyframes modal-pop {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+        .modal-backdrop { 
+            animation: modal-backdrop-fade 180ms ease both;
+            backdrop-filter: blur(8px) !important;
+            background-color: rgba(15, 23, 42, 0.45) !important;
         }
-        .modal-pop { animation: modal-pop 200ms var(--ease-out-ui) both; transform-origin: center; }
+        @keyframes modal-pop {
+            from { opacity: 0; transform: scale(0.97) translateY(4px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-pop { 
+            animation: modal-pop 200ms var(--ease-out-ui) both; 
+            transform-origin: center;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+        }
 
         .loader {
-            border: 3px solid var(--line);
-            border-top: 3px solid var(--orange);
+            border: 2.5px solid var(--line);
+            border-top: 2.5px solid var(--orange);
             border-radius: 50%;
-            width: 20px; height: 20px;
-            animation: spin 1s linear infinite;
+            width: 18px; height: 18px;
+            animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         table { border-collapse: collapse; }
@@ -112,7 +121,7 @@
             top: 0; 
             --z-offset: 10;
             z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
-            background-color: #F3EBE2;
+            background-color: #F8FAFC;
         }
 
         [data-z-layer] {
@@ -122,10 +131,10 @@
 
         .status-tab-separator {
                 display: inline-block;
-                width: 2px;
-                height: 32px;
+                width: 1.5px;
+                height: 28px;
                 margin: 0 10px;
-                background-color: #D2D2D7;
+                background-color: var(--line);
                 flex: 0 0 auto;
                 align-self: center;
         }
@@ -212,10 +221,11 @@
 
         #excelViewTable th,
         #excelViewTable td {
-            border: 1px solid #D2D2D7;
-            padding: 4px 10px;
+            border: 1px solid var(--line);
+            padding: 5px 12px;
             white-space: nowrap;
             text-align: left;
+            font-size: 12.5px;
         }
 
         #excelViewTable thead th {
@@ -223,9 +233,10 @@
             top: 0;
             --z-offset: 10;
             z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
-            background: #F3EBE2;
+            background: #F8FAFC;
             font-weight: 700;
-            color: #424242;
+            color: #334155;
+            border-bottom: 2px solid var(--line);
         }
 
         /* Frozen first column, like Excel's Freeze Panes */
@@ -235,27 +246,27 @@
             left: 0;
             --z-offset: 5;
             z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
-            background: #FBF6EF;
+            background: #F8FAFC;
             font-weight: 600;
-            border-right: 2px solid #B8B8BD;
+            border-right: 2px solid #CBD5E1;
         }
 
         #excelViewTable thead th:first-child {
             --z-offset: 15;
             z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
-            background: #EDE4D6;
+            background: #F1F5F9;
         }
 
         #excelViewTable tbody tr:nth-child(even) td {
-            background-color: #FAFAF9;
+            background-color: #FAFAFA;
         }
 
         #excelViewTable tbody tr:nth-child(even) td:first-child {
-            background-color: #F5F0E6;
+            background-color: #F8FAFC;
         }
 
         #excelViewTable tbody tr:hover td {
-            background-color: #FFF3D6 !important;
+            background-color: #FEF3C7 !important;
         }
  
         input[type="checkbox"].is-invalid {
@@ -283,11 +294,11 @@
 <body>
 
     <!-- Main Application Header -->
-    <header class="w-full max-w-[1600px] mx-auto px-5 md:px-8 pt-6 pb-2 flex flex-col gap-4">
+    <header class="w-full max-w-[1600px] mx-auto px-5 md:px-8 pt-7 pb-2 flex flex-col gap-4">
         <!-- Row 1: Brand Identity & Primary System Action -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[var(--line)]/70">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200/80">
             <div class="flex items-center gap-3.5">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF9900] to-[#E68500] text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-sm shadow-amber-500/25 border border-amber-400/20 shrink-0">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <rect width="18" height="18" x="3" y="3" rx="2"/>
                         <path d="M3 9h18"/>
@@ -296,15 +307,15 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <h1 class="text-[clamp(22px,2.4vw,32px)] leading-tight font-bold text-[var(--ink)] tracking-tight" style="font-family:'Space Grotesk', system-ui, sans-serif;">
+                        <h1 class="text-[clamp(22px,2.2vw,30px)] leading-tight font-bold text-[var(--ink)] tracking-tight" style="font-family:'Space Grotesk', system-ui, sans-serif;">
                             Master List Management System
                         </h1>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-300 shadow-xs">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-200/90 shadow-2xs">
                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                             DEV
                         </span>
                     </div>
-                    <p class="mt-1 text-[13.5px] leading-5 text-[var(--muted)]">
+                    <p class="mt-0.5 text-[13px] leading-relaxed text-[var(--muted)]">
                         Browse, filter, and manage automated workflow records.
                     </p>
                 </div>
@@ -327,10 +338,10 @@
         </div>
 
         <!-- Row 2: Search Bar & Management Action Controls -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/90 backdrop-blur-xs p-2.5 rounded-xl border border-[var(--line)] shadow-[0px_4px_16px_0px_rgba(29,29,31,0.04)]">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-slate-200/80 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.04)]">
             <!-- Expanded Search Bar -->
             <div class="relative flex-1 lg:max-w-xl">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C8C8C]">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.3-4.3"></path>
@@ -338,8 +349,8 @@
                 </span>
                 <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search records by ID, Vendor, Customer, PO No…"
                     aria-label="Search records"
-                    class="w-full pl-10 pr-10 py-2.5 bg-white border-[1.5px] border-[#D2D2D7] rounded-lg text-[13.5px] text-[var(--ink)] placeholder:text-[#8C8C8C] outline-none field-control focus:border-[var(--orange)] focus:ring-2 focus:ring-amber-500/20">
-                <button type="button" id="clearSearchBtn" onclick="clearGlobalSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#8C8C8C] hover:text-[var(--ink)]" title="Clear search">
+                    class="w-full pl-10 pr-10 py-2 bg-slate-50/60 hover:bg-white focus:bg-white border-[1.5px] border-slate-200 rounded-lg text-[13.5px] text-[var(--ink)] placeholder:text-slate-400 outline-none field-control focus:border-[var(--orange)] focus:ring-2 focus:ring-amber-500/20">
+                <button type="button" id="clearSearchBtn" onclick="clearGlobalSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-[var(--ink)]" title="Clear search">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -351,7 +362,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="toggleFilters()"
                     class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
-                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-slate-500 group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                     </svg>
                     <span>Filter Data</span>
@@ -360,7 +371,7 @@
                 <!-- Column Customization Button -->
                 <button type="button" onclick="openColumnModal()"
                     class="ui-transition pressable group inline-flex items-center gap-2 min-h-[38px] px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] shadow-xs">
-                    <svg class="w-3.5 h-3.5 shrink-0 text-[#6B6B6B] group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <svg class="w-3.5 h-3.5 shrink-0 text-slate-500 group-hover:text-[var(--orange-dark)] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <rect width="18" height="18" x="3" y="3" rx="2"></rect>
                         <path d="M9 3v18"></path>
                         <path d="M15 3v18"></path>
@@ -396,48 +407,47 @@
     <div class="max-w-[1600px] mx-auto px-5 md:px-8 pb-10 flex flex-col gap-6">
 
         <!-- Connection / Environment Status Banner -->
-        <div id="connectionStatusBanner" class="hidden rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[13px]">
+        <div id="connectionStatusBanner" class="hidden rounded-xl border border-slate-200 bg-white/90 backdrop-blur-xs p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[13px] shadow-xs">
             <div class="flex items-center gap-2.5">
-                <span id="connectionStatusIcon" class="text-lg">ℹ️</span>
+                <span id="connectionStatusIcon" class="text-base">ℹ️</span>
                 <span id="connectionStatusMsg" class="font-medium text-[var(--ink)]"></span>
             </div>
             <div id="connectionStatusActions" class="flex items-center gap-2"></div>
         </div>
 
         <!-- KPI Dashboard -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" id="kpiDashboard">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5" id="kpiDashboard">
             <button type="button" onclick="setTab('All')" data-tab="All" id="kpi-card-all" title="Filter by Total Records (All)"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--blue)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--blue)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--blue)] shrink-0"></span>Total Records</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-total">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)] font-mono" id="kpi-total">0</div>
             </button>
             <button type="button" onclick="setTab('Urgent')" data-tab="Urgent" id="kpi-card-urgent" title="Filter by Urgent Tasks"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--red)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--red)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--red)] shrink-0"></span>Urgent Tasks</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-urgent" data-alias-id="kpi-pending">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)] font-mono" id="kpi-urgent" data-alias-id="kpi-pending">0</div>
             </button>
             <button type="button" onclick="setTab('Expired')" data-tab="Expired" id="kpi-card-expired" title="Filter by Quotation Expired"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--purple)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--purple)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--purple)] shrink-0"></span>Quotation Expired</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-expired">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)] font-mono" id="kpi-expired">0</div>
             </button>
             <button type="button" onclick="setTab('Expiring Soon')" data-tab="Expiring Soon" id="kpi-card-expiring-soon" title="Filter by Expiring Soon"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--orange)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--orange)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--orange)] shrink-0"></span>Expiring Soon</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-upcoming">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)] font-mono" id="kpi-upcoming">0</div>
             </button>
             <button type="button" onclick="setTab('Complete')" data-tab="Complete" id="kpi-card-complete" title="Filter by Completed Tasks"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--Lgreen)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--Lgreen)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--Lgreen)] shrink-0"></span>Completed Tasks</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--ink)]" id="kpi-finished">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--ink)] font-mono" id="kpi-finished">0</div>
             </button>
             <button type="button" onclick="setTab('Cancelled')" data-tab="Cancelled" id="kpi-card-cancelled" title="Filter by Cancelled Records"
-                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 ui-transition cursor-pointer hover:bg-[#FFFDF7] hover:border-[var(--gray)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/30">
+                class="kpi-card-btn panel-rise text-left w-full bg-white/95 rounded-xl border border-[var(--line)] shadow-xs p-4 ui-transition cursor-pointer hover:bg-slate-50/80 hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/30">
                 <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--gray)]"><span class="w-1.5 h-1.5 rounded-full bg-[var(--gray)] shrink-0"></span>Cancelled Records</div>
-                <div class="mt-2 text-[26px] font-bold text-[var(--gray)]" id="kpi-cancelled">0</div>
+                <div class="mt-2 text-[26px] font-bold text-[var(--gray)] font-mono" id="kpi-cancelled">0</div>
             </button>
         </div>
-
         <div id="filterPanel" class="hidden panel-rise bg-white/95 rounded-xl border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="flex flex-col gap-1">
                 <label class="text-[12px] font-semibold text-[var(--muted)]">Handled By</label>
@@ -493,27 +503,27 @@
         </div>
     </div>                             
     <!-- Manage Columns Modal -->
-    <div id="columnModal" data-z-layer="1" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
-        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div class="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+    <div id="columnModal" data-z-layer="1" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/80">
+            <div class="px-6 py-4 border-b border-slate-200/80 bg-slate-50/50 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Manage Columns</h2>
                     <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible in the main records table.</p>
                 </div>
-                <button type="button" onclick="closeColumnModal()" class="ui-transition pressable text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">Close ✕</button>
+                <button type="button" onclick="closeColumnModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">Close ✕</button>
             </div>
             <!-- Selection Toolbar -->
-            <div class="px-6 py-3 bg-[#FBF6EF] border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div class="px-6 py-3 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div class="text-[13px] text-[var(--muted)]">
-                    <span class="font-bold text-[var(--ink)]" id="columnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)]" id="columnTotalCount">0</span> columns visible
+                    <span class="font-bold text-[var(--ink)] font-mono" id="columnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)] font-mono" id="columnTotalCount">0</span> columns visible
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="toggleAllColumns(true)"
-                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        class="ui-transition pressable px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                         Select All
                     </button>
                     <button type="button" onclick="toggleAllColumns(false)"
-                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        class="ui-transition pressable px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                         Deselect All
                     </button>
                 </div>
@@ -521,11 +531,11 @@
             <div class="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5" id="columnCheckboxContainer">
                 <!-- Checkboxes populated dynamically -->
             </div>
-            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-between items-center shrink-0">
+            <div class="px-6 py-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center shrink-0">
                 <span class="text-[12px] text-[var(--muted)]">Locked columns are always visible</span>
                 <div class="flex gap-2">
-                    <button type="button" onclick="closeColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
-                    <button type="button" onclick="saveColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+                    <button type="button" onclick="closeColumnModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-slate-200 bg-white text-[var(--ink)] hover:bg-slate-50 shadow-2xs">Cancel</button>
+                    <button type="button" onclick="saveColumnPreferences()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">Save</button>
                 </div>
             </div>
         </div>
@@ -533,27 +543,27 @@
 
     <!-- TODO: see if we can reuse the main Manage Columns Modal for Excel view -->
     <!-- Manage Excel Columns Modal -->
-    <div id="excelColumnModal" data-z-layer="2" class="hidden fixed inset-0 bg-[#F4F0E8]/85 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
-        <div class="modal-pop bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div class="px-6 py-4 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+    <div id="excelColumnModal" data-z-layer="2" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm items-center justify-center p-4 modal-backdrop">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200/80">
+            <div class="px-6 py-4 border-b border-slate-200/80 bg-slate-50/50 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">Manage Columns</h2>
+                    <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Manage Columns</h2>
                     <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible in the Excel full-data view.</p>
                 </div>
-                <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">Close ✕</button>
+                <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">Close ✕</button>
             </div>
             <!-- Selection Toolbar -->
-            <div class="px-6 py-3 bg-[#FBF6EF] border-b border-[var(--line)] flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div class="px-6 py-3 bg-slate-50/90 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div class="text-[13px] text-[var(--muted)]">
-                    <span class="font-bold text-[var(--ink)]" id="excelColumnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)]" id="excelColumnTotalCount">0</span> columns visible
+                    <span class="font-bold text-[var(--ink)] font-mono" id="excelColumnVisibleCount">0</span> of <span class="font-bold text-[var(--ink)] font-mono" id="excelColumnTotalCount">0</span> columns visible
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="toggleAllExcelColumns(true)"
-                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        class="ui-transition pressable px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                         Select All
                     </button>
                     <button type="button" onclick="toggleAllExcelColumns(false)"
-                        class="ui-transition pressable px-3 py-1.5 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                        class="ui-transition pressable px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                         Deselect All
                     </button>
                 </div>
@@ -561,11 +571,11 @@
             <div id="excelColumnCheckboxContainer" class="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                 <!-- Checkboxes populated dynamically -->
             </div>
-            <div class="px-6 py-4 border-t border-[var(--line)] flex justify-between items-center shrink-0">
+            <div class="px-6 py-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center shrink-0">
                 <span class="text-[12px] text-[var(--muted)]">Locked columns are always visible</span>
                 <div class="flex gap-2">
-                    <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
-                    <button type="button" onclick="saveExcelColumnPreferences()" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save</button>
+                    <button type="button" onclick="closeExcelColumnModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-slate-200 bg-white text-[var(--ink)] hover:bg-slate-50 shadow-2xs">Cancel</button>
+                    <button type="button" onclick="saveExcelColumnPreferences()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">Save</button>
                 </div>
             </div>
         </div>
@@ -1498,29 +1508,29 @@
     </div>
 
     <!-- Remark Modal (LIS & Remark Engine: To Supplier & To Buyer Remarks) -->
-    <div id="remarkModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-[#1D1D1F]/60 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeRemarkModal()">
-        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden border border-[var(--line)] flex flex-col" onclick="event.stopPropagation()">
+    <div id="remarkModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeRemarkModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden border border-slate-200/80 flex flex-col" onclick="event.stopPropagation()">
             <!-- Header -->
-            <div class="px-6 py-4 bg-slate-50 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+            <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2.5">
                     <span class="text-2xl">📋</span>
                     <div>
-                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">LIS & Remark Generator</h3>
+                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">LIS & Remark Generator</h3>
                         <p class="text-[12px] text-[var(--muted)]" id="remark-modal-subtitle">Generate To Supplier Remark and BTB Remark (To Buyer)</p>
                     </div>
                 </div>
-                <button id="btn-copy-paymentguide" type="button" onclick="copyPaymentDoc()" class="ml-auto mr-2 ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">
+                <button id="btn-copy-paymentguide" type="button" onclick="copyPaymentDoc()" class="ml-auto mr-2 ui-transition pressable px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-600 hover:text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                     Copy Payment Guideline Path
                 </button>
-                <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+                <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">✕ Close</button>
             </div>
 
             <!-- Body: The exact cards from PR Assistant App LIS & Remark page -->
-            <div class="p-6 overflow-y-auto flex flex-col gap-5 bg-slate-50/50">
+            <div class="p-6 overflow-y-auto flex flex-col gap-5 bg-slate-50/40">
                 <!-- Top Row: Sales Name & Admin Name pickers -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Sales Name Card -->
-                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col gap-2">
                         <label for="remark-sales-contact" class="text-[12px] font-bold text-[var(--muted)]">Sales Name :</label>
                         <select id="remark-sales-contact" onchange="handleRemarkSalesContactChange(this.value)"
                             class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
@@ -1528,7 +1538,7 @@
                         </select>
                     </div>
                     <!-- Admin Name Card -->
-                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col gap-2">
                         <label for="remark-admin-name" class="text-[12px] font-bold text-[var(--muted)]">Admin Name :</label>
                         <select id="remark-admin-name" onchange="handleRemarkAdminNameChange(this.value)"
                             class="field-control w-full px-3 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
@@ -1539,11 +1549,11 @@
                 <!-- Bottom Row: To Supplier Remark & BTB Remark (To Buyer) cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <!-- To Supplier Remark Card -->
-                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-3">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col gap-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-[16px] font-bold text-[var(--ink)]">To Supplier Remark</span>
+                            <span class="text-[15px] font-bold text-[var(--ink)]">To Supplier Remark</span>
                             <button type="button" onclick="copyRemarkText('modal-supplier-remark')" title="Copy remark"
-                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1">
+                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[12px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1 shadow-2xs">
                                 <span>📋</span> Copy
                             </button>
                         </div>
@@ -1563,22 +1573,22 @@
 
                         <textarea id="modal-supplier-remark" rows="11"
                             placeholder="Pick a Case Type above, or type the remark manually."
-                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
+                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-slate-50/50 hover:bg-white focus:bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
                     </div>
 
                     <!-- BTB Remark (To Buyer) Card -->
-                    <div class="bg-white p-4 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-3">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs flex flex-col gap-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-[16px] font-bold text-[var(--ink)]">BTB Remark (To Buyer)</span>
+                            <span class="text-[15px] font-bold text-[var(--ink)]">BTB Remark (To Buyer)</span>
                             <button type="button" onclick="copyRemarkText('modal-btb-remark')" title="Copy remark"
-                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[13px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1">
+                                class="ui-transition pressable px-2.5 py-1 rounded-md border border-[var(--line)] bg-white hover:bg-[#FFF3D6] text-[12px] font-semibold text-[var(--muted)] hover:text-[var(--ink)] flex items-center gap-1 shadow-2xs">
                                 <span>📋</span> Copy
                             </button>
                         </div>
 
                         <textarea id="modal-btb-remark" rows="16"
                             placeholder="Select a Sales Name above, or type the remark manually."
-                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
+                            class="field-control w-full px-3 py-2 text-[13px] text-[var(--ink)] bg-slate-50/50 hover:bg-white focus:bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y font-mono"></textarea>
                     </div>
                 </div>
             </div>
@@ -1590,39 +1600,39 @@
                 </button>
                 <div class="flex gap-2">
                     <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Close</button>
-                    <button type="button" onclick="applyRemarksToRecord()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Apply to Record Remark</button>
+                    <button type="button" onclick="applyRemarksToRecord()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent shadow-xs">Apply to Record Remark</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- COS Control File Modal -->
-    <div id="cosControlModal" data-z-offset="50" class="hidden fixed inset-0 z-[60] bg-[#1D1D1F]/60 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeCosControlModal()">
-        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] border border-[var(--line)] overflow-hidden flex flex-col"
+    <div id="cosControlModal" data-z-offset="50" class="hidden fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 modal-backdrop" onclick="if(event.target === this) closeCosControlModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] border border-slate-200/80 overflow-hidden flex flex-col"
             role="dialog" aria-label="Generate COS control file" onclick="event.stopPropagation()">
             <!-- Modal Header -->
-            <div class="px-6 py-4 bg-slate-50 border-b border-[var(--line)] flex items-center justify-between shrink-0">
+            <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📋</span>
                     <div>
-                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Funnel Sans', system-ui, sans-serif;">COS Control File</h3>
+                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">COS Control File</h3>
                         <p class="text-[12px] text-[var(--muted)]">Filter records by period, select items to include, and generate monthly procurement workbook.</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeCosControlModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+                <button type="button" onclick="closeCosControlModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">✕ Close</button>
             </div>
 
             <!-- Filter Controls and Record Table -->
             <div class="p-6 overflow-y-auto flex flex-col gap-4">
                 <!-- Period Selection Card -->
-                <div class="p-4 bg-[#FBF6EF] rounded-xl border border-[var(--line)] flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex flex-col gap-1">
                             <label for="cos-month-select" class="text-[12px] font-bold text-[var(--ink)]">Select by Month</label>
                             <input type="month" id="cos-month-select" onchange="handleCosMonthChange(this.value)"
                                 class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                         </div>
-                        <div class="h-6 w-px bg-[var(--line)] hidden sm:block self-end mb-2"></div>
+                        <div class="h-6 w-px bg-slate-200 hidden sm:block self-end mb-2"></div>
                         <div class="flex items-center gap-2">
                             <div class="flex flex-col gap-1">
                                 <label for="cos-date-from" class="text-[12px] font-bold text-[var(--ink)]">From</label>
@@ -1638,53 +1648,54 @@
                         </div>
                     </div>
 
-                    <div class="text-[12px] text-[#3D3D3D] self-start md:self-end">
-                        <div>File name: <span class="font-semibold text-[var(--ink)]" id="cos-file-name"></span></div>
+                    <div class="text-[12px] text-slate-600 self-start md:self-end">
+                        <div>File name: <span class="font-semibold text-[var(--ink)] font-mono" id="cos-file-name"></span></div>
                     </div>
                 </div>
 
                 <!-- Record Selection Bar -->
                 <div class="flex flex-wrap items-center justify-between gap-3 px-1">
                     <div class="text-[13px] text-[var(--muted)]">
-                        Showing <span class="font-bold text-[var(--ink)]" id="cos-matched-rows-count">0</span> records in period &middot;
-                        <span class="font-bold text-[var(--orange-dark)]" id="cos-selected-rows-count">0</span> selected
+                        Showing <span class="font-bold text-[var(--ink)] font-mono" id="cos-matched-rows-count">0</span> records in period &middot;
+                        <span class="font-bold text-[var(--orange-dark)] font-mono" id="cos-selected-rows-count">0</span> selected
                         <span id="cos-other-month-note" class="text-[11px] text-[var(--muted)]"></span>
                     </div>
                     <div class="flex items-center gap-2">
                         <button type="button" onclick="selectCosUngeneratedOnly()"
-                            class="ui-transition pressable px-2.5 py-1 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                            class="ui-transition pressable px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                             Select Un-generated Only
                         </button>
                         <button type="button" onclick="toggleCosSelectAll(true)"
-                            class="ui-transition pressable px-2.5 py-1 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                            class="ui-transition pressable px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                             Select All
                         </button>
                         <button type="button" onclick="toggleCosSelectAll(false)"
-                            class="ui-transition pressable px-2.5 py-1 rounded-md border border-[#C5BEB6] bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-[#FBF6EF]">
+                            class="ui-transition pressable px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-semibold text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                             Deselect All
                         </button>
                     </div>
                 </div>
 
                 <!-- Records Table -->
-                <div class="border border-[var(--line)] rounded-xl overflow-hidden bg-white shadow-sm flex-1 min-h-[220px]">
+                <div class="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-xs flex-1 min-h-[220px]">
                     <div class="overflow-x-auto max-h-[380px] overflow-y-auto">
                         <table class="w-full text-left border-collapse text-[13px]" id="cos-records-table">
-                            <thead class="sticky top-0 bg-[#F3EBE2] z-10">
-                                <tr class="border-b border-[var(--line)]">
+                            <thead class="sticky top-0 bg-slate-50 z-10 border-b border-slate-200">
+                                <tr>
                                     <th class="px-3 py-2.5 text-center w-12">
                                         <input type="checkbox" id="cos-table-select-all" onclick="toggleCosSelectAll(this.checked)"
                                             class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer"
                                             title="Select / Deselect All">
                                     </th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">Record ID</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">Rec'd Date</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">Customer Name</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">Vendor</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">BTB Type</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">PR No.</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">PR Amount</th>
-                                    <th class="px-3 py-2.5 font-bold text-[var(--graphite)] whitespace-nowrap">SB Report Generated</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">Record ID</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">Process Status</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">Rec'd Date</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">Customer Name</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">Vendor</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">BTB Type</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">PR No.</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">PR Amount</th>
+                                    <th class="px-3 py-2.5 font-bold text-slate-700 whitespace-nowrap">SB Report Generated</th>
                                 </tr>
                             </thead>
                             <tbody id="cos-records-tbody" class="divide-y divide-slate-100">
@@ -1699,7 +1710,7 @@
             <div class="px-6 py-4 bg-white border-t border-[var(--line)] flex justify-between items-center shrink-0">
                 <span class="text-[13px] text-[var(--muted)] font-medium" id="cos-selection-summary">0 records selected</span>
                 <div class="flex gap-2">
-                    <button type="button" onclick="closeCosControlModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">
+                    <button type="button" onclick="closeCosControlModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-slate-200 bg-white text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
                         Cancel
                     </button>
                     <button type="button" id="btn-generate-cos" onclick="generateCosControlFile()"
@@ -1930,12 +1941,12 @@
 
         /** @type {Record<WorkflowStage, string>} */
         const STATUS_BADGE_CLASS = {
-            "PR No. Ready": "bg-[#F3EBE2] text-[#6B6B6B]",
-            "UM Verified": "bg-[#FEF3C7] text-[#D97706]",
-            "LIS System Approved": "bg-[#EDE9FE] text-[#6D28D9]",
-            "PO No. Ready": "bg-[#FEE2E2] text-[var(--red)]",
-            "Complete": "bg-[#DCFCE7] text-[var(--green)]",
-            "Cancelled": "bg-[#FEE2E2] text-[#991B1B]"
+            "PR No. Ready": "bg-slate-100 text-slate-700 border border-slate-200/80 shadow-2xs",
+            "UM Verified": "bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs",
+            "LIS System Approved": "bg-purple-50 text-purple-800 border border-purple-200/80 shadow-2xs",
+            "PO No. Ready": "bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs",
+            "Complete": "bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs",
+            "Cancelled": "bg-rose-50 text-rose-800 border border-rose-200/80 shadow-2xs"
         };
         
         // amount threshold must be in descending order
@@ -2369,9 +2380,9 @@
                 const alignClass = col.key === 'SBReportGenerated' ? 'text-center' : '';
                 if (col.sortable) {
                     const arrow = state.sortCol === col.key ? (state.sortAsc ? ' ↑' : ' ↓') : ' ↕';
-                    headerHtml += `<th onclick="handleSort('${col.key}')" class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}${arrow}</th>`;
+                    headerHtml += `<th onclick="handleSort('${col.key}')" class="px-4 py-3 text-[11.5px] font-bold uppercase tracking-wider text-slate-500 cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}${arrow}</th>`;
                 } else {
-                    headerHtml += `<th class="px-4 py-3 text-[12px] font-semibold text-[#6B6B6B] whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}</th>`;
+                    headerHtml += `<th class="px-4 py-3 text-[11.5px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}</th>`;
                 }
             });
             headerHtml += '</tr>';
@@ -2388,22 +2399,22 @@
             const pageData = state.filteredData.slice((state.currentPage - 1) * CONFIG.itemsPerPage, state.currentPage * CONFIG.itemsPerPage);
 
             if (pageData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${visibleCount}" class="px-4 py-8 text-center text-[13px] text-[#6B6B6B]">No records match the current view criteria.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${visibleCount}" class="px-4 py-8 text-center text-[13px] text-slate-500">No records match the current view criteria.</td></tr>`;
             }
 
             pageData.forEach(item => {
                 const row = document.createElement('tr');
-                row.className = 'ui-transition hover:bg-[#FBF6EF] border-b border-[#C5BEB6]';
+                row.className = 'ui-transition hover:bg-slate-50/80 border-b border-slate-200/80';
 
                 if (item.UrgentFlag) {
-                    row.classList.add('bg-red-50');
+                    row.classList.add('bg-red-50/80');
                 } else if (item.ProcessStatus === 'Cancelled') {
                     row.classList.add('bg-red-50/40');
                 }
 
                 visibleCols.forEach(col => {
                     const td = document.createElement('td');
-                    td.className = 'px-4 py-3.5 border-b border-[#C5BEB6] text-[14px] text-[#3D3D3D] whitespace-nowrap';
+                    td.className = 'px-4 py-3 border-b border-slate-200/80 text-[13.5px] text-slate-700 whitespace-nowrap';
 
                     switch (col.key) {
                         case 'SBReportGenerated': {
@@ -4046,12 +4057,6 @@
                         }
                     }
                 }
-                for (const c of BTB_SALES_CONTACTS) {
-                    if (c.key && !seenSales.has(c.key.toUpperCase())) {
-                        seenSales.add(c.key.toUpperCase());
-                        salesOptions.push(c.key);
-                    }
-                }
 
                 salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
                     salesOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
@@ -4167,12 +4172,12 @@
             // Look up sales contact from cre5c_btb_sales_name__contact or BTB_SALES_CONTACTS
             const salesInfo = lookupSalesContactInfo(salesKey, cachedSalesContactRows);
             const contactFromStatic = BTB_SALES_CONTACTS.find(c => c.key === salesKey) || null;
-            const effectiveContact = contactFromStatic || (salesInfo && salesInfo.salesName ? {
+            const effectiveContact = (salesInfo && salesInfo.salesName ? {
                 key: salesInfo.salesName,
                 title: "",
                 name: salesInfo.salesName,
                 phone: salesInfo.salesContactNumber
-            } : null);
+            } : null) || contactFromStatic;
 
             // BTB Remark text
             const btbTextarea = document.getElementById('modal-btb-remark');
@@ -4936,6 +4941,26 @@
             return Boolean(val && String(val).trim() !== '' && String(val).trim() !== '-' && String(val).trim() !== '—');
         }
 
+        function isCosRecordCompleted(item) {
+            if (!item) return false;
+            const ps = item.ProcessStatus ? String(item.ProcessStatus).trim().toLowerCase() : '';
+            if (ps === 'complete' || ps === 'completed') return true;
+            if (item.admin_processstatus === 0 || item.admin_processstatus === '0') return true;
+            if (typeof item.admin_processstatus === 'string') {
+                const aps = item.admin_processstatus.trim().toLowerCase();
+                if (aps === 'complete' || aps === 'completed') return true;
+            }
+            if (!item.ProcessStatus && typeof evaluateWorkflowState === 'function') {
+                try {
+                    const evalState = evaluateWorkflowState(item);
+                    if (evalState && (evalState.toLowerCase() === 'complete' || evalState.toLowerCase() === 'completed')) {
+                        return true;
+                    }
+                } catch (_) {}
+            }
+            return false;
+        }
+
         function getRecordDateNormalized(item) {
             if (!item) return '';
             const raw = item.RecordDate || item.RecdDate || item.recdDate;
@@ -5071,13 +5096,20 @@
 
             cosModalState.filteredRecords = matchedRecords;
 
-            // Default selection: select all records in period EXCEPT those with admin_sbreportgenrated
+            // Default selection: select all records in period EXCEPT those with admin_sbreportgenrated, and ONLY if Process Status is Completed
             if (!cosModalState.hasUserModifiedSelection) {
                 cosModalState.selectedIds.clear();
                 matchedRecords.forEach(item => {
                     const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
-                    if (!isSBReportGenerated(item)) {
+                    if (!isSBReportGenerated(item) && isCosRecordCompleted(item)) {
                         cosModalState.selectedIds.add(id);
+                    }
+                });
+            } else {
+                matchedRecords.forEach(item => {
+                    if (!isCosRecordCompleted(item)) {
+                        const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
+                        cosModalState.selectedIds.delete(id);
                     }
                 });
             }
@@ -5094,11 +5126,12 @@
                     const periodText = (cosModalState.fromDate && cosModalState.toDate)
                         ? `${cosModalState.fromDate} to ${cosModalState.toDate}`
                         : "the selected period";
-                    tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-8 text-center text-[13px] text-[#6B6B6B]">No records found for ${periodText}.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="10" class="px-4 py-8 text-center text-[13px] text-[#6B6B6B]">No records found for ${periodText}.</td></tr>`;
                 } else {
                     tbody.innerHTML = records.map(item => {
                         const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
-                        const isChecked = cosModalState.selectedIds.has(id);
+                        const isCompleted = isCosRecordCompleted(item);
+                        const isChecked = isCompleted && cosModalState.selectedIds.has(id);
                         const isGen = isSBReportGenerated(item);
                         const recDate = getRecordDateNormalized(item);
                         const prAmountFormatted = (item.PRAmount !== null && item.PRAmount !== undefined && item.PRAmount !== '')
@@ -5109,20 +5142,39 @@
                             : `<span class="text-[12px] text-[var(--muted)]">—</span>`;
                         const btbDisplay = typeof getBtbTag === 'function' ? getBtbTag(item.BTBType) : escapeHtml(item.BTBType || '');
 
+                        const statusVal = item.ProcessStatus || (item.admin_processstatus !== undefined && typeof PROCESS_DV_STATUS_MAP !== 'undefined' ? PROCESS_DV_STATUS_MAP[item.admin_processstatus] : "PR No. Ready");
+                        const statusBadge = typeof getStatusBadge === 'function'
+                            ? getStatusBadge(statusVal)
+                            : escapeHtml(String(statusVal));
+
+                        const rowClass = isCompleted
+                            ? "ui-transition hover:bg-[#FFF3D6] border-b border-[#E5E5EA]"
+                            : "ui-transition bg-slate-50/70 border-b border-[#E5E5EA] opacity-60";
+                        const rowTitle = isCompleted ? "" : 'title="Disabled: Process Status is not Completed"';
+
+                        const checkboxHtml = isCompleted
+                            ? `<input type="checkbox" data-id="${escapeHtml(id)}" ${isChecked ? "checked" : ""}
+                                    onchange="handleCosRowCheckboxChange(this)"
+                                    class="cos-row-cb w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer">`
+                            : `<input type="checkbox" data-id="${escapeHtml(id)}" disabled
+                                    class="cos-row-cb w-4 h-4 rounded border-[#D2D2D7] bg-gray-100 text-gray-400 cursor-not-allowed opacity-40 shrink-0"
+                                    title="Disabled: Process Status is not Completed">`;
+
+                        const textMutedClass = isCompleted ? "" : "text-gray-400";
+
                         return `
-                            <tr class="ui-transition hover:bg-[#FFF3D6] border-b border-[#E5E5EA]">
+                            <tr class="${rowClass}" ${rowTitle}>
                                 <td class="px-3 py-2 text-center w-12">
-                                    <input type="checkbox" data-id="${escapeHtml(id)}" ${isChecked ? "checked" : ""}
-                                        onchange="handleCosRowCheckboxChange(this)"
-                                        class="cos-row-cb w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer">
+                                    ${checkboxHtml}
                                 </td>
-                                <td class="px-3 py-2 font-medium text-[var(--ink)] whitespace-nowrap">${escapeHtml(String(item.Title || ""))}</td>
-                                <td class="px-3 py-2 whitespace-nowrap text-[13px]">${escapeHtml(recDate || "")}</td>
-                                <td class="px-3 py-2 whitespace-nowrap text-[13px]">${escapeHtml(String(item.CustomerName || ""))}</td>
-                                <td class="px-3 py-2 whitespace-nowrap text-[13px]">${escapeHtml(String(item.Vendor || ""))}</td>
+                                <td class="px-3 py-2 font-medium ${isCompleted ? 'text-[var(--ink)]' : 'text-gray-500'} whitespace-nowrap">${escapeHtml(String(item.Title || ""))}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">${statusBadge}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-[13px] ${textMutedClass}">${escapeHtml(recDate || "")}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-[13px] ${textMutedClass}">${escapeHtml(String(item.CustomerName || ""))}</td>
+                                <td class="px-3 py-2 whitespace-nowrap text-[13px] ${textMutedClass}">${escapeHtml(String(item.Vendor || ""))}</td>
                                 <td class="px-3 py-2 whitespace-nowrap text-[13px]">${btbDisplay}</td>
-                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[13px]">${escapeHtml(String(item.PRNo || ""))}</td>
-                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[13px]">${prAmountFormatted}</td>
+                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[13px] ${textMutedClass}">${escapeHtml(String(item.PRNo || ""))}</td>
+                                <td class="px-3 py-2 whitespace-nowrap font-mono text-[13px] ${textMutedClass}">${prAmountFormatted}</td>
                                 <td class="px-3 py-2 whitespace-nowrap">${sbDateDisplay}</td>
                             </tr>
                         `;
@@ -5135,7 +5187,8 @@
 
         function updateCosSelectionState() {
             const records = cosModalState.filteredRecords || [];
-            const selectedCount = records.filter(item => {
+            const selectableRecords = records.filter(item => isCosRecordCompleted(item));
+            const selectedCount = selectableRecords.filter(item => {
                 const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
                 return cosModalState.selectedIds.has(id);
             }).length;
@@ -5151,29 +5204,37 @@
 
             const otherNoteEl = document.getElementById("cos-other-month-note");
             if (otherNoteEl) {
+                const disabledCount = records.length - selectableRecords.length;
                 const alreadyGenCount = records.filter(item => isSBReportGenerated(item)).length;
-                if (alreadyGenCount > 0) {
-                    otherNoteEl.innerText = ` · (${alreadyGenCount} already generated)`;
-                } else {
-                    otherNoteEl.innerText = "";
+                let notes = [];
+                if (disabledCount > 0) {
+                    notes.push(`${disabledCount} not completed`);
                 }
+                if (alreadyGenCount > 0) {
+                    notes.push(`${alreadyGenCount} already generated`);
+                }
+                otherNoteEl.innerText = notes.length > 0 ? ` · (${notes.join(', ')})` : '';
             }
 
             // Update master select-all checkbox
             const selectAllCb = document.getElementById("cos-table-select-all");
             if (selectAllCb) {
-                if (records.length === 0) {
+                if (selectableRecords.length === 0) {
                     selectAllCb.checked = false;
                     selectAllCb.indeterminate = false;
-                } else if (selectedCount === records.length) {
-                    selectAllCb.checked = true;
-                    selectAllCb.indeterminate = false;
-                } else if (selectedCount > 0) {
-                    selectAllCb.checked = false;
-                    selectAllCb.indeterminate = true;
+                    selectAllCb.disabled = true;
                 } else {
-                    selectAllCb.checked = false;
-                    selectAllCb.indeterminate = false;
+                    selectAllCb.disabled = false;
+                    if (selectedCount === selectableRecords.length) {
+                        selectAllCb.checked = true;
+                        selectAllCb.indeterminate = false;
+                    } else if (selectedCount > 0) {
+                        selectAllCb.checked = false;
+                        selectAllCb.indeterminate = true;
+                    } else {
+                        selectAllCb.checked = false;
+                        selectAllCb.indeterminate = false;
+                    }
                 }
             }
 
@@ -5184,8 +5245,16 @@
         }
 
         function handleCosRowCheckboxChange(cb) {
+            if (cb.disabled) return;
             cosModalState.hasUserModifiedSelection = true;
             const id = cb.dataset.id;
+            const record = (cosModalState.filteredRecords || []).find(r => String(r.Id !== undefined && r.Id !== null ? r.Id : (r.Title || "")) === id);
+            if (record && !isCosRecordCompleted(record)) {
+                cb.checked = false;
+                cosModalState.selectedIds.delete(id);
+                updateCosSelectionState();
+                return;
+            }
             if (cb.checked) {
                 cosModalState.selectedIds.add(id);
             } else {
@@ -5200,7 +5269,9 @@
             records.forEach(item => {
                 const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
                 if (checked) {
-                    cosModalState.selectedIds.add(id);
+                    if (isCosRecordCompleted(item)) {
+                        cosModalState.selectedIds.add(id);
+                    }
                 } else {
                     cosModalState.selectedIds.delete(id);
                 }
@@ -5214,7 +5285,7 @@
             const records = cosModalState.filteredRecords || [];
             records.forEach(item => {
                 const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
-                if (!isSBReportGenerated(item)) {
+                if (!isSBReportGenerated(item) && isCosRecordCompleted(item)) {
                     cosModalState.selectedIds.add(id);
                 }
             });
@@ -5229,7 +5300,7 @@
             const records = cosModalState.filteredRecords || [];
             const selectedRecords = records.filter(item => {
                 const id = String(item.Id !== undefined && item.Id !== null ? item.Id : (item.Title || ""));
-                return cosModalState.selectedIds.has(id);
+                return cosModalState.selectedIds.has(id) && isCosRecordCompleted(item);
             });
 
             if (selectedRecords.length === 0) {
@@ -6116,13 +6187,13 @@
             bar.innerHTML = STATUS_TABS.map(t => {
                 const count = state.allData.filter(i => i.ProcessStatus === t).length;
                 const active = state.activeTab === t;
-                const badgeStyle = active ? 'bg-[#FBF0E8] text-[#D4916E]' : 'bg-[#F3EBE2] text-[#6B6B6B]';
-                const labelStyle = active ? 'text-[#D4916E] font-semibold' : 'text-[#6B6B6B]';
+                const badgeStyle = active ? 'bg-amber-100 text-amber-800 font-bold' : 'bg-slate-100 text-slate-600 font-medium';
+                const labelStyle = active ? 'text-amber-800 font-bold' : 'text-slate-600 font-medium hover:text-slate-900';
 
                 return `<button type="button" onclick="setTab('${t}')"
-                    class="ui-transition pressable px-4 py-2.5 border-b-2 -mb-px flex items-center gap-1.5 ${active ? 'border-[#D4916E]' : 'border-transparent'}">
+                    class="ui-transition pressable px-4 py-2.5 border-b-2 -mb-px flex items-center gap-2 ${active ? 'border-amber-500 bg-amber-50/40 rounded-t-lg' : 'border-transparent hover:border-slate-300'}">
                     <span class="text-[13px] whitespace-nowrap ${labelStyle}">${t}</span>
-                    <span class="px-1.5 py-0.5 rounded-full text-[10px] ${badgeStyle}">${count}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-mono ${badgeStyle}">${count}</span>
                 </button>`;
             }).join('');
 
@@ -6227,8 +6298,8 @@
         function nextPage() { if (state.currentPage < Math.ceil(state.filteredData.length / CONFIG.itemsPerPage)) { state.currentPage++; renderTable(); } }
 
         function getStatusBadge(status) {
-            const cls = STATUS_BADGE_CLASS[status] || "bg-[#F3EBE2] text-[#6B6B6B]";
-            return `<span class="inline-flex items-center px-3 py-1 rounded-full text-[12px] leading-4 font-bold ${cls}">${escapeHtml(status)}</span>`;
+            const cls = STATUS_BADGE_CLASS[status] || "bg-slate-100 text-slate-700 border border-slate-200/80";
+            return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] leading-4 font-bold ${cls}">${escapeHtml(status)}</span>`;
         }
 
         function getBtbTag(type) {

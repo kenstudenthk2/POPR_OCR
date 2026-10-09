@@ -2116,11 +2116,13 @@
         }
         /* --- Real-Time Validations --- */
         function validatePRNo(val) {
+            return val && val.trim().length > 0;
             return /^[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePONo(val) {
-            return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
+            return val && val.trim().length > 0;
+            // return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePRNoField() {

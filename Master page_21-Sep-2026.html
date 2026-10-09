@@ -6913,6 +6913,10 @@
                 return;
             }
             if (!state.currentRecord) return;
+            const confirmedComplete = confirm("Marking the record as Complete will lock All Fields except Remarks.\nAre you sure you want to mark this record as complete?")
+            if (!confirmedComplete) {
+                return;
+            }
             state.currentRecord.ProcessStatus = "Complete";
             state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
             updateTrackerVisual();

@@ -5572,6 +5572,7 @@
             "admin_sbreportgenrated"            : "SBReportGenerated",
             "admin_nox002e"                     : "No",
             "admin_title"                       : "Title",
+            "admin_recordidsubnumber"           : "SubNumber",
             "admin_btbtype"                     : "BTBType",
             "admin_prstatus"                    : "Status",
 
@@ -5901,7 +5902,19 @@
                 masterRecord.admin_hkd = item.admin_hkd !== undefined ? item.admin_hkd : masterRecord.PRAmount;
                 masterRecord.ProcessStatus = evaluateWorkflowState(masterRecord);
                 return masterRecord;
-            })
+            });
+
+            // Establish parent/sub-record links for loaded records
+            state.allData.forEach(rec => {
+                if (rec.SubNumber) {
+                    rec.IsSubRecord = true;
+                    const parent = state.allData.find(p => p.Title === rec.Title && !p.SubNumber && p !== rec);
+                    if (parent) {
+                        rec.ParentRecordId = String(parent.Id);
+                        parent.IsParentRecord = true;
+                    }
+                }
+            });
 
             updateConnectionStatusBanner(true, `Connected to Dataverse — ${loadedEntityName} (${state.allData.length} records loaded)`);
         }
@@ -7358,6 +7371,11 @@
                 newRecords.push(cloned);
             }
 
+            // Persist newly duplicated sub-records to Dataverse if connected
+            newRecords.forEach(clonedRec => {
+                persistRecordToDataverse(clonedRec);
+            });
+
             // Refresh UI
             applyFilters();
             updateDashboard();
@@ -7553,25 +7571,35 @@
 
             try {
                 let existingId = record.dataverseId;
-                if (!existingId && title && !record.IsSubRecord) {
+                if (!existingId && title) {
                     const escaped = String(title).replace(/'/g, "''");
-                    const query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
-                    const res = await api.retrieveMultipleRecords(entityName, query);
-                    const existing = res.entities && res.entities[0];
-                    if (existing) {
-                        existingId = existing.admin_btb_lis_excel_datasid || existing.admin_btb_lis_excel_dataid || existing[entityName + "id"] || existing.id;
-                        if (existingId) record.dataverseId = existingId;
+                    let query;
+                    if (record.IsSubRecord && record.SubNumber) {
+                        const escapedSub = String(record.SubNumber).replace(/'/g, "''");
+                        query = `?$select=admin_title,admin_recordidsubnumber&$filter=admin_title eq '${escaped}' and admin_recordidsubnumber eq '${escapedSub}'&$top=1`;
+                    } else if (!record.IsSubRecord) {
+                        query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
+                    }
+                    if (query) {
+                        const res = await api.retrieveMultipleRecords(entityName, query);
+                        const existing = res.entities && res.entities[0];
+                        if (existing) {
+                            existingId = existing.admin_btb_lis_excel_datasid || existing.admin_btb_lis_excel_dataid || existing[entityName + "id"] || existing.id;
+                            if (existingId) record.dataverseId = existingId;
+                        }
                     }
                 }
 
-                if (existingId) {
-                    const payload = {};
+                const payload = {};
 
-                    // 1. Identity / Primary Text Fields
-                    if (record.BTBType !== undefined) {
-                        payload.admin_btbtype = record.BTBType || null;
-                    }
-                    if (record.CustomerName !== undefined) payload.admin_customerx0020name = record.CustomerName || null;
+                // 1. Identity / Primary Text Fields
+                if (record.BTBType !== undefined) {
+                    payload.admin_btbtype = record.BTBType || null;
+                }
+                if (record.SubNumber !== undefined) {
+                    payload.admin_recordidsubnumber = record.SubNumber || null;
+                }
+                if (record.CustomerName !== undefined) payload.admin_customerx0020name = record.CustomerName || null;
                     if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
                     if (record.PRNo !== undefined) payload.admin_prx0020nox002e = record.PRNo || null;
                     if (record.PONo !== undefined) payload.admin_pox0020nox002e = record.PONo || null;
@@ -7696,23 +7724,36 @@
                     }
                     if (record.StatusRemark !== undefined) payload.admin_statusremark = record.StatusRemark || null;
 
-                    if (Object.keys(payload).length > 0) {
-                        try {
-                            await api.updateRecord(entityName, existingId, payload);
-                            console.log("[MasterRecords] Successfully updated record in Dataverse:", title);
-                        } catch (bulkErr) {
-                            console.warn("[MasterRecords] Bulk update failed, trying per-field update:", bulkErr);
-                            for (const [key, value] of Object.entries(payload)) {
-                                try {
-                                    await api.updateRecord(entityName, existingId, { [key]: value });
-                                    console.log("[MasterRecords] SUCCESS:", key, value);
-                                } catch (fieldErr) {
-                                    console.error("[MasterRecords] FAILED FIELD:", key, value, fieldErr);
+                    if (existingId) {
+                        if (Object.keys(payload).length > 0) {
+                            try {
+                                await api.updateRecord(entityName, existingId, payload);
+                                console.log("[MasterRecords] Successfully updated record in Dataverse:", title);
+                            } catch (bulkErr) {
+                                console.warn("[MasterRecords] Bulk update failed, trying per-field update:", bulkErr);
+                                for (const [key, value] of Object.entries(payload)) {
+                                    try {
+                                        await api.updateRecord(entityName, existingId, { [key]: value });
+                                        console.log("[MasterRecords] SUCCESS:", key, value);
+                                    } catch (fieldErr) {
+                                        console.error("[MasterRecords] FAILED FIELD:", key, value, fieldErr);
+                                    }
                                 }
                             }
                         }
+                    } else if (record.IsSubRecord && typeof api.createRecord === "function") {
+                        payload.admin_title = title;
+                        if (record.SubNumber) payload.admin_recordidsubnumber = record.SubNumber;
+                        try {
+                            const createRes = await api.createRecord(entityName, payload);
+                            if (createRes && (createRes.id || createRes[entityName + "id"])) {
+                                record.dataverseId = createRes.id || createRes[entityName + "id"];
+                            }
+                            console.log("[MasterRecords] Successfully created sub-record in Dataverse:", title, record.SubNumber);
+                        } catch (createErr) {
+                            console.warn("[MasterRecords] Failed to create sub-record in Dataverse:", createErr);
+                        }
                     }
-                }
             } catch (err) {
                 console.warn(`[MasterRecords] Failed to save record ${title} to Dataverse:`, err);
             }

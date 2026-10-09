@@ -97,6 +97,19 @@ function getMockElement(id) {
   return domElements.get(id);
 }
 
+const dataverseUpdates = [];
+const dataverseCreates = [];
+const mockWebApi = {
+  retrieveMultipleRecords: async () => ({ entities: [] }),
+  updateRecord: async (entity, id, payload) => {
+    dataverseUpdates.push({ entity, id, payload });
+  },
+  createRecord: async (entity, payload) => {
+    dataverseCreates.push({ entity, payload });
+    return { id: "created-guid-" + (dataverseCreates.length) };
+  }
+};
+
 const sandbox = {
   console,
   setTimeout, clearTimeout,
@@ -130,7 +143,7 @@ const sandbox = {
   history: { pushState: () => {} },
   URLSearchParams: function() { return { set: () => {}, get: () => "", delete: () => "", toString: () => "" }; },
   URL: function() { return { href: "" }; },
-  parent: { Xrm: { WebApi: { retrieveMultipleRecords: async () => ({ entities: [] }), updateRecord: async () => {} } } },
+  parent: { Xrm: { WebApi: mockWebApi } },
   Date,
   Math,
   String,
@@ -150,6 +163,7 @@ sandbox.globalThis = sandbox;
 const SCRIPT_CODE = scriptMatch[1] + `
 ;EXPORTS.state = state;
 EXPORTS.COLUMN_CONFIG = COLUMN_CONFIG;
+EXPORTS.DV_COLUMN_MAP = DV_COLUMN_MAP;
 EXPORTS.FIELD_ID_TO_RECORD_KEY = FIELD_ID_TO_RECORD_KEY;
 EXPORTS.PERMANENTLY_DISABLED_FIELD_IDS = PERMANENTLY_DISABLED_FIELD_IDS;
 EXPORTS.duplicateRecord = typeof duplicateRecord === 'function' ? duplicateRecord : undefined;
@@ -159,6 +173,7 @@ EXPORTS.openDuplicateModal = typeof openDuplicateModal === 'function' ? openDupl
 EXPORTS.closeDuplicateModal = typeof closeDuplicateModal === 'function' ? closeDuplicateModal : undefined;
 EXPORTS.confirmDuplicateRecord = typeof confirmDuplicateRecord === 'function' ? confirmDuplicateRecord : undefined;
 EXPORTS.openEditModal = typeof openEditModal === 'function' ? openEditModal : undefined;
+EXPORTS.persistRecordToDataverse = typeof persistRecordToDataverse === 'function' ? persistRecordToDataverse : undefined;
 `;
 
 try {
@@ -280,9 +295,41 @@ if (typeof X.confirmDuplicateRecord === "function") {
   ok("Rejects letters with error displayed", !errorEl.classList.contains("hidden") || errorEl.style.display !== "none");
 }
 
-if (failures > 0) {
-  console.error(`\nFAILED: ${failures} check(s) failed.`);
-  process.exit(1);
-} else {
-  console.log("\nALL CHECKS PASSED: Duplicate feature verified successfully.");
-}
+// 8. Dataverse column mapping & persistence verification
+ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP && X.DV_COLUMN_MAP["admin_recordidsubnumber"] === "SubNumber");
+
+(async () => {
+  if (typeof X.persistRecordToDataverse === "function") {
+    // Test updating sub-record with existing dataverseId
+    const subRecordToUpdate = {
+      Title: "REQ-2026-005",
+      SubNumber: "Sub1",
+      IsSubRecord: true,
+      dataverseId: "sub-record-guid-1",
+      _entityName: "admin_btb_lis_excel_datas"
+    };
+
+    await X.persistRecordToDataverse(subRecordToUpdate);
+    const foundUpdate = dataverseUpdates.find(u => u.id === "sub-record-guid-1");
+    ok("persistRecordToDataverse saves admin_recordidsubnumber on update", foundUpdate && foundUpdate.payload && foundUpdate.payload.admin_recordidsubnumber === "Sub1");
+
+    // Test creating sub-record without dataverseId
+    const subRecordToCreate = {
+      Title: "REQ-2026-005",
+      SubNumber: "Sub2",
+      IsSubRecord: true,
+      _entityName: "admin_btb_lis_excel_datas"
+    };
+
+    await X.persistRecordToDataverse(subRecordToCreate);
+    const foundCreate = dataverseCreates.find(c => c.payload && c.payload.admin_recordidsubnumber === "Sub2");
+    ok("persistRecordToDataverse creates record with admin_recordidsubnumber", !!foundCreate);
+  }
+
+  if (failures > 0) {
+    console.error(`\nFAILED: ${failures} check(s) failed.`);
+    process.exit(1);
+  } else {
+    console.log("\nALL CHECKS PASSED: Duplicate feature verified successfully.");
+  }
+})();

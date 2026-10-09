@@ -6929,10 +6929,10 @@
             });
             
             if (currentStatus === 'Complete') {
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
+                // if (saveBtn) {
+                //     saveBtn.disabled = false;
+                //     saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                // }
                 return;
             }
 
@@ -6942,10 +6942,10 @@
                     cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
                 }
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                }
+                // if (saveBtn) {
+                //     saveBtn.disabled = true;
+                //     saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                // }
                 return;
             }
 
@@ -7029,12 +7029,12 @@
             const actionButtonsContainer =
                 document.getElementById('action-buttons');
 
-            if (actionButtonsContainer) {
-                actionButtonsContainer.style.display =
-                    item.ProcessStatus === 'Complete'
-                        ? 'none'
-                        : '';
-            }
+            // if (actionButtonsContainer) {
+            //     actionButtonsContainer.style.display =
+            //         item.ProcessStatus === 'Complete'
+            //             ? 'none'
+            //             : '';
+            // }
 
             switchModalTab('tab-request');
             handlePRAmount();

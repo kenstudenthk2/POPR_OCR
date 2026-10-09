@@ -5488,7 +5488,7 @@
             const actions = document.getElementById('connectionStatusActions');
             if (!banner || !msg) return;
 
-            banner.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'bg-amber-50', 'border-amber-200', 'bg-red-50', 'border-red-200');
+            banner.classList.remove('hidden', 'flex', 'bg-emerald-50', 'border-emerald-200', 'bg-amber-50', 'border-amber-200', 'bg-red-50', 'border-red-200');
 
             if (isError) {
                 banner.classList.add('flex', 'bg-red-50', 'border-red-200');
@@ -5502,9 +5502,8 @@
                     `;
                 }
             } else if (connected) {
-                banner.classList.add('flex', 'bg-emerald-50', 'border-emerald-200');
-                if (icon) icon.textContent = '✓';
-                msg.innerHTML = `<span class="text-emerald-800 font-semibold">${escapeHtml(message || 'Connected to Dataverse')}</span>`;
+                // Connected successfully: keep notification banner hidden
+                banner.classList.add('hidden');
                 if (actions) actions.innerHTML = '';
             } else {
                 banner.classList.add('flex', 'bg-amber-50', 'border-amber-200');

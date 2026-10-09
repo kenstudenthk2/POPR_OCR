@@ -1528,7 +1528,7 @@
             </div>
             <p class="text-[14px] text-[var(--muted)]">Do you want to bring PR/PO Info to new records?</p>
             <select id="select-duplicate-bringover" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                <option selected value="all">Bring PR/PO Info</option>
+                <option selected value="leave_po">Bring PR Info</option>
                 <option value="leave_prpo">Leave PR/PO Info</option>
             </select>
             <div class="flex justify-end gap-3 mt-2">
@@ -7091,6 +7091,7 @@
 
         function updateFieldLockingAndApprovalUI(currentStatus) {
             const completeBtn = document.getElementById('btn-mark-complete');
+            const duplicateBtn = document.getElementById('btn-duplicate');
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
             const container = document.getElementById('editModalTabContent');
@@ -7127,6 +7128,21 @@
                 else {
                     completeBtn.disabled = true;
                     completeBtn.classList.add(...disabledStyle);
+                }
+            }
+
+            if (duplicateBtn) {
+                if (
+                    currentStatus === "Complete" 
+                    || currentStatus === "Cancelled"
+                    || state.currentRecord?.SubNumber
+                ) {
+                    duplicateBtn.disabled = true;
+                    duplicateBtn.classList.add(...disabledStyle);
+                } else {
+                    duplicateBtn.disabled = false;
+                    duplicateBtn.classList.remove(...disabledStyle);
+
                 }
             }
 
@@ -7390,7 +7406,7 @@
             });
         }
 
-        function duplicateRecord(sourceRecordId, quantity, bringOverOption = 'all') {
+        function duplicateRecord(sourceRecordId, quantity, bringOverOption = 'leave_po') {
             const source = state.allData.find(d => d.Id === sourceRecordId || String(d.Id) === String(sourceRecordId));
             if (!source) return [];
 
@@ -7444,7 +7460,7 @@
                 cloned.IsParentRecord = false;
 
                 
-                if (bringOverOption === 'leave_po' || bringOverOption === 'leave_prpo') {
+                // if (bringOverOption === 'leave_po' || bringOverOption === 'leave_prpo') {
                     delete cloned.PODate;
                     delete cloned.PONo;
                     delete cloned.POReceiptDate;
@@ -7453,7 +7469,7 @@
                     delete cloned.DeliveryNote;
                     delete cloned.ReceiptNum;
                     delete cloned.MarkReceiptDate;
-                }
+                // }
 
                 if (bringOverOption === 'leave_prpo') {
                     delete cloned.PRNo;

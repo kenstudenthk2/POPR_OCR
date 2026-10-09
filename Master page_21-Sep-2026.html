@@ -629,8 +629,12 @@
                 <input type="hidden" id="edit-processstatus">
 
                 <!-- Sticky Navigation Bar with Urgent Case Toggle -->
-                <div data-z-offset="30" class="sticky top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-xl border border-[var(--line)] shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
-                    <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
+                <div data-z-offset="30" class="sticky top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2.5 shrink-0">
+                    <!-- Sub Record Navigation Bar (Requirement 6, 7, 8) -->
+                    <div id="subRecordsBar" class="w-full"></div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 w-full">
+                        <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
                         <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
@@ -712,6 +716,10 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Request ID</label>
                                     <input type="text" id="edit-title" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Sub Number</label>
+                                    <input type="text" id="edit-subnumber" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">BTB Type</label>
@@ -1312,6 +1320,7 @@
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="closeModal()" class="ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Cancel</button>
+                    <button type="button" onclick="openDuplicateModal()" id="btn-duplicate" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)]">Duplicate</button>
                     <button type="button" onclick="openProceedStageModal()" id="btn-save" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Verify</button>
                     <button type="button" onclick="saveRecord()" id="btn-save" class="ui-transition pressable min-h-[42px] px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">Save Record</button>
                 </div>
@@ -1482,6 +1491,31 @@
                     Leave
                 </button>
                 <button type="button" onclick="confirmReopenRecord()" id="btn-confirm-reopen" class="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Quantity Modal -->
+    <div id="duplicateModal" class="hidden fixed inset-0 z-[60] bg-[#1D1D1F]/60 backdrop-blur-sm items-center justify-center p-4 modal-backdrop" onclick="if(event.target === this) closeDuplicateModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden p-6 flex flex-col gap-4" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3 text-[var(--orange-dark)]">
+                <span class="text-2xl">📋</span>
+                <h3 class="text-lg font-bold text-[var(--ink)]">Duplicate Record</h3>
+            </div>
+            <p class="text-[14px] text-[var(--muted)]">How many sub-records would you like to create?</p>
+            <div class="flex flex-col gap-1.5">
+                <input type="number" id="duplicate-quantity" min="1" max="10" step="1" value="1" placeholder="1 - 10"
+                    onkeydown="if(event.key === 'Enter') confirmDuplicateRecord()"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                <span id="duplicate-error" class="hidden text-[12px] font-medium text-[var(--red)]">Please enter a whole number between 1 and 10.</span>
+            </div>
+            <div class="flex justify-end gap-3 mt-2">
+                <button type="button" onclick="closeDuplicateModal()" class="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmDuplicateRecord()" id="btn-confirm-duplicate" class="ui-transition pressable px-5 py-2 rounded-lg text-[14px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] border-[1.5px] border-transparent">
                     Confirm
                 </button>
             </div>
@@ -1742,6 +1776,12 @@
                 UrgentFlag: boolean;
                 SBReportGenerated?: string;     // SB Report Generated (admin_sbreportgenrated)
 
+                // Sub Record Information
+                SubNumber?: string;
+                ParentRecordId?: string;
+                IsSubRecord?: boolean;
+                IsParentRecord?: boolean;
+
                 // admin_btb_lis_excel_datas dev-side columns (matched to PR Assistant App.html)
                 Title: string;                  // Record ID (admin_title)
                 BTBType: "BTB" | "NON-BTB";     // BTB / NON-BTB (admin_btbtype)
@@ -1872,6 +1912,7 @@
 
             // Core identity & primary columns
             { key: "Title", label: "Record ID", visible: true, sortable: true },
+            { key: "SubNumber", label: "Sub Number", visible: true, sortable: true },
             { key: "CustomerName", label: "Customer Name", visible: true, sortable: true },
             { key: "CustomerAddress", label: "Customer Address", visible: false, sortable: true },
             { key: "CustomerContactPerson", label: "Customer Contact Person", visible: false, sortable: true },
@@ -2463,6 +2504,11 @@
                             td.appendChild(recordId);
                             break;
                         
+                        case 'SubNumber':
+                            td.className = 'px-4 py-3.5 border-b border-[#C5BEB6] text-[13.5px] font-mono whitespace-nowrap text-slate-600';
+                            td.textContent = item.SubNumber || '';
+                            break;
+
                         case 'CustomerName':
                             td.textContent = item.CustomerName || '';
                             break;
@@ -6942,6 +6988,7 @@
         /** @type {Set<IFieldIds>} */
         const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
             'edit-title',
+            'edit-subnumber',
             'edit-request-status',
             'edit-prref',
             'edit-charge-ccc',
@@ -7119,6 +7166,8 @@
             // Automatically run pairing logic based on IPT Unit Mgr so Works Order Code dropdown is ready for selection
             runProductTypePair(item.WorksOrderCode || '');
 
+            renderSubRecordsTab();
+
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -7154,10 +7203,236 @@
             modal.classList.remove('flex');
             state.currentRecord = null;
             resetProductTypePairUI(null);
+            renderSubRecordsTab();
                         
             const param = new URLSearchParams(location.search);
             param.delete("record");
             pushQueryStr(param)
+        }
+
+        /* --- Duplicate Records Engine & Sub Records UI --- */
+
+        function openDuplicateModal() {
+            if (!state.currentRecord) return;
+            const modal = document.getElementById('duplicateModal');
+            if (!modal) return;
+            const input = document.getElementById('duplicate-quantity');
+            const error = document.getElementById('duplicate-error');
+            if (input) {
+                input.value = '1';
+                input.classList.remove('is-invalid');
+            }
+            if (error) {
+                error.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (input) {
+                setTimeout(() => input.focus(), 50);
+            }
+        }
+
+        function closeDuplicateModal() {
+            const modal = document.getElementById('duplicateModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            const error = document.getElementById('duplicate-error');
+            if (error) error.classList.add('hidden');
+            const input = document.getElementById('duplicate-quantity');
+            if (input) input.classList.remove('is-invalid');
+        }
+
+        function confirmDuplicateRecord() {
+            if (!state.currentRecord) return;
+            const input = document.getElementById('duplicate-quantity');
+            const error = document.getElementById('duplicate-error');
+            const rawVal = input ? String(input.value).trim() : '';
+
+            // Validation rules:
+            // Minimum: 1, Maximum: 10
+            // Only allow whole numeric input.
+            // Reject: letters, special characters, decimals, negative values, values greater than 10
+            const isValidInteger = /^\d+$/.test(rawVal);
+            const qty = parseInt(rawVal, 10);
+
+            if (!isValidInteger || isNaN(qty) || qty < 1 || qty > 10) {
+                if (error) {
+                    error.textContent = 'Please enter a whole number between 1 and 10.';
+                    error.classList.remove('hidden');
+                }
+                if (input) {
+                    input.classList.add('is-invalid');
+                    input.focus();
+                }
+                return;
+            }
+
+            closeDuplicateModal();
+            duplicateRecord(state.currentRecord.Id, qty);
+        }
+
+        function getNextUniqueRecordId() {
+            const numericIds = state.allData
+                .map(d => parseInt(d.Id, 10))
+                .filter(n => !isNaN(n) && isFinite(n));
+            let candidate = (numericIds.length > 0 ? Math.max(...numericIds) : state.allData.length) + 1;
+            while (state.allData.some(d => String(d.Id) === String(candidate))) {
+                candidate++;
+            }
+            return String(candidate);
+        }
+
+        function getSubRecords(parentRecordId) {
+            if (!parentRecordId && parentRecordId !== 0) return [];
+            const pIdStr = String(parentRecordId);
+            const parentRecord = state.allData.find(d => String(d.Id) === pIdStr);
+            const parentTitle = parentRecord ? parentRecord.Title : null;
+
+            return state.allData.filter(d => {
+                if (!d.IsSubRecord) return false;
+                if (d.ParentRecordId !== undefined && d.ParentRecordId !== null && String(d.ParentRecordId) === pIdStr) return true;
+                if (parentTitle && d.Title === parentTitle && d.SubNumber) return true;
+                return false;
+            }).sort((a, b) => {
+                const numA = parseInt((a.SubNumber || '').replace(/\D/g, ''), 10) || 0;
+                const numB = parseInt((b.SubNumber || '').replace(/\D/g, ''), 10) || 0;
+                return numA - numB;
+            });
+        }
+
+        function duplicateRecord(sourceRecordId, quantity) {
+            const source = state.allData.find(d => d.Id === sourceRecordId || String(d.Id) === String(sourceRecordId));
+            if (!source) return [];
+
+            const qty = parseInt(quantity, 10);
+            if (isNaN(qty) || qty < 1 || qty > 10) return [];
+
+            // Parent / Child relationship tracking
+            let parentId;
+            let parentRecord;
+            if (source.IsSubRecord && source.ParentRecordId) {
+                parentId = String(source.ParentRecordId);
+                parentRecord = state.allData.find(d => String(d.Id) === parentId) || source;
+            } else {
+                parentId = String(source.Id);
+                parentRecord = source;
+            }
+            parentRecord.IsParentRecord = true;
+
+            // Prevent Duplicate Sub Number Collision:
+            // Find existing sub-records for this parent and determine next available Sub Number
+            const existingChildren = getSubRecords(parentId);
+            let maxSubNum = 0;
+            existingChildren.forEach(child => {
+                if (child.SubNumber) {
+                    const match = String(child.SubNumber).match(/(\d+)/);
+                    if (match) {
+                        const n = parseInt(match[1], 10);
+                        if (n > maxSubNum) maxSubNum = n;
+                    }
+                }
+            });
+
+            const newRecords = [];
+            for (let i = 1; i <= qty; i++) {
+                const nextSubNum = ++maxSubNum;
+                const subNumberStr = `Sub${nextSubNum}`;
+                const newId = getNextUniqueRecordId();
+
+                // Copy ALL existing data exactly
+                const cloned = { ...source };
+
+                // Strip Dataverse entity IDs so clone is independent
+                delete cloned.dataverseId;
+                delete cloned._dvId;
+
+                cloned.Id = newId;
+                cloned.Title = source.Title;
+                cloned.SubNumber = subNumberStr;
+                cloned.ParentRecordId = String(parentId);
+                cloned.IsSubRecord = true;
+                cloned.IsParentRecord = false;
+
+                state.allData.push(cloned);
+                newRecords.push(cloned);
+            }
+
+            // Refresh UI
+            applyFilters();
+            updateDashboard();
+            renderSubRecordsTab();
+            showToast(`Created ${qty} sub-record(s) for ${source.Title}.`, 'success');
+
+            return newRecords;
+        }
+
+        function renderSubRecordsTab() {
+            const bar = document.getElementById('subRecordsBar');
+            if (!bar) return;
+            if (!state.currentRecord) {
+                bar.innerHTML = '';
+                return;
+            }
+
+            const current = state.currentRecord;
+            const parentId = (current.IsSubRecord && current.ParentRecordId)
+                ? String(current.ParentRecordId)
+                : String(current.Id);
+            const parentRecord = state.allData.find(d => String(d.Id) === parentId) || current;
+            const subRecords = getSubRecords(parentId);
+            const count = subRecords.length;
+
+            const isCurrentParent = String(current.Id) === String(parentRecord.Id);
+
+            let html = `
+                <div class="flex items-center gap-2 flex-wrap w-full pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded bg-amber-100/80 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                <path d="M9 3v18"/>
+                            </svg>
+                        </span>
+                        <span class="text-[12.5px] font-bold text-[var(--ink)] whitespace-nowrap">
+                            Sub Records (${count}):
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap flex-1" id="subRecordsList">
+            `;
+
+            if (count > 0 || current.IsSubRecord) {
+                const parentActive = isCurrentParent;
+                html += `
+                    <button type="button" onclick="openEditModal('${escapeHtml(String(parentRecord.Id))}')"
+                        title="View Main Record (${escapeHtml(parentRecord.Title)})"
+                        class="ui-transition pressable px-2.5 py-1 rounded-lg text-[12px] font-semibold flex items-center gap-1 ${parentActive ? 'bg-[var(--orange)] text-[var(--ink)] font-bold shadow-xs border border-[var(--orange-dark)]' : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3D6] hover:text-[var(--ink)]'}">
+                        <span>Main</span>
+                    </button>
+                `;
+            }
+
+            if (count === 0 && !current.IsSubRecord) {
+                html += `<span class="text-[12px] text-[var(--muted)] italic">No sub-records</span>`;
+            } else {
+                subRecords.forEach(sub => {
+                    const isSubActive = String(current.Id) === String(sub.Id);
+                    html += `
+                        <button type="button" onclick="openEditModal('${escapeHtml(String(sub.Id))}')"
+                            title="Open ${escapeHtml(sub.SubNumber || '')}"
+                            class="ui-transition pressable px-2.5 py-1 rounded-lg text-[12px] font-semibold ${isSubActive ? 'bg-[var(--orange)] text-[var(--ink)] font-bold shadow-xs border border-[var(--orange-dark)]' : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3D6] hover:text-[var(--ink)]'}">
+                            ${escapeHtml(sub.SubNumber || 'Sub')}
+                        </button>
+                    `;
+                });
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            bar.innerHTML = html;
         }
 
         function persistCurrentRecord(closeAfter, skipStageValidation = false) {
@@ -7278,7 +7553,7 @@
 
             try {
                 let existingId = record.dataverseId;
-                if (!existingId && title) {
+                if (!existingId && title && !record.IsSubRecord) {
                     const escaped = String(title).replace(/'/g, "''");
                     const query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
                     const res = await api.retrieveMultipleRecords(entityName, query);
@@ -7550,6 +7825,7 @@
             // ============
             // Request ID
             'edit-title': 'Title',
+            'edit-subnumber': 'SubNumber',
             'edit-btb': 'BTBType',
             'edit-request-status': 'Status',
             'edit-recd-date': 'RecordDate',

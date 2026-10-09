@@ -607,10 +607,11 @@
                         <span>💬</span> Remark
                     </button>
                     <button type="button" onclick="closeModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
+                    
                 </div>
             </div>
             
-            <div class="px-6 pb-6 overflow-y-auto flex flex-col gap-6 bg-slate-50/50" id="modalFormContainer">
+            <div class="px-6 pb-6 overflow-y-auto flex flex-col bg-slate-50/50" id="modalFormContainer">
 
                 <!-- Redesigned Workflow Status Tracker -->
                 <div class="bg-white mt-6 p-5 rounded-xl border border-[var(--line)] shadow-sm">
@@ -629,57 +630,59 @@
                 <input type="hidden" id="edit-processstatus">
 
                 <!-- Sticky Navigation Bar with Urgent Case Toggle -->
-                <div data-z-offset="30" class="sticky top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-xl border border-[var(--line)] shadow-sm flex flex-col gap-2.5 shrink-0">
+                <div data-z-offset="30" class="sticky mt-6 top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-t-xl border border-[var(--line)] shadow-sm flex flex-col gap-2.5 shrink-0">
                     <!-- Sub Record Navigation Bar (Requirement 6, 7, 8) -->
-                    <div id="subRecordsBar" class="w-full"></div>
-
-                    <div class="flex flex-wrap items-center justify-between gap-3 w-full">
-                        <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
-                        <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                                <path d="M12 11h4"/>
-                                <path d="M12 16h4"/>
-                                <path d="M8 11h.01"/>
-                                <path d="M8 16h.01"/>
-                            </svg>
-                            <span>Request Info.</span>
-                        </button>
-                        <button type="button" onclick="switchModalTab('tab-quotation')" id="btn-tab-quotation" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-                                <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-                                <path d="M10 9H8"/>
-                                <path d="M16 13H8"/>
-                                <path d="M16 17H8"/>
-                            </svg>
-                            <span>Quotation Info.</span>
-                        </button>
-                        <button type="button" onclick="switchModalTab('tab-contract')" id="btn-tab-contract" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M20 7h-3a2 2 0 0 1-2-2V2"/>
-                                <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/>
-                                <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h11"/>
-                            </svg>
-                            <span>Contract Info.</span>
-                        </button>
-                        <button type="button" onclick="switchModalTab('tab-pr')" id="btn-tab-pr" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect width="20" height="14" x="2" y="5" rx="2"/>
-                                <line x1="2" x2="22" y1="10" y2="10"/>
-                            </svg>
-                            <span>PR Info.</span>
-                        </button>
-                        <button type="button" onclick="switchModalTab('tab-po')" id="btn-tab-po" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
-                                <path d="M12 22V12"/>
-                                <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>
-                                <path d="m7.5 4.27 9 5.15"/>
-                            </svg>
-                            <span>PO Info.</span>
-                        </button>
+                    <div class="top-0 z-10 bg-white/95 backdrop-blur-md">
+                        <div id="subRecordsBar" class="w-full"></div>
+                        <div class="flex flex-wrap items-center justify-between gap-3 w-full">
+                            <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
+                                <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                        <path d="M12 11h4"/>
+                                        <path d="M12 16h4"/>
+                                        <path d="M8 11h.01"/>
+                                        <path d="M8 16h.01"/>
+                                    </svg>
+                                    <span>Request Info.</span>
+                                </button>
+                                <button type="button" onclick="switchModalTab('tab-quotation')" id="btn-tab-quotation" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                        <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                        <path d="M10 9H8"/>
+                                        <path d="M16 13H8"/>
+                                        <path d="M16 17H8"/>
+                                    </svg>
+                                    <span>Quotation Info.</span>
+                                </button>
+                                <button type="button" onclick="switchModalTab('tab-contract')" id="btn-tab-contract" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 7h-3a2 2 0 0 1-2-2V2"/>
+                                        <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/>
+                                        <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h11"/>
+                                    </svg>
+                                    <span>Contract Info.</span>
+                                </button>
+                                <button type="button" onclick="switchModalTab('tab-pr')" id="btn-tab-pr" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                        <line x1="2" x2="22" y1="10" y2="10"/>
+                                    </svg>
+                                    <span>PR Info.</span>
+                                </button>
+                                <button type="button" onclick="switchModalTab('tab-po')" id="btn-tab-po" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border-2 border-transparent text-[var(--muted)] hover:bg-slate-100 hover:text-[var(--orange-dark)] whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
+                                        <path d="M12 22V12"/>
+                                        <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>
+                                        <path d="m7.5 4.27 9 5.15"/>
+                                    </svg>
+                                    <span>PO Info.</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Urgent Case Toggle -->
@@ -693,12 +696,11 @@
                         </label>
                     </div>
                 </div>
-
                 <!-- Tab Content Sections -->
-                <div id="editModalTabContent">
+                <div id="editModalTabContent" class="rounded-b-xl border border-[var(--line)] shadow-sm">
                     <!-- TAB 1: Request Information Card -->
                     <div id="tab-request" class="modal-tab-pane">
-                        <div class="bg-white rounded-xl border border-[var(--line)] p-6 shadow-sm flex flex-col gap-5">
+                        <div class="bg-white p-6 flex flex-col gap-5">
                             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                                 <span class="w-7 h-7 rounded-lg bg-amber-100/70 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -836,10 +838,6 @@
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">SB Report Generated Date</label>
                                     <input type="date" id="edit-sbreportgenerated" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                                </div>
-                                <div class="col-span-1 md:col-span-2 flex flex-col gap-1.5">
-                                    <label class="text-[12px] font-semibold text-[var(--muted)]">Remark</label>
-                                    <textarea id="edit-remarks" rows="2" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -1105,16 +1103,16 @@
                                             <span class="text-[11px] font-bold text-[var(--red)]">
                                                 **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
                                             </span>
-<button
-    type="button"
-    id="btn-send-approval"
-    onclick="sendApprovalRequest()"
-    class="
-        ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
-    "
->
-    Send Approval Request
-</button>
+                                    <button
+                                        type="button"
+                                        id="btn-send-approval"
+                                        onclick="sendApprovalRequest()"
+                                        class="
+                                            ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
+                                        "
+                                    >
+                                        Send Approval Request
+                                    </button>
                                                 <label class="flex items-center gap-2.5 cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1308,7 +1306,24 @@
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    <!-- Shared Remarks Field -->
+                    <div class="col-span-1 md:col-span-2 m-6 flex flex-col gap-1.5">
+                        <label class="text-[12px] font-semibold text-[var(--muted)]">Remark</label>
+                        <textarea id="edit-remarks" rows="2" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] resize-y"></textarea>
+                    </div>
+                    <div class="m-6 flex gap-5 justify-center">
+                        <button 
+                            id="btn-mark-complete" 
+                            class="ui-transition cursor-not-allowed opacity-50 pressable min-h-[32px] w-full md:w-[80%] px-3 py-1 rounded-lg text-[16px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 border-[1.5px] border-transparent"
+                            onclick="handleMarkCompleteClick()"
+                            disabled
+                        >
+                            Mark Complete
+                        </button>
+                    </div>
                 </div>
+
             </div>
 
             <!-- Modal Footer Action Toolbar -->
@@ -1511,6 +1526,11 @@
                     class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                 <span id="duplicate-error" class="hidden text-[12px] font-medium text-[var(--red)]">Please enter a whole number between 1 and 10.</span>
             </div>
+            <p class="text-[14px] text-[var(--muted)]">Do you want to bring PR/PO Info to new records?</p>
+            <select id="select-duplicate-bringover" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                <option selected value="all">Bring PR/PO Info</option>
+                <option value="leave_prpo">Leave PR/PO Info</option>
+            </select>
             <div class="flex justify-end gap-3 mt-2">
                 <button type="button" onclick="closeDuplicateModal()" class="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-gray-100">
                     Cancel
@@ -1554,7 +1574,7 @@
                     </div>
                 </div>
                 <button id="btn-copy-paymentguide" type="button" onclick="copyPaymentDoc()" class="ml-auto mr-2 ui-transition pressable px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-600 hover:text-[var(--ink)] hover:bg-slate-50 shadow-2xs">
-                    Copy Payment Guideline Path
+                    📋 Copy Payment Guideline Path
                 </button>
                 <button type="button" onclick="closeRemarkModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">✕ Close</button>
             </div>
@@ -1846,8 +1866,8 @@
                 ReceiptNum: string;             // (admin_receiptnum)
                 MarkReceiptDate?: string;       // Mark Receipt Date (admin_markreceivedate) 
 
-                YN?: string;                    // Urgent (Y/N) / Y / N (admin_yx0020x002fx0020n)
-                Flagged?: boolean;              // Flagged (admin_flagged)
+                YN?: string;                    // Urgent (Y/N) / Y / N ()
+                Flagged?: boolean;              // Flagged (admin_flagged)admin_yx0020x002fx0020n
                 StatusRemark?: string;          // Status Remark (admin_statusremark)
 
                 // UI & Workflow fields
@@ -2168,13 +2188,13 @@
         }
         /* --- Real-Time Validations --- */
         function validatePRNo(val) {
-            return val && val.trim().length > 0;
+            // return val && val.trim().length > 0;
             return /^[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePONo(val) {
-            return val && val.trim().length > 0;
-            // return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
+            // return val && val.trim().length > 0;
+            return /^[A-Z]{2}[0-9]{7}$/.test(String(val || '').trim());
         }
 
         function validatePRNoField() {
@@ -2542,9 +2562,15 @@
                             td.textContent = item.HandledBy || '';
                             break;
                         case 'Actions':
-                            td.innerHTML = `<button type="button" onclick="openEditModal('${escapeHtml(String(item.Id))}')"
-                                class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent">Manage</button>`;
+                            td.innerHTML = `
+                                <button type="button" onclick="openEditModal('${escapeHtml(String(item.Id))}')"
+                                    class="ui-transition pressable px-3 py-1.5 rounded-lg text-[12px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent"
+                                >
+                                    Manage
+                                </button>
+                                `;
                             break;
+                            
                         default:
                             td.textContent = item[col.key] !== undefined && item[col.key] !== null ? item[col.key] : '';
                             break;
@@ -6118,6 +6144,9 @@
                 return "PO No. Ready";
             }
 
+            if (record.ProcessStatus !== "Complete") {
+                return "PO No. Ready";
+            }
             // Stage 5
             return "Complete";
         }
@@ -6879,6 +6908,25 @@
             handleFormInputChange();
         }
 
+        function handleMarkCompleteClick(){
+            if (!validateRequiredFieldsForStage('Complete')) {
+                return;
+            }
+            if (!state.currentRecord) return;
+            state.currentRecord.ProcessStatus = "Complete";
+            state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
+            updateTrackerVisual();
+            processData();
+            if (state.currentRecord.ProcessStatus === "Complete"){
+                showToast("Workflow marked as Complete.", "success");
+            }
+            else {
+                showToast("Workflow cannot be marked as Complete. Check if any required fields are missing", "warning");
+            }
+            handleFormInputChange();
+            saveRecord();
+        }
+
         function handleFormInputChange() {
             updateTrackerVisual();
         }
@@ -6949,12 +6997,18 @@
             }
 
             let activeIndex = statusIndexMap[activeStatus] ?? 0;
+            const isPendingCompletion = activeStatus === 'PO No. Ready' && curRecord.PONo;
 
             let html = '<div class="flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 w-full relative">';
 
             workflowSequence.forEach((step, index) => {
-                const isCompleted = index < activeIndex ||(activeStatus === 'Complete' && index === activeIndex);
-                const isActive = index === activeIndex && activeStatus !== 'Complete';
+                const isCompleted = index < activeIndex 
+                    || (step.status === 'PO No. Ready' && isPendingCompletion)
+                    || (activeStatus === 'Complete' && index === activeIndex);
+                const isActive = 
+                    (index === activeIndex && activeStatus !== 'Complete') ||
+                    // PO ready but not completed yet = active 'Complete' stage
+                    (step.status === 'Complete' && isPendingCompletion);
 
                 let circleClass = 'bg-gray-100 border-gray-300 text-gray-400';
                 let textClass = 'text-gray-400 font-medium';
@@ -6982,8 +7036,8 @@
                 `;
 
                 if (index < workflowSequence.length - 1) {
-                    const lineCompleted = index < activeIndex;
-                    const lineClass = lineCompleted ? 'bg-emerald-500' : 'bg-gray-200';
+                    // const lineCompleted = index < activeIndex;
+                    const lineClass = isCompleted ? 'bg-emerald-500' : 'bg-gray-200';
 
                     html += `
                         <div class="flex-1 hidden md:flex items-center justify-center px-2">
@@ -7032,53 +7086,44 @@
         }
 
         function updateFieldLockingAndApprovalUI(currentStatus) {
+            const completeBtn = document.getElementById('btn-mark-complete');
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
             const container = document.getElementById('editModalTabContent');
 
             const controls = container.querySelectorAll('input, select, textarea, button');
             
-            const disabledStyle = ["bg-gray-100", "cursor-not-allowed", "opacity-50"];
+            const disabledStyle = ["cursor-not-allowed", "opacity-50"];
             controls.forEach(control => {
                 const isPermanentlyDisabled = PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
                         !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT');
                 const isPermanentlyEnabled = PERMANENTLY_ENABLED_FIELD_IDS.has(control.id);
                 if (
                     isPermanentlyDisabled
-                    // || !isPermanentlyEnabled 
-                    // && (
-                    //     currentStatus === 'Complete' || 
-                    //     currentStatus === 'Cancelled'
-                    // )
+                    || !isPermanentlyEnabled 
+                    && (
+                        currentStatus === 'Complete' || 
+                        currentStatus === 'Cancelled'
+                    )
                 ) {
                     control.disabled = true;
-                    control.classList.add(...disabledStyle);
+                    control.classList.add("bg-gray-100", ...disabledStyle);
                 }
                 else {
                     control.disabled = false;
-                    control.classList.remove(...disabledStyle);
+                    control.classList.remove("bg-gray-100", ...disabledStyle);
                 }
             });
-            
-            if (currentStatus === 'Complete') {
-                // if (saveBtn) {
-                //     saveBtn.disabled = false;
-                //     saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                // }
-                return;
-            }
-
-            if (currentStatus === 'Cancelled') {
-                if (cancelBtn) {
-                    cancelBtn.innerText = "Re-open";
-                    cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
-                    cancelBtn.disabled = false;
+            if (completeBtn) {
+                completeBtn.classList.remove("bg-gray-100");
+                if (currentStatus === "PO No. Ready"){
+                    completeBtn.disabled = false;
+                    completeBtn.classList.remove(...disabledStyle);
                 }
-                // if (saveBtn) {
-                //     saveBtn.disabled = true;
-                //     saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                // }
-                return;
+                else {
+                    completeBtn.disabled = true;
+                    completeBtn.classList.add(...disabledStyle);
+                }
             }
 
             if (cancelBtn) {
@@ -7090,6 +7135,31 @@
             if (saveBtn) {
                 saveBtn.disabled = false;
                 saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            if (currentStatus === 'Complete') {
+                if (cancelBtn) {
+                    cancelBtn.classList.add("cursor-not-allowed", "opacity-50");
+                    cancelBtn.disabled = true;
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                return;
+            }
+
+            if (currentStatus === 'Cancelled') {
+                if (cancelBtn) {
+                    cancelBtn.innerText = "Re-open";
+                    cancelBtn.className = "ui-transition pressable min-h-[42px] px-4 py-2 rounded-lg text-[14px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
+                    cancelBtn.disabled = false;
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.classList.add(...disabledStyle);
+                }
+                return;
             }
         }
 
@@ -7280,9 +7350,11 @@
                 }
                 return;
             }
+            const bringOverSelect = document.getElementById('select-duplicate-bringover');
+            const bringOverOption = bringOverSelect ? bringOverSelect.value : 'none';
 
             closeDuplicateModal();
-            duplicateRecord(state.currentRecord.Id, qty);
+            duplicateRecord(state.currentRecord.Id, qty, bringOverOption);
         }
 
         function getNextUniqueRecordId() {
@@ -7314,7 +7386,7 @@
             });
         }
 
-        function duplicateRecord(sourceRecordId, quantity) {
+        function duplicateRecord(sourceRecordId, quantity, bringOverOption = 'all') {
             const source = state.allData.find(d => d.Id === sourceRecordId || String(d.Id) === String(sourceRecordId));
             if (!source) return [];
 
@@ -7366,6 +7438,42 @@
                 cloned.ParentRecordId = String(parentId);
                 cloned.IsSubRecord = true;
                 cloned.IsParentRecord = false;
+
+                
+                if (bringOverOption === 'leave_po' || bringOverOption === 'leave_prpo') {
+                    delete cloned.PODate;
+                    delete cloned.PONo;
+                    delete cloned.POReceiptDate;
+                    delete cloned.POCurrency;
+                    delete cloned.POAmount;
+                    delete cloned.DeliveryNote;
+                    delete cloned.ReceiptNum;
+                    delete cloned.MarkReceiptDate;
+                }
+
+                if (bringOverOption === 'leave_prpo') {
+                    delete cloned.PRNo;
+                    delete cloned.PRIssuedOn;
+                    delete cloned.PRIssuedMonth;
+                    delete cloned.Currency;
+                    delete cloned.PRAmount;
+                    delete cloned.Buyer;
+                    delete cloned.No;
+                    delete cloned.InvoiceDNNo;
+                    delete cloned.InvoiceDNDate;
+                    delete cloned.SBMTCEOrder;
+                    delete cloned.ItemNo;
+                    delete cloned.SellingAmountHKD;
+                    delete cloned.CostRevenueRatio;
+                    delete cloned.SwappingRevenueRatio;
+                    delete cloned.PRRemarks;
+                    cloned.UMVerified = false;
+                    cloned.PRRequestApproved = false;
+                    delete cloned.UMReviewer
+                    delete cloned.ReviewDate
+
+                    cloned.ProcessStatus = "PR No. Ready"
+                }
 
                 state.allData.push(cloned);
                 newRecords.push(cloned);
@@ -7510,8 +7618,8 @@
                     }
                 }
             });
-
-            state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
+            item.ProcessStatus = state.currentRecord.ProcessStatus
+            item.ProcessStatus = evaluateWorkflowState(item);
 
             processData();
             persistRecordToDataverse(item);

@@ -1812,6 +1812,7 @@
 
                 // admin_btb_lis_excel_datas dev-side columns (matched to PR Assistant App.html)
                 Title: string;                  // Record ID (admin_title)
+                RecordIdNo?: string;            // Base Record ID (admin_recordidno)
                 BTBType: "BTB" | "NON-BTB";     // BTB / NON-BTB (admin_btbtype)
                 Status?: string;                // Status (admin_prstatus)
                 No?: string;                    // No. (admin_Nox002e)
@@ -5607,6 +5608,7 @@
             "admin_sbreportgenrated"            : "SBReportGenerated",
             "admin_nox002e"                     : "No",
             "admin_title"                       : "Title",
+            "admin_recordidno"                  : "RecordIdNo",
             "admin_recordidsubnumber"           : "SubNumber",
             "admin_btbtype"                     : "BTBType",
             "admin_prstatus"                    : "Status",
@@ -5738,7 +5740,7 @@
                     // 2. Try minimal confirmed core columns query
                     const coreCols = [
                         "admin_sbreportgenrated",
-                        "admin_title", "admin_customerx0020name", "admin_customeraddress",
+                        "admin_title", "admin_recordidno", "admin_recordidsubnumber", "admin_customerx0020name", "admin_customeraddress",
                         "admin_customercontactperson", "admin_customercontactno", "admin_customeremailaddress",
                         "admin_vendor", "admin_hkd",
                         "admin_hkdusd",
@@ -5930,8 +5932,24 @@
                                 break;
                         }
                     });
-                masterRecord.Id = item.admin_title || String(idx);
+
+                // Resolve Option A: parse sub-number and clean base Record ID from admin_title / admin_recordidno
+                const rawDvTitle = item.admin_title || '';
+                const subMatch = rawDvTitle.match(/-(Sub\d+)$/i);
+                if (subMatch && !masterRecord.SubNumber) {
+                    masterRecord.SubNumber = subMatch[1];
+                }
+                if (item.admin_recordidno) {
+                    masterRecord.RecordIdNo = item.admin_recordidno;
+                    masterRecord.Title = item.admin_recordidno;
+                } else if (subMatch) {
+                    masterRecord.Title = rawDvTitle.replace(/-(Sub\d+)$/i, '');
+                    masterRecord.RecordIdNo = masterRecord.Title;
+                }
+
                 masterRecord.dataverseId = item.admin_btb_lis_excel_datasid || item.admin_btb_lis_excel_dataid || item[loadedEntityName + "id"] || item.id;
+                masterRecord.Id = masterRecord.dataverseId
+                    || (masterRecord.Title ? (masterRecord.SubNumber ? `${masterRecord.Title}_${masterRecord.SubNumber}` : masterRecord.Title) : String(idx));
                 masterRecord._entityName = loadedEntityName;
                 masterRecord.admin_hkdusd = item.admin_hkdusd || masterRecord.Currency;
                 masterRecord.admin_hkd = item.admin_hkd !== undefined ? item.admin_hkd : masterRecord.PRAmount;
@@ -7192,7 +7210,9 @@
         }
 
         function openEditModal(id) {
-            const item = state.allData.find(d => d.Id === id || String(d.Id) === String(id));
+            const item = state.allData.find(d => d.Id === id || String(d.Id) === String(id))
+                || state.allData.find(d => d.Title === id && !d.IsSubRecord)
+                || state.allData.find(d => d.Title === id);
             if (!item) return;
 
             state.currentRecord = { ...item };
@@ -7483,6 +7503,7 @@
 
                 cloned.Id = newId;
                 cloned.Title = source.Title;
+                cloned.RecordIdNo = source.RecordIdNo || source.Title;
                 cloned.SubNumber = subNumberStr;
                 cloned.ParentRecordId = String(parentId);
                 cloned.IsSubRecord = true;
@@ -7730,37 +7751,45 @@
             if (!api || !record) return;
 
             const entityName = record._entityName || currentDataverseEntityName || "admin_btb_lis_excel_datas";
-            const title = record.Title || record.Id || '';
+
+            // Resolve Option A: unique admin_title for Dataverse, base Record ID for admin_recordidno
+            const isSub = Boolean(record.IsSubRecord || record.SubNumber);
+            const rawTitle = record.Title || record.Id || '';
+            const subNumStr = record.SubNumber ? String(record.SubNumber).trim() : '';
+            const baseRecordId = record.RecordIdNo || (rawTitle ? rawTitle.replace(/-(Sub\d+)$/i, '') : '') || rawTitle;
+            const dvTitle = (isSub && subNumStr) ? `${baseRecordId}-${subNumStr}` : (baseRecordId || rawTitle);
 
             try {
                 let existingId = record.dataverseId;
-                if (!existingId && title) {
-                    const escaped = String(title).replace(/'/g, "''");
-                    let query;
-                    if (record.IsSubRecord && record.SubNumber) {
-                        const escapedSub = String(record.SubNumber).replace(/'/g, "''");
-                        query = `?$select=admin_title,admin_recordidsubnumber&$filter=admin_title eq '${escaped}' and admin_recordidsubnumber eq '${escapedSub}'&$top=1`;
-                    } else if (!record.IsSubRecord) {
-                        query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
-                    }
-                    if (query) {
+                if (!existingId && dvTitle) {
+                    const escaped = String(dvTitle).replace(/'/g, "''");
+                    const query = `?$select=admin_title&$filter=admin_title eq '${escaped}'&$top=1`;
+                    try {
                         const res = await api.retrieveMultipleRecords(entityName, query);
                         const existing = res.entities && res.entities[0];
                         if (existing) {
                             existingId = existing.admin_btb_lis_excel_datasid || existing.admin_btb_lis_excel_dataid || existing[entityName + "id"] || existing.id;
                             if (existingId) record.dataverseId = existingId;
                         }
+                    } catch (queryErr) {
+                        console.warn("[MasterRecords] retrieveMultipleRecords query failed:", queryErr);
                     }
                 }
 
                 const payload = {};
 
-                // 1. Identity / Primary Text Fields
+                // 1. Identity / Primary Text Fields (Option A)
+                payload.admin_title = dvTitle;
+                if (baseRecordId) {
+                    payload.admin_recordidno = baseRecordId;
+                }
+                if (subNumStr) {
+                    payload.admin_recordidsubnumber = subNumStr;
+                } else if (isSub) {
+                    payload.admin_recordidsubnumber = null;
+                }
                 if (record.BTBType !== undefined) {
                     payload.admin_btbtype = record.BTBType || null;
-                }
-                if (record.SubNumber !== undefined) {
-                    payload.admin_recordidsubnumber = record.SubNumber || null;
                 }
                 if (record.CustomerName !== undefined) payload.admin_customerx0020name = record.CustomerName || null;
                     if (record.Vendor !== undefined) payload.admin_vendor = record.Vendor || null;
@@ -7891,45 +7920,139 @@
                         if (Object.keys(payload).length > 0) {
                             try {
                                 await api.updateRecord(entityName, existingId, payload);
-                                console.log("[MasterRecords] Successfully updated record in Dataverse:", title);
+                                console.log("[MasterRecords] Successfully updated record in Dataverse:", dvTitle);
                             } catch (bulkErr) {
                                 console.warn("[MasterRecords] Bulk update failed, trying per-field update:", bulkErr);
                                 for (const [key, value] of Object.entries(payload)) {
+                                    if (value === null || value === undefined || value === "") continue;
                                     try {
                                         await api.updateRecord(entityName, existingId, { [key]: value });
                                         console.log("[MasterRecords] SUCCESS:", key, value);
                                     } catch (fieldErr) {
+                                        if (key === "admin_recordidsubnumber" && record.SubNumber) {
+                                            const subInt = parseInt(String(record.SubNumber).replace(/\D/g, ''), 10);
+                                            if (!isNaN(subInt)) {
+                                                try {
+                                                    await api.updateRecord(entityName, existingId, { [key]: subInt });
+                                                    console.log("[MasterRecords] SUCCESS with integer subnumber:", key, subInt);
+                                                    continue;
+                                                } catch (intErr) {}
+                                            }
+                                        }
                                         console.error("[MasterRecords] FAILED FIELD:", key, value, fieldErr);
                                     }
                                 }
                             }
                         }
-                    } else if (record.IsSubRecord && typeof api.createRecord === "function") {
-                        // 1. Duplicate the record first in Dataverse table admin_btb_lis_excel_datas
-                        const createPayload = { ...payload };
-                        delete createPayload.admin_recordidsubnumber;
-                        createPayload.admin_title = title;
+                    } else if (isSub && typeof api.createRecord === "function") {
+                        // Build clean create payload with unique admin_title, admin_recordidno, and admin_recordidsubnumber (Option A)
+                        const cleanCreatePayload = {
+                            admin_title: dvTitle,
+                            admin_recordidno: baseRecordId,
+                            admin_recordidsubnumber: subNumStr
+                        };
+                        if (record.CustomerName) cleanCreatePayload.admin_customerx0020name = record.CustomerName;
+                        if (record.Vendor) cleanCreatePayload.admin_vendor = record.Vendor;
+                        if (record.BTBType) cleanCreatePayload.admin_btbtype = record.BTBType;
+                        if (record.RecordDate) cleanCreatePayload.admin_recx0027dx0020datex0020 = formatDateForInput(record.RecordDate);
+                        if (record.HandledBy) cleanCreatePayload.admin_handledx0020byx0020 = record.HandledBy;
+
+                        let newId = null;
                         try {
-                            const createRes = await api.createRecord(entityName, createPayload);
-                            const newId = createRes && (createRes.id || createRes[entityName + "id"]);
+                            const createRes = await api.createRecord(entityName, cleanCreatePayload);
+                            newId = createRes && (createRes.id || createRes[entityName + "id"]);
                             if (newId) {
                                 record.dataverseId = newId;
-                                console.log("[MasterRecords] Successfully duplicated record in Dataverse:", title, newId);
+                                console.log("[MasterRecords] Successfully created duplicated sub-record in Dataverse (Option A):", dvTitle, newId);
+                            }
+                        } catch (createErr) {
+                            console.warn("[MasterRecords] Direct sub-record creation failed, attempting fallbacks:", createErr);
+                            // Fallback 1: Try without admin_recordidno in case column is not yet refreshed in schema cache
+                            try {
+                                const noRecIdNoPayload = { ...cleanCreatePayload };
+                                delete noRecIdNoPayload.admin_recordidno;
+                                const createRes = await api.createRecord(entityName, noRecIdNoPayload);
+                                newId = createRes && (createRes.id || createRes[entityName + "id"]);
+                                if (newId) {
+                                    record.dataverseId = newId;
+                                    console.log("[MasterRecords] Created sub-record without admin_recordidno, updating it next:", dvTitle, newId);
+                                }
+                            } catch (noRecIdNoErr) {
+                                console.warn("[MasterRecords] Fallback without admin_recordidno failed:", noRecIdNoErr);
+                            }
 
-                                // 2. Then add the sub number value to column admin_recordidsubnumber
-                                if (record.SubNumber) {
+                            // Fallback 2: Try numeric sub-number if Dataverse column is Whole Number
+                            if (!newId) {
+                                const subNumInt = parseInt(subNumStr.replace(/\D/g, ''), 10);
+                                if (!isNaN(subNumInt)) {
                                     try {
-                                        await api.updateRecord(entityName, newId, {
-                                            admin_recordidsubnumber: record.SubNumber
-                                        });
-                                        console.log("[MasterRecords] Successfully added sub number to duplicated record in Dataverse:", title, record.SubNumber);
-                                    } catch (subErr) {
-                                        console.warn("[MasterRecords] Failed to add sub number to duplicated record in Dataverse:", subErr);
+                                        const intPayload = { ...cleanCreatePayload, admin_recordidsubnumber: subNumInt };
+                                        delete intPayload.admin_recordidno;
+                                        const createRes = await api.createRecord(entityName, intPayload);
+                                        newId = createRes && (createRes.id || createRes[entityName + "id"]);
+                                        if (newId) {
+                                            record.dataverseId = newId;
+                                            console.log("[MasterRecords] Successfully created sub-record with integer sub-number:", dvTitle, subNumInt, newId);
+                                        }
+                                    } catch (intErr) {
+                                        console.warn("[MasterRecords] Integer sub-number create failed:", intErr);
                                     }
                                 }
                             }
-                        } catch (createErr) {
-                            console.warn("[MasterRecords] Failed to duplicate record in Dataverse:", createErr);
+
+                            // Fallback 3: Create with unique dvTitle only, then update fields
+                            if (!newId) {
+                                try {
+                                    const titleOnlyPayload = { admin_title: dvTitle };
+                                    if (record.CustomerName) titleOnlyPayload.admin_customerx0020name = record.CustomerName;
+                                    if (record.Vendor) titleOnlyPayload.admin_vendor = record.Vendor;
+                                    const createRes = await api.createRecord(entityName, titleOnlyPayload);
+                                    newId = createRes && (createRes.id || createRes[entityName + "id"]);
+                                    if (newId) {
+                                        record.dataverseId = newId;
+                                        console.log("[MasterRecords] Created sub-record with unique title only:", dvTitle, newId);
+                                    }
+                                } catch (titleOnlyErr) {
+                                    console.error("[MasterRecords] All createRecord attempts failed:", titleOnlyErr);
+                                    showToast("Dataverse create error: " + (titleOnlyErr.message || String(titleOnlyErr)), "error");
+                                }
+                            }
+                        }
+
+                        if (newId) {
+                            // Update admin_recordidno if present
+                            if (baseRecordId) {
+                                try {
+                                    await api.updateRecord(entityName, newId, { admin_recordidno: baseRecordId });
+                                } catch (rErr) {
+                                    console.warn("[MasterRecords] Failed updating admin_recordidno:", rErr);
+                                }
+                            }
+
+                            // Ensure sub-number is updated if needed
+                            if (subNumStr) {
+                                try {
+                                    await api.updateRecord(entityName, newId, { admin_recordidsubnumber: subNumStr });
+                                } catch (sErr) {
+                                    const subInt = parseInt(subNumStr.replace(/\D/g, ''), 10);
+                                    if (!isNaN(subInt)) {
+                                        try {
+                                            await api.updateRecord(entityName, newId, { admin_recordidsubnumber: subInt });
+                                        } catch (sErr2) {
+                                            console.warn("[MasterRecords] Failed updating sub number on created record:", sErr2);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Update remaining fields one-by-one so unknown/null fields don't abort the save
+                            for (const [key, value] of Object.entries(payload)) {
+                                if (value === null || value === undefined || value === "") continue;
+                                if (key === "admin_title" || key === "admin_recordidno" || key === "admin_recordidsubnumber") continue;
+                                try {
+                                    await api.updateRecord(entityName, newId, { [key]: value });
+                                } catch (fErr) {}
+                            }
                         }
                     }
             } catch (err) {

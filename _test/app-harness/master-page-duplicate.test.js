@@ -297,6 +297,7 @@ if (typeof X.confirmDuplicateRecord === "function") {
 
 // 8. Dataverse column mapping & persistence verification
 ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP && X.DV_COLUMN_MAP["admin_recordidsubnumber"] === "SubNumber");
+ok("DV_COLUMN_MAP maps admin_recordidno to RecordIdNo", X.DV_COLUMN_MAP && X.DV_COLUMN_MAP["admin_recordidno"] === "RecordIdNo");
 
 (async () => {
   if (typeof X.persistRecordToDataverse === "function") {
@@ -313,8 +314,8 @@ ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP &&
     const foundUpdate = dataverseUpdates.find(u => u.id === "sub-record-guid-1");
     ok("persistRecordToDataverse saves admin_recordidsubnumber on update", foundUpdate && foundUpdate.payload && foundUpdate.payload.admin_recordidsubnumber === "Sub1");
 
-    // Test creating sub-record without dataverseId:
-    // Duplicates the record first, then adds the sub number value to admin_recordidsubnumber
+    // Test creating sub-record without dataverseId (Option A):
+    // Unique admin_title with -Sub2 suffix, admin_recordidno with base ID, and admin_recordidsubnumber with Sub2
     const subRecordToCreate = {
       Title: "REQ-2026-005",
       SubNumber: "Sub2",
@@ -324,12 +325,34 @@ ok("DV_COLUMN_MAP maps admin_recordidsubnumber to SubNumber", X.DV_COLUMN_MAP &&
 
     const createsBefore = dataverseCreates.length;
     await X.persistRecordToDataverse(subRecordToCreate);
-    const foundCreate = dataverseCreates.slice(createsBefore).find(c => c.payload && c.payload.admin_title === "REQ-2026-005" && c.payload.admin_recordidsubnumber === undefined);
-    ok("persistRecordToDataverse duplicates record first in table admin_btb_lis_excel_datas", !!foundCreate);
+    const foundCreate = dataverseCreates.slice(createsBefore).find(c =>
+      c.payload &&
+      c.payload.admin_title === "REQ-2026-005-Sub2" &&
+      c.payload.admin_recordidno === "REQ-2026-005" &&
+      c.payload.admin_recordidsubnumber === "Sub2"
+    );
+    ok("persistRecordToDataverse creates sub-record with unique admin_title, admin_recordidno, and admin_recordidsubnumber in table admin_btb_lis_excel_datas", !!foundCreate);
 
-    const createdId = subRecordToCreate.dataverseId;
-    const foundSubUpdate = dataverseUpdates.find(u => u.id === createdId && u.payload && u.payload.admin_recordidsubnumber === "Sub2");
-    ok("persistRecordToDataverse then adds sub number value to column admin_recordidsubnumber", !!foundSubUpdate);
+    // Test fallback behavior when direct creation throws
+    const subRecordFallback = {
+      Title: "REQ-2026-005",
+      SubNumber: "Sub3",
+      IsSubRecord: true,
+      _entityName: "admin_btb_lis_excel_datas"
+    };
+    const origCreate = mockWebApi.createRecord;
+    let directAttemptFailed = false;
+    mockWebApi.createRecord = async (entity, payload) => {
+      if (payload.admin_recordidsubnumber === "Sub3" && !directAttemptFailed) {
+        directAttemptFailed = true;
+        throw new Error("Direct creation with subnumber simulated failure");
+      }
+      return origCreate(entity, payload);
+    };
+    await X.persistRecordToDataverse(subRecordFallback);
+    mockWebApi.createRecord = origCreate;
+    const fallbackUpdate = dataverseUpdates.find(u => u.id === subRecordFallback.dataverseId && u.payload && u.payload.admin_recordidsubnumber === "Sub3");
+    ok("persistRecordToDataverse falls back to create-then-update if direct creation fails", !!fallbackUpdate);
   }
 
   if (failures > 0) {

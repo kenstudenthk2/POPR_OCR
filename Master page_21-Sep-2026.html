@@ -132,6 +132,69 @@
             background-color: #F8FAFC;
         }
 
+        /* Main Records Table Header Styling - Distinct header bar with prominent visual hierarchy */
+        #mainRecordsTable {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        #mainRecordsTable thead {
+            position: sticky;
+            top: 0;
+            --z-offset: 10;
+            z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
+            background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%);
+        }
+
+        #mainRecordsTable thead tr {
+            background: linear-gradient(180deg, #F8FAFC 0%, #EEF2F6 100%);
+        }
+
+        #mainRecordsTable thead th {
+            position: sticky;
+            top: 0;
+            --z-offset: 10;
+            z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
+            background-color: #EEF2F6;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 12px 16px;
+            border-bottom: 2px solid #CBD5E1;
+            border-top: 1px solid #E2E8F0;
+            border-right: 1px solid rgba(203, 213, 225, 0.7);
+            white-space: nowrap;
+            user-select: none;
+            box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+            transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1), color 140ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #mainRecordsTable thead th:last-child {
+            border-right: none;
+        }
+
+        #mainRecordsTable thead th.sortable-th {
+            cursor: pointer;
+        }
+
+        #mainRecordsTable thead th.sortable-th:hover {
+            background-color: #E2E8F0;
+            color: #0F172A;
+        }
+
+        #mainRecordsTable thead th.is-sorted {
+            background-color: #E2E8F0;
+            color: #0F172A;
+            border-bottom: 2px solid var(--orange-dark);
+        }
+
+        #mainRecordsTable tbody td {
+            border-bottom: 1px solid #E2E8F0;
+        }
+
         [data-z-layer] {
             --z-layer: attr(data-z-layer type(<number>), 0);
             z-index: calc(var(--z-layer-depth) * var(--z-layer) + var(--z-offset));
@@ -494,8 +557,8 @@
         <!-- Record table -->
         <div class="panel-rise bg-white/95 rounded-b-xl rounded-t-none border border-[var(--line)] shadow-[0px_12px_34px_0px_rgba(29,29,31,0.07)] overflow-hidden mt-6">
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
+                <table id="mainRecordsTable" class="w-full text-left">
+                    <thead id="mainRecordsTableHead">
                         <!-- Headers rendered dynamically by JavaScript -->
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -810,9 +873,14 @@
                                     <!-- The 3 Coding Fields: Charge CCC, Account Code, Works Order Code -->
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div class="flex flex-col gap-1">
-                                            <label class="text-[12px] font-semibold text-[var(--muted)]">Charge CCC</label>
-                                            <input type="text" id="edit-pair-charge-ccc" disabled readonly placeholder="—"
-                                                class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
+                                            <label class="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-between">
+                                                <span>Charge CCC</span>
+                                                <span id="ccc-options-hint" class="text-[11px] text-[var(--orange-dark)] font-normal hidden"></span>
+                                            </label>
+                                            <div id="ccc-code-container">
+                                                <input type="text" id="edit-pair-charge-ccc" disabled readonly placeholder="—"
+                                                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
+                                            </div>
                                         </div>
                                         <div class="flex flex-col gap-1">
                                             <label class="text-[12px] font-semibold text-[var(--muted)] flex items-center justify-between">
@@ -1145,7 +1213,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] flex flex-col justify-between gap-3" id="prApprovalSection">
+                                    <div class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] flex flex-col gap-3" id="prApprovalSection">
                                         <div class="flex flex-col gap-1">
                                             <div class="flex items-center justify-between">
                                                 <span id="prApprovalTitle" class="text-[13px] font-bold text-[var(--ink)]">PR Approval Status</span>
@@ -1196,6 +1264,63 @@
                                                 <span id="prApprovedMeta" class="text-[11px] text-[var(--muted)]"></span>
                                             </div>
                                             <span class="text-[11px] text-[var(--muted)]">Check the box after obtaining approval to advance to the next workflow stage.</span>
+                                        </div>
+
+                                        <span class="text-[11px] font-bold text-[var(--red)]">
+                                            **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            id="btn-send-pr-approval"
+                                            class="
+                                                ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
+                                            "
+                                        >
+                                            Send Approval Request
+                                        </button>
+
+                                        <div id="pr-roles-approval-info" class="hidden flex flex-col gap-2.5">
+                                            <div id="pr-approval-info-avp" class="hidden flex flex-col gap-0.5">
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-avp-name-row">
+                                                    AVP Approver:
+                                                    <span id="pr-approval-avp-name"></span>
+                                                </p>
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-avp-date-row">
+                                                    AVP Approval Date:
+                                                    <span id="pr-approval-avp-date"></span>
+                                                </p>
+                                            </div>
+                                            <div id="pr-approval-info-vp" class="hidden flex flex-col gap-0.5">
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-vp-name-row">
+                                                    VP Approver:
+                                                    <span id="pr-approval-vp-name"></span>
+                                                </p>
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-vp-date-row">
+                                                    VP Approval Date:
+                                                    <span id="pr-approval-vp-date"></span>
+                                                </p>
+                                            </div>
+                                            <div id="pr-approval-info-svp" class="hidden flex flex-col gap-0.5">
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-svp-name-row">
+                                                    SVP Approver:
+                                                    <span id="pr-approval-svp-name"></span>
+                                                </p>
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-svp-date-row">
+                                                    SVP Approval Date:
+                                                    <span id="pr-approval-svp-date"></span>
+                                                </p>
+                                            </div>
+                                            <div id="pr-approval-info-md" class="hidden flex flex-col gap-0.5">
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-md-name-row">
+                                                    MD Approver:
+                                                    <span id="pr-approval-md-name"></span>
+                                                </p>
+                                                <p class="text-[12px] text-[var(--muted)]" id="pr-approval-md-date-row">
+                                                    MD Approval Date:
+                                                    <span id="pr-approval-md-date"></span>
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <div id="pr-approved-container">
@@ -1847,6 +1972,8 @@
                 UMMgr?: string;                 // UM/Mgr (admin_umx002fmgr)
                 LicenseReceiveDate?: string;    // License Receive Date (admin_LicenseReceiveDate)
                 ChargeCCC?: string;             // Charge CCC (admin_chargex0020ccc)
+                EngineeringTeam?: string;       // Engineering Team (admin_engineeringteam from admin_btb_engineering_team_product_line)
+                ProductLine?: string;           // Product Line (admin_productline from admin_btb_engineering_team_product_line)
                 WorksOrderCode?: string;        // Works Order Code (admin_worksx0020orderx0020code)
                 AccountCode?: string;           // Account Code (admin_accountx0020code)
 
@@ -1891,6 +2018,15 @@
                 ApprovalDate?: string;          // (admin_ApprovalDate)
 
                 ReviewDocumentURL?: string;      // (admin_reviewdocumenturl)
+
+                AVPApprovalName?: string;       // (admin_avpapprovalname)
+                AVPApprovedDateTime?: string;   // (admin_avpapproveddatetime)
+                VPApprovalName?: string;        // (admin_vpapprovalname)
+                VPApprovedDateTime?: string;    // (admin_vpapproveddatetime)
+                SVPApprovalName?: string;       // (admin_svpapprovalname)
+                SVPApprovedDateTime?: string;   // (admin_svpapproveddatetime)
+                MDApprovalName?: string;        // (admin_mdapprovalname)
+                MDApprovedDateTime?: string;    // (admin_mdapproveddatetime)
             }} IRecord;
 
             @typedef {{
@@ -2195,6 +2331,60 @@
             }
             return str;
         }
+
+        /**
+         * Formats date/time for display in DD/MM/YYYY HH:mm:ss format, preserving preformatted strings.
+         * @param {any} raw
+         * @returns {string}
+         */
+        function formatDateTimeDisplay(raw) {
+            if (!raw && raw !== 0) return '';
+            if (raw instanceof Date && !isNaN(raw.getTime())) {
+                const day = String(raw.getDate()).padStart(2, '0');
+                const month = String(raw.getMonth() + 1).padStart(2, '0');
+                const year = raw.getFullYear();
+                const hours = String(raw.getHours()).padStart(2, '0');
+                const minutes = String(raw.getMinutes()).padStart(2, '0');
+                const seconds = String(raw.getSeconds()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+            }
+            const str = String(raw).trim();
+            if (!str || str === '—' || str === '-' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') {
+                return '';
+            }
+            // If ISO datetime string: e.g. 2026-10-09T15:39:09 or 2026-10-09T15:39:09.000Z
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    const seconds = String(d.getSeconds()).padStart(2, '0');
+                    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                }
+            }
+            // If YYYY-MM-DD date only
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const parts = str.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            // If Excel serial number
+            if (typeof raw === 'number' && raw > 25569) {
+                const d = new Date(Math.round((raw - 25569) * 86400 * 1000));
+                if (!isNaN(d.getTime())) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    const seconds = String(d.getSeconds()).padStart(2, '0');
+                    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                }
+            }
+            return str;
+        }
         /* --- Real-Time Validations --- */
         function validatePRNo(val) {
             // return val && val.trim().length > 0;
@@ -2440,19 +2630,50 @@
 
         /* --- Dynamic Table Header & Body Rendering --- */
         function renderTableHeader() {
-            const thead = document.querySelector('table thead');
+            const thead = document.getElementById('mainRecordsTableHead') || document.querySelector('table thead');
             if (!thead) return;
 
             let headerHtml = '<tr>';
             COLUMN_CONFIG.forEach(col => {
                 if (!col.visible) return;
 
-                const alignClass = col.key === 'SBReportGenerated' ? 'text-center' : '';
+                const isSorted = state.sortCol === col.key;
+                const isCenter = col.key === 'SBReportGenerated' || col.key === 'Actions';
+                const alignClass = isCenter ? 'text-center' : 'text-left';
+                const justifyClass = isCenter ? 'justify-center' : 'justify-between';
+                const sortedClass = isSorted ? 'is-sorted' : '';
+
                 if (col.sortable) {
-                    const arrow = state.sortCol === col.key ? (state.sortAsc ? ' ↑' : ' ↓') : ' ↕';
-                    headerHtml += `<th onclick="handleSort('${col.key}')" class="px-4 py-3 text-[11.5px] font-bold uppercase tracking-wider text-slate-500 cursor-pointer select-none hover:text-[var(--orange-dark)] whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}${arrow}</th>`;
+                    const arrowSvg = isSorted
+                        ? (state.sortAsc
+                            ? '<svg class="w-3.5 h-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>'
+                            : '<svg class="w-3.5 h-3.5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>')
+                        : '<svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors shrink-0 opacity-70 group-hover:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>';
+
+                    const sortIconBadge = isSorted
+                        ? `<span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-amber-100/90 text-amber-700 font-bold shadow-2xs shrink-0">${arrowSvg}</span>`
+                        : `<span class="inline-flex items-center justify-center w-5 h-5 rounded-md group-hover:bg-slate-300/40 transition-colors shrink-0">${arrowSvg}</span>`;
+
+                    const titleText = isSorted
+                        ? `Sorted by ${col.label} (${state.sortAsc ? 'Ascending' : 'Descending'}). Click to reverse.`
+                        : `Click to sort by ${col.label}`;
+
+                    headerHtml += `
+                        <th onclick="handleSort('${col.key}')"
+                            title="${escapeHtml(titleText)}"
+                            class="group sortable-th px-4 py-3 text-[12px] font-bold uppercase tracking-wider whitespace-nowrap ${alignClass} ${sortedClass}">
+                            <div class="inline-flex items-center gap-2 ${justifyClass} w-full">
+                                <span>${escapeHtml(col.label)}</span>
+                                ${sortIconBadge}
+                            </div>
+                        </th>
+                    `;
                 } else {
-                    headerHtml += `<th class="px-4 py-3 text-[11.5px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap ${alignClass}">${escapeHtml(col.label)}</th>`;
+                    headerHtml += `
+                        <th class="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-slate-700 whitespace-nowrap ${alignClass}">
+                            <span>${escapeHtml(col.label)}</span>
+                        </th>
+                    `;
                 }
             });
             headerHtml += '</tr>';
@@ -2787,9 +3008,11 @@
 
             return {
                 chargeCcc: cccs[0] || "",
+                chargeCccs: cccs,
                 accountCode: accounts[0] || "",
                 accountCodes: accounts,
                 issueBy: admins[0] || "",
+                admins: admins,
                 worksOrderCodes: woCodes,
                 worksOrderOptions: woOptions,
                 conflict: cccs.length > 1 || admins.length > 1,
@@ -2841,8 +3064,71 @@
 
         function syncTab3ChargeCcc(val) {
             const el = document.getElementById('edit-pair-charge-ccc');
-            if (el) el.value = val;
+            if (el) {
+                if (el.tagName === 'SELECT' && val && ![...el.options].some(o => o.value === val)) {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    el.appendChild(opt);
+                }
+                el.value = val;
+            }
             if (state.currentRecord) state.currentRecord.ChargeCCC = val;
+        }
+
+        function renderChargeCccInput(val = '') {
+            const container = document.getElementById('ccc-code-container');
+            const hint = document.getElementById('ccc-options-hint');
+            if (hint) hint.classList.add('hidden');
+            if (!container) return;
+            container.innerHTML = `
+                <input type="text" id="edit-pair-charge-ccc" disabled readonly placeholder="—"
+                    value="${escapeHtml(val)}"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)] cursor-not-allowed">
+            `;
+            const input = document.getElementById('edit-pair-charge-ccc');
+            if (input) input.value = val;
+        }
+
+        function renderChargeCccDropdown(options = [], selectedVal = '') {
+            const container = document.getElementById('ccc-code-container');
+            const hint = document.getElementById('ccc-options-hint');
+            if (hint) {
+                if (options.length > 1) {
+                    hint.innerText = `(${options.length} options)`;
+                    hint.classList.remove('hidden');
+                } else {
+                    hint.classList.add('hidden');
+                }
+            }
+            if (!container) return;
+            let html = `
+                <select id="edit-pair-charge-ccc" onchange="handlePairChargeCccSelect(this.value)"
+                    class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-[#FFF9F0] rounded-lg border-[1.5px] border-[var(--orange)] focus:ring-2 focus:ring-[#FFE2B0] cursor-pointer">
+                    <option value="">-- Select Charge CCC --</option>
+            `;
+            const optList = Array.isArray(options) ? options : [];
+            const hasSelectedInOptions = optList.some(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                return String(code) === String(selectedVal);
+            });
+            if (selectedVal && !hasSelectedInOptions) {
+                html += `<option value="${escapeHtml(selectedVal)}" selected>${escapeHtml(selectedVal)}</option>`;
+            }
+            optList.forEach(opt => {
+                const code = typeof opt === 'object' && opt !== null ? (opt.code || opt.value) : opt;
+                const desc = typeof opt === 'object' && opt !== null && opt.description ? ` (${opt.description})` : '';
+                const isSel = String(code) === String(selectedVal) ? 'selected' : '';
+                html += `<option value="${escapeHtml(code)}" ${isSel}>${escapeHtml(code)}${escapeHtml(desc)}</option>`;
+            });
+            html += `</select>`;
+            container.innerHTML = html;
+            const select = document.getElementById('edit-pair-charge-ccc');
+            if (select) select.value = selectedVal || '';
+        }
+
+        function handlePairChargeCccSelect(val) {
+            syncPairChargeCcc(val);
         }
 
         function syncTab3AccountCode(val) {
@@ -3046,9 +3332,7 @@
             const accVal = item ? (item.AccountCode || '') : (document.getElementById('edit-account-code')?.value || '');
             const woVal = item ? (item.WorksOrderCode || '') : (document.getElementById('edit-works-order-code')?.value || '');
 
-            const pairCcc = document.getElementById('edit-pair-charge-ccc');
-            if (pairCcc) pairCcc.value = cccVal;
-
+            renderChargeCccInput(cccVal);
             renderAccountCodeInput(accVal);
             renderWorksOrderDropdown(woVal ? [{ code: woVal, description: '' }] : [], woVal);
         }
@@ -3105,10 +3389,18 @@
                 return;
             }
 
-            // Set Charge CCC
-            const pairCcc = document.getElementById('edit-pair-charge-ccc');
-            if (pairCcc) pairCcc.value = found.chargeCcc;
-            syncPairChargeCcc(found.chargeCcc);
+            // Set Charge CCC: if 1 or more options, render dropdown so user can select
+            const currentCcc = (state.currentRecord && state.currentRecord.ChargeCCC) || '';
+            const hasValidCcc = currentCcc && found.chargeCccs && found.chargeCccs.includes(currentCcc);
+            const selectedCcc = hasValidCcc ? currentCcc : (found.chargeCccs && found.chargeCccs.length === 1 ? found.chargeCccs[0] : '');
+            if (found.chargeCccs && found.chargeCccs.length >= 1) {
+                renderChargeCccDropdown(found.chargeCccs, selectedCcc);
+                syncPairChargeCcc(selectedCcc);
+            } else {
+                const finalCcc = selectedCcc || found.chargeCcc;
+                renderChargeCccInput(finalCcc);
+                syncPairChargeCcc(finalCcc);
+            }
 
             // Set Account Code: if multiple distinct values, render dropdown; otherwise disabled text box
             const currentAcc = (state.currentRecord && state.currentRecord.AccountCode) || '';
@@ -3140,20 +3432,26 @@
 
             // Status message
             const pickList = [];
+            if (found.chargeCccs && found.chargeCccs.length > 1 && !selectedCcc) pickList.push('a Charge CCC');
             if (found.accountCodes && found.accountCodes.length > 1 && !selectedAcc) pickList.push('an Account Code');
             if (found.worksOrderCodes && found.worksOrderCodes.length > 1 && !selectedWo) pickList.push('a Works Order Code');
 
-            const filledList = ['Charge CCC'];
+            const filledList = [];
+            if (!pickList.includes('a Charge CCC') && (selectedCcc || found.chargeCcc)) filledList.push('Charge CCC');
             if (!pickList.includes('an Account Code') && (selectedAcc || found.accountCode)) filledList.push('Account Code');
             if (found.issueBy) filledList.push('Issue By');
             if (!pickList.includes('a Works Order Code') && selectedWo) filledList.push('Works Order Code');
 
-            if (found.conflict) {
-                showPairMessage(`Warning: ${found.matchedCount} rows for this IPT Unit Mgr disagree on CCC. First row used — check them.`, 'warning');
+            if (found.conflict && found.admins && found.admins.length > 1) {
+                showPairMessage(`Warning: ${found.matchedCount} rows for this IPT Unit Mgr disagree on Admin/Issue By. First row used — check them.`, 'warning');
             } else if (pickList.length > 0) {
                 showPairMessage(`${filledList.join(', ')} filled. Pick ${pickList.join(' and ')} below.`, 'success');
             } else {
                 showPairMessage(`${filledList.join(', ')} filled.`, 'success');
+            }
+
+            if (state.currentRecord && (state.currentRecord.ProcessStatus === 'Complete' || state.currentRecord.ProcessStatus === 'Cancelled')) {
+                updateFieldLockingAndApprovalUI(state.currentRecord.ProcessStatus);
             }
 
             if (pairBtn) {
@@ -4700,13 +4998,166 @@
             showToast('XLSX exported successfully.', 'success');
         }
 
+        /* --- Engineering Team & Product Line Lookup (admin_btb_engineering_team_product_line) --- */
+        const ENGINEERING_TEAM_PRODUCT_LINE_CONFIG = {
+            entity: "admin_btb_engineering_team_product_line",
+            altEntity: "admin_btb_engineering_team_product_lines",
+            select: [
+                "admin_chargeccc",
+                "admin_engineeringteam",
+                "admin_productline"
+            ],
+            fields: {
+                chargeCcc: "admin_chargeccc",
+                engineeringTeam: "admin_engineeringteam",
+                productLine: "admin_productline"
+            }
+        };
+
+        const DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS = [
+            {
+                admin_chargeccc: "C716",
+                admin_engineeringteam: "Networking Team",
+                admin_productline: "Cisco"
+            },
+            {
+                admin_chargeccc: "C600",
+                admin_engineeringteam: "Security Team",
+                admin_productline: "Security Mtce"
+            },
+            {
+                admin_chargeccc: "CD37",
+                admin_engineeringteam: "AD & Logger Team",
+                admin_productline: "AD & Logger Mtce"
+            },
+            {
+                admin_chargeccc: "CB13",
+                admin_engineeringteam: "AD & Logger Team",
+                admin_productline: "AD & Logger Mtce"
+            },
+            {
+                admin_chargeccc: "C556",
+                admin_engineeringteam: "Voice Team",
+                admin_productline: "PABX Mtce"
+            },
+            {
+                admin_chargeccc: "C665",
+                admin_engineeringteam: "IPT Team",
+                admin_productline: "IPT Cisco"
+            },
+            {
+                admin_chargeccc: "CCC-01",
+                admin_engineeringteam: "AV Team",
+                admin_productline: "UCBV AV Equipment"
+            }
+        ];
+
+        let cachedEngineeringTeamProductLineRows = null;
+
+        async function fetchEngineeringTeamProductLineRows() {
+            if (cachedEngineeringTeamProductLineRows && cachedEngineeringTeamProductLineRows.length > 0) {
+                return cachedEngineeringTeamProductLineRows;
+            }
+            const webApi = getDataverseWebApi();
+            if (!webApi) return null;
+
+            const config = ENGINEERING_TEAM_PRODUCT_LINE_CONFIG;
+            const query = "?$select=" + config.select.join(",");
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedEngineeringTeamProductLineRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e1) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.entity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedEngineeringTeamProductLineRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e2) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, query);
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedEngineeringTeamProductLineRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e3) {}
+
+            try {
+                const res = await webApi.retrieveMultipleRecords(config.altEntity, "");
+                if (res && res.entities && res.entities.length > 0) {
+                    cachedEngineeringTeamProductLineRows = res.entities;
+                    return res.entities;
+                }
+            } catch (_e4) {}
+
+            return null;
+        }
+
+        function lookupEngineeringTeamProductLine(chargeCccValue, rows = cachedEngineeringTeamProductLineRows) {
+            const val = String(chargeCccValue || "").trim();
+            if (!val) {
+                return {
+                    engineeringTeam: "",
+                    productLine: ""
+                };
+            }
+
+            const valUpper = val.toUpperCase();
+            const list = Array.isArray(rows) && rows.length > 0
+                ? rows
+                : (Array.isArray(cachedEngineeringTeamProductLineRows) && cachedEngineeringTeamProductLineRows.length > 0
+                    ? cachedEngineeringTeamProductLineRows
+                    : (typeof DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS !== "undefined" ? DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS : []));
+
+            if (!list || list.length === 0) {
+                return { engineeringTeam: "", productLine: "" };
+            }
+
+            // 1. Exact match on admin_chargeccc (case-insensitive)
+            let matched = list.find(r => {
+                const ccc = String(r.admin_chargeccc || r.chargeCcc || r.admin_ccc || "").trim().toUpperCase();
+                return ccc === valUpper;
+            });
+
+            // 2. Token-based match if no exact match (e.g. compound codes like "CD37 & CB13")
+            if (!matched && typeof extractCccTokens === "function") {
+                const chargeTokens = extractCccTokens(valUpper);
+                if (chargeTokens.length > 0) {
+                    matched = list.find(r => {
+                        const rowCcc = String(r.admin_chargeccc || r.chargeCcc || r.admin_ccc || "").trim().toUpperCase();
+                        if (!rowCcc) return false;
+                        const rowTokens = extractCccTokens(rowCcc);
+                        return chargeTokens.some(ct => rowTokens.includes(ct));
+                    });
+                }
+            }
+
+            if (matched) {
+                return {
+                    engineeringTeam: String(matched.admin_engineeringteam != null ? matched.admin_engineeringteam : (matched.engineeringTeam || "")).trim(),
+                    productLine: String(matched.admin_productline != null ? matched.admin_productline : (matched.productLine || "")).trim()
+                };
+            }
+
+            return {
+                engineeringTeam: "",
+                productLine: ""
+            };
+        }
+
         /* ---------- COS Control File (Monthly Workbook) ---------- */
         const COS_CONTROL_COLUMNS = [
             { header: "Report Month",              fill: null,     width: 11.42578125, source: "reportMonth" },
             { header: "AO / Input Person Name",    fill: "FF0000", width: 20.42578125, source: "issueBy" },
             { header: "Unit Manager Name",         fill: "EE0000", width: 43.28515625, source: "iptUnitMgr" },
-            { header: "Engineering Team",          fill: "92D050", width: 17.85546875 },
-            { header: "Product Line",              fill: "92D050", width: 14.7109375 },
+            { header: "Engineering Team",          fill: "92D050", width: 17.85546875, source: "engineeringTeam" },
+            { header: "Product Line",              fill: "92D050", width: 14.7109375, source: "productLine" },
             { header: "Issue Type",                fill: "FF0000", width: 8.5703125, fixed: "PO" },
             { header: "PO",                        fill: "FF0000", width: 13, source: "poNo" },
             { header: "MA No.",                    fill: "00B0F0", width: 29, source: "contractNo" },
@@ -4758,6 +5209,40 @@
                             }
                             case "issueBy": val = record.IssueBy; break;
                             case "iptUnitMgr": val = record.IPTUnitMgr; break;
+                            case "engineeringTeam":
+                            case "admin_engineeringteam": {
+                                if (record.EngineeringTeam !== undefined && record.EngineeringTeam !== null && record.EngineeringTeam !== "") {
+                                    val = record.EngineeringTeam;
+                                } else if (record.admin_engineeringteam !== undefined && record.admin_engineeringteam !== null && record.admin_engineeringteam !== "") {
+                                    val = record.admin_engineeringteam;
+                                } else {
+                                    const ccc = record.ChargeCCC !== undefined && record.ChargeCCC !== null && record.ChargeCCC !== ""
+                                        ? record.ChargeCCC
+                                        : (record.admin_chargex0020ccc !== undefined && record.admin_chargex0020ccc !== null && record.admin_chargex0020ccc !== ""
+                                            ? record.admin_chargex0020ccc
+                                            : (record.chargeCcc || ""));
+                                    const info = lookupEngineeringTeamProductLine(ccc);
+                                    val = info ? info.engineeringTeam : "";
+                                }
+                                break;
+                            }
+                            case "productLine":
+                            case "admin_productline": {
+                                if (record.ProductLine !== undefined && record.ProductLine !== null && record.ProductLine !== "") {
+                                    val = record.ProductLine;
+                                } else if (record.admin_productline !== undefined && record.admin_productline !== null && record.admin_productline !== "") {
+                                    val = record.admin_productline;
+                                } else {
+                                    const ccc = record.ChargeCCC !== undefined && record.ChargeCCC !== null && record.ChargeCCC !== ""
+                                        ? record.ChargeCCC
+                                        : (record.admin_chargex0020ccc !== undefined && record.admin_chargex0020ccc !== null && record.admin_chargex0020ccc !== ""
+                                            ? record.admin_chargex0020ccc
+                                            : (record.chargeCcc || ""));
+                                    const info = lookupEngineeringTeamProductLine(ccc);
+                                    val = info ? info.productLine : "";
+                                }
+                                break;
+                            }
                             case "poNo": val = record.PONo; break;
                             case "contractNo": val = record.ContractNo; break;
                             case "btbType": val = record.BTBType; break;
@@ -5135,6 +5620,9 @@
             initCosModalDates();
             cosModalState.hasUserModifiedSelection = false;
             updateCosControlModalUI();
+            if (!cachedEngineeringTeamProductLineRows && getDataverseWebApi()) {
+                fetchEngineeringTeamProductLineRows().catch(() => {});
+            }
             const modal = document.getElementById("cosControlModal");
             if (modal) {
                 modal.classList.remove("hidden");
@@ -5686,7 +6174,16 @@
             "admin_umreviewapprovername"        : "UMReviewer",
             "admin_reviewdocumenturl"           : "ReviewDocumentURL",
 
-            "admin_prapprovalrequeststatus"     : "PRRequestApproved" 
+            "admin_prapprovalrequeststatus"     : "PRRequestApproved",
+
+            "admin_avpapprovalname"             : "AVPApprovalName",
+            "admin_avpapproveddatetime"         : "AVPApprovedDateTime",
+            "admin_vpapprovalname"              : "VPApprovalName",
+            "admin_vpapproveddatetime"          : "VPApprovedDateTime",
+            "admin_svpapprovalname"             : "SVPApprovalName",
+            "admin_svpapproveddatetime"         : "SVPApprovedDateTime",
+            "admin_mdapprovalname"              : "MDApprovalName",
+            "admin_mdapproveddatetime"          : "MDApprovedDateTime"
 
 
         });
@@ -5715,6 +6212,10 @@
                 state.allData = [];
                 updateConnectionStatusBanner(false);
                 return;
+            }
+
+            if (!cachedEngineeringTeamProductLineRows) {
+                fetchEngineeringTeamProductLineRows().catch(() => {});
             }
 
             // Dataverse logical attribute names from live schema
@@ -5760,7 +6261,11 @@
                         "admin_pocurrency", "admin_approvaldate", "admin_reviewdate", "admin_brand",
                         "admin_model", "admin_licensereceivedate", "admin_pramount", "admin_pramounthkd",
                         "admin_pramountusd", "admin_usdx0020x002fx0020others", "admin_itemno",
-                        "admin_buyer", "admin_markreceivedate"
+                        "admin_buyer", "admin_markreceivedate",
+                        "admin_avpapprovalname", "admin_avpapproveddatetime",
+                        "admin_vpapprovalname", "admin_vpapproveddatetime",
+                        "admin_svpapprovalname", "admin_svpapproveddatetime",
+                        "admin_mdapprovalname", "admin_mdapproveddatetime"
                     ];
                     const coreQuery = "?$select=" + coreCols.join(",") + "&$top=5000";
                     const coreResponse = await api.retrieveMultipleRecords(loadedEntityName, coreQuery);
@@ -5953,6 +6458,14 @@
                 masterRecord._entityName = loadedEntityName;
                 masterRecord.admin_hkdusd = item.admin_hkdusd || masterRecord.Currency;
                 masterRecord.admin_hkd = item.admin_hkd !== undefined ? item.admin_hkd : masterRecord.PRAmount;
+                masterRecord.admin_avpapprovalname = item.admin_avpapprovalname;
+                masterRecord.admin_avpapproveddatetime = item.admin_avpapproveddatetime;
+                masterRecord.admin_vpapprovalname = item.admin_vpapprovalname;
+                masterRecord.admin_vpapproveddatetime = item.admin_vpapproveddatetime;
+                masterRecord.admin_svpapprovalname = item.admin_svpapprovalname;
+                masterRecord.admin_svpapproveddatetime = item.admin_svpapproveddatetime;
+                masterRecord.admin_mdapprovalname = item.admin_mdapprovalname;
+                masterRecord.admin_mdapproveddatetime = item.admin_mdapproveddatetime;
                 masterRecord.ProcessStatus = evaluateWorkflowState(masterRecord);
                 return masterRecord;
             });
@@ -5998,7 +6511,9 @@
                     QuotationExpiryDate: "2026-10-15",
                     ReviewDate: "2026-10-01",
                     UMReviewer: "Test Reviewer - 01",
-                    ReviewDocumentURL: "https://example.com/review-doc-01"
+                    ReviewDocumentURL: "https://example.com/review-doc-01",
+                    AVPApprovalName: "Lai, Kelvin KW",
+                    AVPApprovedDateTime: "2026-10-09T15:39:09Z"
                 },
                 {
                     Id: "2",
@@ -6096,8 +6611,9 @@
          */
         function pushQueryStr(searchParam) {
             if (history.pushState) {
-                const newURL = new URL(window.location.href);       
-                newURL.search = `?${searchParam.toString()}`;        
+                const newURL = new URL(window.location.href);
+                const str = searchParam ? searchParam.toString() : '';
+                newURL.search = str ? `?${str}` : '';
                 window.history.pushState({ path: newURL.href }, '', newURL.href);
             }
         }
@@ -6106,6 +6622,7 @@
             if (!location) return;
             const param = new URLSearchParams(location.search);
             const recordId = param.get("record");
+            if (!recordId || !String(recordId).trim()) return;
             openEditModal(recordId);
         }
 
@@ -7027,6 +7544,8 @@
                     Boolean(curRecord.PRRequestApproved);
             }
 
+            updatePRApprovalRolesUI(curRecord);
+
             let activeIndex = statusIndexMap[activeStatus] ?? 0;
             const isPendingCompletion = activeStatus === 'PO No. Ready' && curRecord.PONo;
 
@@ -7083,6 +7602,78 @@
             updateFieldLockingAndApprovalUI(activeStatus);
         }
 
+        /**
+         * Updates the AVP > VP > SVP > MD approval information section in PR Approval Status.
+         * Only displays a role if the corresponding approval name or approved datetime column has a value.
+         * @param {IRecord|null} record
+         */
+        function updatePRApprovalRolesUI(record) {
+            const rolesConfig = [
+                { id: "avp", label: "AVP", nameKeys: ["AVPApprovalName", "admin_avpapprovalname"], dateKeys: ["AVPApprovedDateTime", "admin_avpapproveddatetime"] },
+                { id: "vp",  label: "VP",  nameKeys: ["VPApprovalName", "admin_vpapprovalname"],   dateKeys: ["VPApprovedDateTime", "admin_vpapproveddatetime"] },
+                { id: "svp", label: "SVP", nameKeys: ["SVPApprovalName", "admin_svpapprovalname"], dateKeys: ["SVPApprovedDateTime", "admin_svpapproveddatetime"] },
+                { id: "md",  label: "MD",  nameKeys: ["MDApprovalName", "admin_mdapprovalname"],   dateKeys: ["MDApprovedDateTime", "admin_mdapproveddatetime"] }
+            ];
+
+            let hasAnyRoleValue = false;
+
+            rolesConfig.forEach(({ id, label, nameKeys, dateKeys }) => {
+                const infoDiv = document.getElementById(`pr-approval-info-${id}`);
+                const nameEl = document.getElementById(`pr-approval-${id}-name`);
+                const dateEl = document.getElementById(`pr-approval-${id}-date`);
+                const nameRow = document.getElementById(`pr-approval-${id}-name-row`);
+                const dateRow = document.getElementById(`pr-approval-${id}-date-row`);
+
+                let nameVal = "";
+                let dateVal = "";
+
+                if (record) {
+                    for (const k of nameKeys) {
+                        if (record[k] !== undefined && record[k] !== null && String(record[k]).trim() !== "") {
+                            nameVal = String(record[k]).trim();
+                            break;
+                        }
+                    }
+                    for (const k of dateKeys) {
+                        if (record[k] !== undefined && record[k] !== null && String(record[k]).trim() !== "") {
+                            dateVal = formatDateTimeDisplay(record[k]);
+                            break;
+                        }
+                    }
+                }
+
+                if (nameEl) nameEl.textContent = nameVal;
+                if (dateEl) dateEl.textContent = dateVal;
+
+                if (nameRow) {
+                    if (nameVal) nameRow.classList.remove("hidden");
+                    else nameRow.classList.add("hidden");
+                }
+                if (dateRow) {
+                    if (dateVal) dateRow.classList.remove("hidden");
+                    else dateRow.classList.add("hidden");
+                }
+
+                if (infoDiv) {
+                    if (nameVal || dateVal) {
+                        infoDiv.classList.remove("hidden");
+                        hasAnyRoleValue = true;
+                    } else {
+                        infoDiv.classList.add("hidden");
+                    }
+                }
+            });
+
+            const rolesContainer = document.getElementById("pr-roles-approval-info");
+            if (rolesContainer) {
+                if (hasAnyRoleValue) {
+                    rolesContainer.classList.remove("hidden");
+                } else {
+                    rolesContainer.classList.add("hidden");
+                }
+            }
+        }
+
         /** @type {Set<IFieldIds>} */
         const PERMANENTLY_DISABLED_FIELD_IDS = new Set([
             'edit-title',
@@ -7110,6 +7701,9 @@
                     if (id === 'edit-pair-account-code' && el.tagName === 'SELECT') {
                         return;
                     }
+                    if (id === 'edit-pair-charge-ccc' && el.tagName === 'SELECT') {
+                        return;
+                    }
                     el.disabled = true;
                     el.classList.add('cursor-not-allowed');
                 }
@@ -7128,7 +7722,8 @@
             const disabledStyle = ["cursor-not-allowed", "opacity-50"];
             controls.forEach(control => {
                 const isPermanentlyDisabled = PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
-                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT');
+                        !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT') &&
+                        !(control.id === 'edit-pair-charge-ccc' && control.tagName === 'SELECT');
                 const isPermanentlyEnabled = PERMANENTLY_ENABLED_FIELD_IDS.has(control.id);
                 if (
                     isPermanentlyDisabled
@@ -7210,9 +7805,13 @@
         }
 
         function openEditModal(id) {
-            const item = state.allData.find(d => d.Id === id || String(d.Id) === String(id))
-                || state.allData.find(d => d.Title === id && !d.IsSubRecord)
-                || state.allData.find(d => d.Title === id);
+            if (!id && id !== 0) return;
+            const idStr = String(id).trim();
+            if (!idStr) return;
+
+            const item = state.allData.find(d => d.Id !== undefined && d.Id !== null && (d.Id === id || String(d.Id) === idStr))
+                || state.allData.find(d => d.Title !== undefined && d.Title !== null && String(d.Title) === idStr && !d.IsSubRecord)
+                || state.allData.find(d => d.Title !== undefined && d.Title !== null && String(d.Title) === idStr);
             if (!item) return;
 
             state.currentRecord = { ...item };
@@ -7262,9 +7861,17 @@
                     // non-input display fields
                     if (
                         fieldId === "um-review-info-reviewer" ||
-                        fieldId === "um-review-info-date"
+                        fieldId === "um-review-info-date" ||
+                        fieldId === "pr-approval-avp-name" ||
+                        fieldId === "pr-approval-avp-date" ||
+                        fieldId === "pr-approval-vp-name" ||
+                        fieldId === "pr-approval-vp-date" ||
+                        fieldId === "pr-approval-svp-name" ||
+                        fieldId === "pr-approval-svp-date" ||
+                        fieldId === "pr-approval-md-name" ||
+                        fieldId === "pr-approval-md-date"
                     ) {
-                        el.textContent = val || "";
+                        el.textContent = fieldId.endsWith("-date") ? (formatDateTimeDisplay(val) || "") : (val || "");
                     }
                     if (
                         fieldId === "review-attachment-url"
@@ -7290,6 +7897,7 @@
             handlePRAmount();
             updateQuotationExpiryDisplay();
             updateTrackerVisual();
+            updatePRApprovalRolesUI(item);
             clearRequiredFieldErrors();
             resetProductTypePairUI(item);
             applyPermanentlyDisabledFields();
@@ -8239,6 +8847,15 @@
 
             "um-review-info-reviewer": "UMReviewer",
             "um-review-info-date": "ReviewDate",
+
+            "pr-approval-avp-name": "AVPApprovalName",
+            "pr-approval-avp-date": "AVPApprovedDateTime",
+            "pr-approval-vp-name": "VPApprovalName",
+            "pr-approval-vp-date": "VPApprovedDateTime",
+            "pr-approval-svp-name": "SVPApprovalName",
+            "pr-approval-svp-date": "SVPApprovedDateTime",
+            "pr-approval-md-name": "MDApprovalName",
+            "pr-approval-md-date": "MDApprovedDateTime",
 
             // ============
             // PO Info.

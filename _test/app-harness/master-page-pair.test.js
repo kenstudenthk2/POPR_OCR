@@ -33,6 +33,8 @@ assert(html.includes('id="edit-pair-account-code"'), "HTML has #edit-pair-accoun
 assert(/<input[^>]*id="edit-ipt-unit-mgr"[^>]*disabled/i.test(html) || /<input[^>]*disabled[^>]*id="edit-ipt-unit-mgr"/i.test(html), "IPT Unit Mgr is disabled in HTML");
 assert(/<input[^>]*id="edit-pair-charge-ccc"[^>]*disabled/i.test(html) || /<input[^>]*disabled[^>]*id="edit-pair-charge-ccc"/i.test(html), "Charge CCC in pair section is disabled in HTML");
 assert(/<input[^>]*id="edit-pair-account-code"[^>]*disabled/i.test(html) || /<input[^>]*disabled[^>]*id="edit-pair-account-code"/i.test(html), "Account Code in pair section is disabled in HTML");
+assert(html.includes('id="ccc-code-container"'), "HTML has #ccc-code-container in pair section");
+assert(html.includes('id="ccc-options-hint"'), "HTML has #ccc-options-hint in pair section");
 assert(html.includes('id="ac-code-container"'), "HTML has #ac-code-container in pair section");
 assert(html.includes('id="wo-code-container"'), "HTML has #wo-code-container in pair section");
 assert(/<select[^>]*id="edit-pair-works-order-code"/i.test(html), "Works Order Code is a select dropdown in HTML, not text input");
@@ -120,6 +122,24 @@ const mockWebApi = {
             admin_admin2: "Chow, Alice SW",
             admin_description2: "Network Expansion",
           },
+          {
+            admin_iptum2: "Tsang, Eric KC",
+            admin_producttype2: "PBX Maintenance",
+            admin_ccc2: "C556",
+            admin_accountcode2: "645610",
+            admin_worksordercode2: "WO-PBX-01",
+            admin_admin2: "Tsang, Eric KC",
+            admin_description2: "PBX Support 1",
+          },
+          {
+            admin_iptum2: "Tsang, Eric KC",
+            admin_producttype2: "PBX Maintenance",
+            admin_ccc2: "C600",
+            admin_accountcode2: "645610",
+            admin_worksordercode2: "WO-PBX-02",
+            admin_admin2: "Tsang, Eric KC",
+            admin_description2: "PBX Support 2",
+          },
         ]
       };
     }
@@ -205,6 +225,9 @@ EXPORTS.syncPairWorksOrderCode = syncPairWorksOrderCode;
 EXPORTS.syncTab3ChargeCcc = syncTab3ChargeCcc;
 EXPORTS.syncTab3AccountCode = syncTab3AccountCode;
 EXPORTS.syncTab3WorksOrderCode = syncTab3WorksOrderCode;
+EXPORTS.renderChargeCccDropdown = renderChargeCccDropdown;
+EXPORTS.renderChargeCccInput = renderChargeCccInput;
+EXPORTS.handlePairChargeCccSelect = handlePairChargeCccSelect;
 EXPORTS.formatWorksOrderOptions = formatWorksOrderOptions;
 EXPORTS.state = state;
 EXPORTS.openEditModal = openEditModal;
@@ -290,17 +313,42 @@ const TEST_ROWS = [
     admin_admin2: "Chow, Alice SW",
     admin_description2: "Network Expansion",
   },
+  {
+    admin_iptum2: "Tsang, Eric KC",
+    admin_producttype2: "PBX Maintenance",
+    admin_ccc2: "C556",
+    admin_accountcode2: "645610",
+    admin_worksordercode2: "WO-PBX-01",
+    admin_admin2: "Tsang, Eric KC",
+    admin_description2: "PBX Support 1",
+  },
+  {
+    admin_iptum2: "Tsang, Eric KC",
+    admin_producttype2: "PBX Maintenance",
+    admin_ccc2: "C600",
+    admin_accountcode2: "645610",
+    admin_worksordercode2: "WO-PBX-02",
+    admin_admin2: "Tsang, Eric KC",
+    admin_description2: "PBX Support 2",
+  },
 ];
 
 // Single option test with IPT Unit Mgr
 const singleMatch = pairCodesFromLookup(TEST_ROWS, "Lee, Peter", CCC_LOOKUP_CONFIG.fields);
 assert(singleMatch !== null, "pairCodesFromLookup finds 'Lee, Peter'");
 assert(singleMatch.chargeCcc === "CCC-77", "Lee, Peter Charge CCC matches CCC-77");
+assert(singleMatch.chargeCccs.length === 1 && singleMatch.chargeCccs[0] === "CCC-77", "Lee, Peter has 1 Charge CCC in chargeCccs");
 assert(singleMatch.accountCode === "0099", "Lee, Peter Account Code matches 0099");
 assert(singleMatch.accountCodes.length === 1, "Lee, Peter has 1 Account Code");
 assert(singleMatch.issueBy === "Lee, Peter", "Lee, Peter Issue By matches Lee, Peter");
 assert(singleMatch.worksOrderCodes.length === 1 && singleMatch.worksOrderCodes[0] === "WO-900", "Lee, Peter has 1 Works Order Code");
 assert(singleMatch.conflict === false, "Lee, Peter has no conflict");
+
+// Multiple Charge CCCs test (Tsang, Eric KC has 2 CCCs: C556 and C600)
+const multiCccMatch = pairCodesFromLookup(TEST_ROWS, "Tsang, Eric KC", CCC_LOOKUP_CONFIG.fields);
+assert(multiCccMatch !== null, "pairCodesFromLookup finds 'Tsang, Eric KC'");
+assert(multiCccMatch.chargeCccs.length === 2, "Tsang, Eric KC has 2 Charge CCC options");
+assert(multiCccMatch.chargeCccs.includes("C556") && multiCccMatch.chargeCccs.includes("C600"), "Charge CCC options include C556 and C600");
 
 // Multiple options test with IPT Unit Mgr (Ma, Martin WS; Lai, Steven SY from screenshot)
 const multiMatch = pairCodesFromLookup(TEST_ROWS, "Ma, Martin WS; Lai, Steven SY", CCC_LOOKUP_CONFIG.fields);
@@ -356,6 +404,9 @@ assert(missMatch === null, "pairCodesFromLookup returns null for non-existent IP
   assert(pairCcc.value === "C716", "edit-pair-charge-ccc populated with C716");
   assert(tab3Ccc.value === "C716", "edit-charge-ccc in Tab 3 synced with C716");
 
+  const cccContainer = getMockElement("ccc-code-container");
+  assert(cccContainer.innerHTML.includes("<select"), "Charge CCC renders as select dropdown for single option C716");
+
   const pairAcc = getMockElement("edit-pair-account-code");
   const tab3Acc = getMockElement("edit-account-code");
   assert(pairAcc.value === "512100", "edit-pair-account-code populated with 512100");
@@ -375,6 +426,23 @@ assert(missMatch === null, "pairCodesFromLookup returns null for non-existent IP
 
   const statusMsg = getMockElement("pair-status-msg");
   assert(statusMsg.innerText.includes("Pick a Works Order Code"), "Status message prompts user to pick a Works Order Code");
+
+  // Test IPT Unit Mgr with multiple Charge CCC options (Tsang, Eric KC has C556 and C600)
+  iptInput.value = "Tsang, Eric KC";
+  sandbox.EXPORTS.state.currentRecord.ChargeCCC = "";
+  await runProductTypePair();
+  assert(cccContainer.innerHTML.includes("<select"), "Charge CCC renders as select dropdown when multiple options exist");
+  assert(cccContainer.innerHTML.includes("C556"), "Charge CCC dropdown includes C556");
+  assert(cccContainer.innerHTML.includes("C600"), "Charge CCC dropdown includes C600");
+  const cccHint = getMockElement("ccc-options-hint");
+  assert(cccHint.innerText.includes("2 options"), "Charge CCC options count hint displayed");
+  assert(statusMsg.innerText.includes("Pick a Charge CCC"), "Status message prompts user to pick a Charge CCC");
+
+  // Test selecting Charge CCC from dropdown updates Tab 3 and state.currentRecord
+  const handlePairChargeCccSelect = sandbox.EXPORTS.handlePairChargeCccSelect;
+  handlePairChargeCccSelect("C600");
+  assert(tab3Ccc.value === "C600", "Selecting Charge CCC from dropdown syncs with Tab 3");
+  assert(sandbox.EXPORTS.state.currentRecord.ChargeCCC === "C600", "Selecting Charge CCC updates state.currentRecord.ChargeCCC");
 
   // Test IPT Unit Mgr with multiple Account Codes (Chow, Alice SW)
   iptInput.value = "Chow, Alice SW";

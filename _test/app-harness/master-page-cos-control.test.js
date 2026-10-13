@@ -150,6 +150,10 @@ EXPORTS.updateCosControlModalUI = updateCosControlModalUI;
 EXPORTS.generateCosControlFile = generateCosControlFile;
 EXPORTS.saveSBReportGeneratedToDataverse = saveSBReportGeneratedToDataverse;
 EXPORTS.getDataverseWebApi = getDataverseWebApi;
+EXPORTS.ENGINEERING_TEAM_PRODUCT_LINE_CONFIG = ENGINEERING_TEAM_PRODUCT_LINE_CONFIG;
+EXPORTS.DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS = DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS;
+EXPORTS.fetchEngineeringTeamProductLineRows = fetchEngineeringTeamProductLineRows;
+EXPORTS.lookupEngineeringTeamProductLine = lookupEngineeringTeamProductLine;
 `;
 
 try {
@@ -447,6 +451,121 @@ ok("data row carries Vendor Name", sheetXml.includes("Nice Systems BV"));
   X.generateCosControlFile();
   eq("recPoReady was NOT updated with SBReportGenerated date", recPoReady.SBReportGenerated, "");
   eq("recComp1 was updated with SBReportGenerated date", recComp1.SBReportGenerated, today);
+
+  // 10. Test Engineering Team & Product Line Lookup (admin_btb_engineering_team_product_line)
+  // 10.1 Configuration checks
+  const cfg = X.ENGINEERING_TEAM_PRODUCT_LINE_CONFIG;
+  ok("ENGINEERING_TEAM_PRODUCT_LINE_CONFIG is defined", !!cfg);
+  eq("entity is admin_btb_engineering_team_product_line", cfg && cfg.entity, "admin_btb_engineering_team_product_line");
+  eq("altEntity is admin_btb_engineering_team_product_lines", cfg && cfg.altEntity, "admin_btb_engineering_team_product_lines");
+  ok("select includes admin_chargeccc", cfg && cfg.select && cfg.select.includes("admin_chargeccc"));
+  ok("select includes admin_engineeringteam", cfg && cfg.select && cfg.select.includes("admin_engineeringteam"));
+  ok("select includes admin_productline", cfg && cfg.select && cfg.select.includes("admin_productline"));
+
+  // 10.2 lookupEngineeringTeamProductLine function checks
+  const emptyLookup = X.lookupEngineeringTeamProductLine("");
+  eq("empty CCC returns empty engineeringTeam", emptyLookup.engineeringTeam, "");
+  eq("empty CCC returns empty productLine", emptyLookup.productLine, "");
+
+  const nullLookup = X.lookupEngineeringTeamProductLine(null);
+  eq("null CCC returns empty engineeringTeam", nullLookup.engineeringTeam, "");
+  eq("null CCC returns empty productLine", nullLookup.productLine, "");
+
+  const customRows = [
+    { admin_chargeccc: "C716", admin_engineeringteam: "Networking Team", admin_productline: "Cisco" },
+    { admin_chargeccc: "C600", admin_engineeringteam: "Security Team", admin_productline: "Security Mtce" },
+    { admin_chargeccc: "CD37 & CB13", admin_engineeringteam: "AD & Logger Team", admin_productline: "AD & Logger Mtce" }
+  ];
+
+  const c716Lookup = X.lookupEngineeringTeamProductLine("C716", customRows);
+  eq("C716 resolves Engineering Team", c716Lookup.engineeringTeam, "Networking Team");
+  eq("C716 resolves Product Line", c716Lookup.productLine, "Cisco");
+
+  // Case-insensitivity
+  const c716LowerLookup = X.lookupEngineeringTeamProductLine("c716", customRows);
+  eq("c716 lower resolves Engineering Team", c716LowerLookup.engineeringTeam, "Networking Team");
+  eq("c716 lower resolves Product Line", c716LowerLookup.productLine, "Cisco");
+
+  // Token matching for compound CCC codes
+  const cd37Lookup = X.lookupEngineeringTeamProductLine("CD37", customRows);
+  eq("CD37 token match resolves Engineering Team", cd37Lookup.engineeringTeam, "AD & Logger Team");
+  eq("CD37 token match resolves Product Line", cd37Lookup.productLine, "AD & Logger Mtce");
+
+  // Unknown CCC
+  const unknownLookup = X.lookupEngineeringTeamProductLine("NONEXISTENT", customRows);
+  eq("unknown CCC returns empty engineeringTeam", unknownLookup.engineeringTeam, "");
+  eq("unknown CCC returns empty productLine", unknownLookup.productLine, "");
+
+  // 10.3 cosControlRowValues mapping checks for Column D & Column E
+  // Headers check
+  const cols = X.COS_CONTROL_COLUMNS;
+  eq("Column D (index 3) is Engineering Team", cols[3].header, "Engineering Team");
+  eq("Column D source is engineeringTeam", cols[3].source, "engineeringTeam");
+  eq("Column E (index 4) is Product Line", cols[4].header, "Product Line");
+  eq("Column E source is productLine", cols[4].source, "productLine");
+
+  // Record with ChargeCCC matching customRows
+  const recC716 = {
+    ...masterRecord,
+    ChargeCCC: "C716",
+    admin_chargex0020ccc: "C716"
+  };
+  sandbox.cachedEngineeringTeamProductLineRows = customRows;
+
+  const valsC716 = X.cosControlRowValues(recC716);
+  eq("Column D (index 3) is filled with Engineering Team", valsC716[3], "Networking Team");
+  eq("Column E (index 4) is filled with Product Line", valsC716[4], "Cisco");
+  eq("at() helper finds Engineering Team", at(valsC716, "Engineering Team"), "Networking Team");
+  eq("at() helper finds Product Line", at(valsC716, "Product Line"), "Cisco");
+
+  // Record using raw Dataverse admin_chargex0020ccc column (without ChargeCCC)
+  const recRawDvCcc = {
+    ...masterRecord,
+    ChargeCCC: undefined,
+    admin_chargex0020ccc: "C600"
+  };
+  const valsRawDvCcc = X.cosControlRowValues(recRawDvCcc);
+  eq("Column D filled via admin_chargex0020ccc lookup", valsRawDvCcc[3], "Security Team");
+  eq("Column E filled via admin_chargex0020ccc lookup", valsRawDvCcc[4], "Security Mtce");
+
+  // Record with explicit override takes precedence
+  const recOverride = {
+    ...masterRecord,
+    ChargeCCC: "C716",
+    EngineeringTeam: "Custom Eng Team",
+    ProductLine: "Custom Product Line"
+  };
+  const valsOverride = X.cosControlRowValues(recOverride);
+  eq("Explicit EngineeringTeam overrides lookup", valsOverride[3], "Custom Eng Team");
+  eq("Explicit ProductLine overrides lookup", valsOverride[4], "Custom Product Line");
+
+  // 10.4 Verify Excel file generation includes Column D and Column E values
+  const rowsWithLookup = X.cosControlRowsFrom([recC716, recRawDvCcc]);
+  const cosPkgBytes = X.buildCosControlXlsx("2026-10", 0, rowsWithLookup);
+  const cosPkgFiles = unzipStored(cosPkgBytes);
+  const cosSheetXml = cosPkgFiles["xl/worksheets/sheet1.xml"];
+
+  ok("Excel row 2 Column D carries Engineering Team", cosSheetXml.includes('<c r="D2" s="22" t="inlineStr"><is><t>Networking Team</t></is></c>'));
+  ok("Excel row 2 Column E carries Product Line", cosSheetXml.includes('<c r="E2" s="23" t="inlineStr"><is><t>Cisco</t></is></c>'));
+  ok("Excel row 3 Column D carries Security Team", cosSheetXml.includes('<c r="D3" s="22" t="inlineStr"><is><t>Security Team</t></is></c>'));
+  ok("Excel row 3 Column E carries Security Mtce", cosSheetXml.includes('<c r="E3" s="23" t="inlineStr"><is><t>Security Mtce</t></is></c>'));
+
+  // 10.5 Test fetchEngineeringTeamProductLineRows via Dataverse WebApi
+  let queriedEntity = null, queriedQuery = null;
+  const mockDvWebApi = {
+    retrieveMultipleRecords: async (entity, query) => {
+      queriedEntity = entity;
+      queriedQuery = query;
+      return { entities: customRows };
+    }
+  };
+  sandbox.parent = { Xrm: { WebApi: mockDvWebApi } };
+  sandbox.cachedEngineeringTeamProductLineRows = null;
+
+  const fetched = await X.fetchEngineeringTeamProductLineRows();
+  eq("fetchEngineeringTeamProductLineRows queries admin_btb_engineering_team_product_line", queriedEntity, "admin_btb_engineering_team_product_line");
+  ok("query includes $select", queriedQuery && queriedQuery.includes("$select="));
+  eq("returns fetched entities", fetched.length, 3);
 
   if (failures > 0) {
     console.error(`\nFAILED: ${failures} assertions failed.`);

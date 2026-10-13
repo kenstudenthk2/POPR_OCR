@@ -201,6 +201,34 @@ X.closeModal();
 const lastUrl = pushedUrls[pushedUrls.length - 1];
 ok("closeModal pushed clean URL without dangling '?'", !lastUrl.endsWith("?"));
 
+// Test 7: openEditModal with admin_recordidno value loads correct currentRecord
+X.state.allData.push({
+  Id: "guid-rec-99",
+  Title: "REQ-2026-099",
+  admin_recordidno: "RECID-9999",
+  RecordIdNo: "RECID-9999",
+  CustomerName: "Gamma Corp",
+  ProcessStatus: "UM Verified"
+});
+editModalEl.classList.add("hidden");
+editModalEl.classList.remove("flex");
+X.openEditModal("RECID-9999");
+ok("openEditModal('RECID-9999') unhides editModal", !editModalEl.classList.contains("hidden") && editModalEl.classList.contains("flex"));
+eq("openEditModal with admin_recordidno loaded correct currentRecord", X.state.currentRecord && X.state.currentRecord.admin_recordidno, "RECID-9999");
+eq("currentRecord.Id matches expected dataverseId/Id", X.state.currentRecord && X.state.currentRecord.Id, "guid-rec-99");
+const latestPushedUrl = pushedUrls[pushedUrls.length - 1];
+ok("openEditModal pushed URL with admin_recordidno as record param", latestPushedUrl && latestPushedUrl.includes("record=RECID-9999"));
+X.closeModal();
+
+// Test 8: openParamItem() with ?record=<admin_recordidno> loads correct currentRecord
+mockSearch = "?record=RECID-9999";
+editModalEl.classList.add("hidden");
+editModalEl.classList.remove("flex");
+X.openParamItem();
+ok("openParamItem() with ?record=RECID-9999 unhides editModal", !editModalEl.classList.contains("hidden") && editModalEl.classList.contains("flex"));
+eq("openParamItem() with ?record=RECID-9999 loaded correct currentRecord", X.state.currentRecord && X.state.currentRecord.admin_recordidno, "RECID-9999");
+X.closeModal();
+
 if (failures > 0) {
   console.error(`\nFAILED: ${failures} check(s) failed.`);
   process.exit(1);

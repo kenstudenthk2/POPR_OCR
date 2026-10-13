@@ -110,7 +110,9 @@ const mockWebApi = {
             {
               admin_title: "ATQ-202608-00404-V01-1",
               admin_btbtype: "BTB",
-              admin_uidx0020x0023: "UID-8899"
+              admin_uidx0020x0023: "UID-8899",
+              admin_iptx0020unitx0020mgr: "Lee, Peter",
+              admin_contractx0020nox002e: "CTR-9999"
             }
           ]
         };
@@ -373,6 +375,8 @@ vm.runInContext(SCRIPT_CODE, sandbox, { filename: "master-page-script.js" });
   const btbUidLookup = await sandbox.EXPORTS.fetchRecordBtbAndUid("ATQ-202608-00404-V01-1");
   assert(btbUidLookup.admin_btbtype === "BTB", "fetchRecordBtbAndUid resolves admin_btbtype to 'BTB'");
   assert(btbUidLookup.admin_uidx0020x0023 === "UID-8899", "fetchRecordBtbAndUid resolves admin_uidx0020x0023 to 'UID-8899'");
+  assert(btbUidLookup.admin_iptx0020unitx0020mgr === "Lee, Peter", "fetchRecordBtbAndUid resolves admin_iptx0020unitx0020mgr to 'Lee, Peter'");
+  assert(btbUidLookup.admin_contractx0020nox002e === "CTR-9999", "fetchRecordBtbAndUid resolves admin_contractx0020nox002e to 'CTR-9999'");
 
   sandbox.EXPORTS.state.currentRecord = {
     Id: "ATQ-202608-00404-V01-1",

@@ -45,6 +45,8 @@ ok("Customer Contact No. input #edit-customer-contact-no exists", HTML.includes(
 ok("Customer Email Address input #edit-customer-email-address exists", HTML.includes('id="edit-customer-email-address"'));
 ok("Remark auto-match hint includes {Contract Start Date}", HTML.includes('{Contract Start Date}'));
 ok("Remark auto-match hint includes {Customer Address}", HTML.includes('{Customer Address}'));
+ok("Remark auto-match hint includes {IPT Unit Mgr}", HTML.includes('{IPT Unit Mgr}'));
+ok("Remark auto-match hint includes {Contract No. / Agreement No.}", HTML.includes('{Contract No. / Agreement No.}'));
 
 // 2. JavaScript script execution & data mappings
 const scriptMatch = HTML.match(/<script>([\s\S]*?)<\/script>[\s\S]*?<\/body>/);
@@ -150,12 +152,20 @@ eq("DV_COLUMN_MAP maps admin_customercontactperson to CustomerContactPerson", dv
 eq("DV_COLUMN_MAP maps admin_customercontactno to CustomerContactNo", dvMap["admin_customercontactno"], "CustomerContactNo");
 eq("DV_COLUMN_MAP maps admin_customeremailaddress to CustomerEmailAddress", dvMap["admin_customeremailaddress"], "CustomerEmailAddress");
 eq("DV_COLUMN_MAP maps admin_quotationno to QuotationNo", dvMap["admin_quotationno"], "QuotationNo");
+eq("DV_COLUMN_MAP maps admin_iptx0020unitx0020mgr to IPTUnitMgr", dvMap["admin_iptx0020unitx0020mgr"], "IPTUnitMgr");
+eq("DV_COLUMN_MAP maps admin_contractx0020nox002e to ContractNo", dvMap["admin_contractx0020nox002e"], "ContractNo");
 
 const fieldMap = sandbox.EXPORTS.FIELD_ID_TO_RECORD_KEY;
 eq("FIELD_ID_TO_RECORD_KEY maps edit-customer-address", fieldMap["edit-customer-address"], "CustomerAddress");
 eq("FIELD_ID_TO_RECORD_KEY maps edit-customer-contact-person", fieldMap["edit-customer-contact-person"], "CustomerContactPerson");
 eq("FIELD_ID_TO_RECORD_KEY maps edit-customer-contact-no", fieldMap["edit-customer-contact-no"], "CustomerContactNo");
 eq("FIELD_ID_TO_RECORD_KEY maps edit-customer-email-address", fieldMap["edit-customer-email-address"], "CustomerEmailAddress");
+eq("FIELD_ID_TO_RECORD_KEY maps edit-ipt-unit-mgr", fieldMap["edit-ipt-unit-mgr"], "IPTUnitMgr");
+eq("FIELD_ID_TO_RECORD_KEY maps edit-contract", fieldMap["edit-contract"], "ContractNo");
+
+const remarkFieldsDef = sandbox.EXPORTS.getRemarkFields();
+ok("getRemarkFields includes iptUnitMgr", !!remarkFieldsDef.iptUnitMgr);
+ok("getRemarkFields includes contractNo", !!remarkFieldsDef.contractNo);
 
 // 4. Token interpolation test via fields object
 const interpolateRemark = sandbox.EXPORTS.interpolateRemark;
@@ -168,7 +178,9 @@ const testFields = {
   customerEmailAddress: { value: "david.wong@example.com" },
   quotationNo: { value: "QT-2026-8888" },
   customerName: { value: "PCCW Solutions" },
-  vendor: { value: "Cisco Systems" }
+  vendor: { value: "Cisco Systems" },
+  iptUnitMgr: { value: "Chow, Alice SW" },
+  contractNo: { value: "CT-2026-0099" }
 };
 
 const template = [
@@ -176,7 +188,9 @@ const template = [
   "Address: {Customer Address}",
   "Contact: {Customer Contact Person} / {Customer Contact No.}",
   "Email: {Customer Email Address}",
-  "Quote: {Quotation No}"
+  "Quote: {Quotation No}",
+  "IPT: {IPT Unit Mgr}",
+  "Agreement: {Contract No. / Agreement No.}"
 ].join("\n");
 
 const interpolated = interpolateRemark(template, testFields);
@@ -185,12 +199,18 @@ ok("Interpolates {Customer Address}", interpolated.includes("Address: 100 King's
 ok("Interpolates {Customer Contact Person} and {Customer Contact No.}", interpolated.includes("Contact: Mr. David Wong / 2888 1234"), interpolated);
 ok("Interpolates {Customer Email Address}", interpolated.includes("Email: david.wong@example.com"), interpolated);
 ok("Interpolates {Quotation No}", interpolated.includes("Quote: QT-2026-8888"), interpolated);
+ok("Interpolates {IPT Unit Mgr}", interpolated.includes("IPT: Chow, Alice SW"), interpolated);
+ok("Interpolates {Contract No. / Agreement No.}", interpolated.includes("Agreement: CT-2026-0099"), interpolated);
 
-// Test variants: without dot in contact no, with dot in quotation no
-const altTemplate = "NoDot: {Customer Contact No}, QuoteDot: {Quotation No.}";
+// Test variants: without dot in contact no, with dot in quotation no, and Contract No variations
+const altTemplate = "NoDot: {Customer Contact No}, QuoteDot: {Quotation No.}, AltContract: {Contract No. / Agreement No}, AltContract2: {Contract No / Agreement No}, AltContract3: {Contract No.}, AltIPT: {IPT Unit Mgr.}";
 const altResult = interpolateRemark(altTemplate, testFields);
 eq("Interpolates {Customer Contact No} without dot", altResult.includes("NoDot: 2888 1234"), true);
 eq("Interpolates {Quotation No.} with dot", altResult.includes("QuoteDot: QT-2026-8888"), true);
+eq("Interpolates {Contract No. / Agreement No} without trailing dot", altResult.includes("AltContract: CT-2026-0099"), true);
+eq("Interpolates {Contract No / Agreement No} without any dots", altResult.includes("AltContract2: CT-2026-0099"), true);
+eq("Interpolates {Contract No.}", altResult.includes("AltContract3: CT-2026-0099"), true);
+eq("Interpolates {IPT Unit Mgr.} with dot", altResult.includes("AltIPT: Chow, Alice SW"), true);
 
 // Test BTB Type conversion in remark: "BTB" -> "Back-to-Back", "Non-BTB" / "NON-BTB" -> "Non Back-To-Back"
 const btbResult1 = interpolateRemark("Type: {BTB Type}", { btbType: { value: "BTB" } });
@@ -211,17 +231,19 @@ sandbox.EXPORTS.state.currentRecord = {
   admin_customercontactperson: "Ms. Karen Lee",
   admin_customercontactno: "98765432",
   admin_customeremailaddress: "karen.lee@pccw.com",
-  admin_quotationno: "QUOT-9999"
+  admin_quotationno: "QUOT-9999",
+  admin_iptx0020unitx0020mgr: "Lee, Peter",
+  admin_contractx0020nox002e: "CTR-2026-888"
 };
 
 const recordTemplate = [
-  "{Contract Start Date}|{Contract End Date}|{Customer Address}|{Customer Contact Person}|{Customer Contact No.}|{Customer Email Address}|{Quotation No}"
+  "{Contract Start Date}|{Contract End Date}|{Customer Address}|{Customer Contact Person}|{Customer Contact No.}|{Customer Email Address}|{Quotation No}|{IPT Unit Mgr}|{Contract No. / Agreement No.}"
 ].join("");
 
 const recordResult = interpolateRemark(recordTemplate, {});
 eq("Interpolates from currentRecord dataverse attributes",
   recordResult,
-  "2026-06-01|2027-05-31|Floor 39, PCCW Tower|Ms. Karen Lee|98765432|karen.lee@pccw.com|QUOT-9999"
+  "2026-06-01|2027-05-31|Floor 39, PCCW Tower|Ms. Karen Lee|98765432|karen.lee@pccw.com|QUOT-9999|Lee, Peter|CTR-2026-888"
 );
 
 // 6. Test Dataverse save persists these fields

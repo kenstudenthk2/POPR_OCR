@@ -1755,7 +1755,7 @@
 
                         <div class="text-[11.5px] text-[var(--muted)] leading-relaxed">
                             <span class="font-semibold text-[var(--ink)]">Remark fields for auto-match:</span>{" "}
-                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}, {Contract Start Date}, {Contract End Date}, {Customer Address}, {Customer Contact Person}, {Customer Contact No.}, {Customer Email Address}</span>
+                            <span>{Enduser}, {SI}, {Period}, {Purchase of}, {PR Issued by}, {Contact}, {Quotation No}, {Sales Name}, {Sales Contact Number}, {BTB Type}, {UID #}, {Issued by Email address}, {Contract Start Date}, {Contract End Date}, {Customer Address}, {Customer Contact Person}, {Customer Contact No.}, {Customer Email Address}, {IPT Unit Mgr}, {Contract No. / Agreement No.}</span>
                         </div>
 
                         <textarea id="modal-supplier-remark" rows="11"
@@ -3846,16 +3846,26 @@
             const api = getDataverseWebApi();
             if (!api) return null;
             const entityName = (state.currentRecord && state.currentRecord._entityName) || currentDataverseEntityName || "admin_btb_lis_excel_datas";
-            const select = "admin_title,admin_btbtype,admin_uidx0020x0023,admin_customeraddress,admin_customercontactperson,admin_customercontactno,admin_customeremailaddress,admin_contractstartdate,admin_contractenddate,admin_quotationno";
+            const select = "admin_title,admin_recordidno,admin_btbtype,admin_uidx0020x0023,admin_customeraddress,admin_customercontactperson,admin_customercontactno,admin_customeremailaddress,admin_contractstartdate,admin_contractenddate,admin_quotationno,admin_iptx0020unitx0020mgr,admin_contractx0020nox002e";
 
             let entity = null;
             try {
-                const query = "?$filter=admin_title eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                const query = "?$filter=(admin_recordidno eq '" + encodeURIComponent(recordId) + "' or admin_title eq '" + encodeURIComponent(recordId) + "')&$select=" + select;
                 const res = await api.retrieveMultipleRecords(entityName, query);
                 if (res && res.entities && res.entities.length > 0) {
                     entity = res.entities[0];
                 }
             } catch (_e1) {}
+
+            if (!entity) {
+                try {
+                    const query = "?$filter=admin_recordidno eq '" + encodeURIComponent(recordId) + "'&$select=" + select;
+                    const res = await api.retrieveMultipleRecords(entityName, query);
+                    if (res && res.entities && res.entities.length > 0) {
+                        entity = res.entities[0];
+                    }
+                } catch (_e1b) {}
+            }
 
             if (!entity) {
                 try {
@@ -3896,6 +3906,8 @@
                 const startDateVal = entity.admin_contractstartdate != null ? formatDateForInput(entity.admin_contractstartdate) : "";
                 const endDateVal = entity.admin_contractenddate != null ? formatDateForInput(entity.admin_contractenddate) : "";
                 const quotNoVal = entity.admin_quotationno != null ? String(entity.admin_quotationno).trim() : "";
+                const iptMgrVal = entity.admin_iptx0020unitx0020mgr != null ? String(entity.admin_iptx0020unitx0020mgr).trim() : "";
+                const contractNoVal = entity.admin_contractx0020nox002e != null ? String(entity.admin_contractx0020nox002e).trim() : "";
 
                 if (state.currentRecord) {
                     if (normalizedBtb) state.currentRecord.BTBType = normalizedBtb;
@@ -3907,6 +3919,8 @@
                     if (startDateVal && !state.currentRecord.StartDate) state.currentRecord.StartDate = startDateVal;
                     if (endDateVal && !state.currentRecord.EndDate) state.currentRecord.EndDate = endDateVal;
                     if (quotNoVal && !state.currentRecord.QuotationNo) state.currentRecord.QuotationNo = quotNoVal;
+                    if (iptMgrVal && !state.currentRecord.IPTUnitMgr) state.currentRecord.IPTUnitMgr = iptMgrVal;
+                    if (contractNoVal && !state.currentRecord.ContractNo) state.currentRecord.ContractNo = contractNoVal;
                 }
                 const btbEl = document.getElementById('edit-btb');
                 if (btbEl && normalizedBtb) btbEl.value = normalizedBtb;
@@ -3924,10 +3938,14 @@
                 setIfEmpty('edit-startdate', startDateVal);
                 setIfEmpty('edit-enddate', endDateVal);
                 setIfEmpty('edit-quotationno', quotNoVal);
+                setIfEmpty('edit-ipt-unit-mgr', iptMgrVal);
+                setIfEmpty('edit-contract', contractNoVal);
 
                 return {
                     admin_btbtype: normalizedBtb,
                     admin_uidx0020x0023: uidVal,
+                    admin_iptx0020unitx0020mgr: iptMgrVal,
+                    admin_contractx0020nox002e: contractNoVal,
                     raw: entity
                 };
             }
@@ -4176,6 +4194,8 @@
             }
             const uidValue = fVal("uid") || (state.currentRecord && (state.currentRecord.UID || state.currentRecord.admin_uidx0020x0023)) || "";
 
+            const iptUnitMgrVal = fVal("iptUnitMgr") || fVal("IPTUnitMgr") || fVal("admin_iptx0020unitx0020mgr") || (state.currentRecord && (state.currentRecord.IPTUnitMgr || state.currentRecord.admin_iptx0020unitx0020mgr)) || "";
+            const contractNoVal = fVal("contractNo") || fVal("ContractNo") || fVal("admin_contractx0020nox002e") || (state.currentRecord && (state.currentRecord.ContractNo || state.currentRecord.admin_contractx0020nox002e)) || "";
             const contractStartDateVal = fVal("contractStartDate") || fVal("StartDate") || fVal("admin_contractstartdate") || (state.currentRecord && (state.currentRecord.StartDate || state.currentRecord.admin_contractstartdate)) || "";
             const contractEndDateVal = fVal("contractEndDate") || fVal("EndDate") || fVal("admin_contractenddate") || (state.currentRecord && (state.currentRecord.EndDate || state.currentRecord.admin_contractenddate)) || "";
             const customerAddressVal = fVal("customerAddress") || fVal("CustomerAddress") || fVal("admin_customeraddress") || (state.currentRecord && (state.currentRecord.CustomerAddress || state.currentRecord.admin_customeraddress)) || "";
@@ -4242,6 +4262,14 @@
                 "uid number": uidValue,
                 "period": periodStr,
 
+                // IPT Unit Mgr (admin_iptx0020unitx0020mgr)
+                "ipt unit mgr": iptUnitMgrVal,
+                "ipt unit mgr.": iptUnitMgrVal,
+                "ipt unit manager": iptUnitMgrVal,
+                "iptunitmgr": iptUnitMgrVal,
+                "ipt mgr": iptUnitMgrVal,
+                "iptum": iptUnitMgrVal,
+
                 // Contract Start Date (admin_contractstartdate)
                 "contract start date": contractStartDateVal,
                 "contractstartdate": contractStartDateVal,
@@ -4289,8 +4317,25 @@
 
                 "quotation start date": fVal("quotationStartDate"),
                 "quotation end date": fVal("quotationEndDate"),
-                "contract no": fVal("contractNo"),
-                "agreement number": fVal("contractNo"),
+
+                // Contract No. / Agreement No. (admin_contractx0020nox002e)
+                "contract no. / agreement no.": contractNoVal,
+                "contract no. / agreement no": contractNoVal,
+                "contract no / agreement no.": contractNoVal,
+                "contract no / agreement no": contractNoVal,
+                "contract no./agreement no.": contractNoVal,
+                "contract no./agreement no": contractNoVal,
+                "contract no/agreement no.": contractNoVal,
+                "contract no/agreement no": contractNoVal,
+                "contract no.": contractNoVal,
+                "contract no": contractNoVal,
+                "contractno": contractNoVal,
+                "contract number": contractNoVal,
+                "agreement no.": contractNoVal,
+                "agreement no": contractNoVal,
+                "agreementno": contractNoVal,
+                "agreement number": contractNoVal,
+
                 "atq ref no": fVal("atqRefNo"),
                 "atq": fVal("atqRefNo"),
                 "hkd": fVal("hkd"),
@@ -4343,7 +4388,8 @@
                 handledBy: { value: val('edit-handledby', 'HandledBy', 'admin_handledx0020byx0020') },
                 issueBy: { value: val('edit-issue-by', 'IssueBy', 'admin_issuex0020by') },
                 btbType: { value: val('edit-btb', 'BTBType', 'admin_btbtype') },
-                uid: { value: val('edit-uid', 'UID', 'admin_uidx0020x0023') }
+                uid: { value: val('edit-uid', 'UID', 'admin_uidx0020x0023') },
+                iptUnitMgr: { value: val('edit-ipt-unit-mgr', 'IPTUnitMgr', 'admin_iptx0020unitx0020mgr') }
             };
         }
 
@@ -4394,7 +4440,7 @@
             const modal = document.getElementById('remarkModal');
             if (!modal) return;
 
-            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+            const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
                 (document.getElementById('edit-title')?.value) || '';
 
             // Look up this record's admin_btbtype & admin_uidx0020x0023 by record ID if connected to Dataverse
@@ -4612,10 +4658,10 @@
         }
 
         async function handleRemarkCaseTypeChange(caseType) {
-            const recordId = (state.currentRecord && (state.currentRecord.Title || state.currentRecord.Id)) ||
+            const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
                 (document.getElementById('edit-title')?.value) || '';
             const fields = getRemarkFields();
-            if (recordId && (!fields.btbType.value || !fields.uid.value) && getDataverseWebApi()) {
+            if (recordId && (!fields.btbType.value || !fields.uid.value || !fields.iptUnitMgr.value || !fields.contractNo.value) && getDataverseWebApi()) {
                 try {
                     await fetchRecordBtbAndUid(recordId);
                 } catch (_e) {}
@@ -6447,9 +6493,14 @@
                 if (item.admin_recordidno) {
                     masterRecord.RecordIdNo = item.admin_recordidno;
                     masterRecord.Title = item.admin_recordidno;
+                    masterRecord.admin_recordidno = item.admin_recordidno;
                 } else if (subMatch) {
                     masterRecord.Title = rawDvTitle.replace(/-(Sub\d+)$/i, '');
                     masterRecord.RecordIdNo = masterRecord.Title;
+                    masterRecord.admin_recordidno = masterRecord.Title;
+                } else {
+                    masterRecord.admin_recordidno = masterRecord.RecordIdNo || masterRecord.Title;
+                    if (!masterRecord.RecordIdNo) masterRecord.RecordIdNo = masterRecord.Title;
                 }
 
                 masterRecord.dataverseId = item.admin_btb_lis_excel_datasid || item.admin_btb_lis_excel_dataid || item[loadedEntityName + "id"] || item.id;
@@ -6601,6 +6652,8 @@
                 }
             ];
             state.allData.forEach(item => {
+                if (!item.admin_recordidno) item.admin_recordidno = item.RecordIdNo || item.Title;
+                if (!item.RecordIdNo) item.RecordIdNo = item.admin_recordidno || item.Title;
                 item.ProcessStatus = evaluateWorkflowState(item);
             });
         }
@@ -7810,11 +7863,19 @@
             if (!idStr) return;
 
             const item = state.allData.find(d => d.Id !== undefined && d.Id !== null && (d.Id === id || String(d.Id) === idStr))
+                || state.allData.find(d => ((d.admin_recordidno !== undefined && d.admin_recordidno !== null && (d.admin_recordidno === id || String(d.admin_recordidno) === idStr)) || (d.RecordIdNo !== undefined && d.RecordIdNo !== null && (d.RecordIdNo === id || String(d.RecordIdNo) === idStr))) && !d.IsSubRecord)
+                || state.allData.find(d => (d.admin_recordidno !== undefined && d.admin_recordidno !== null && (d.admin_recordidno === id || String(d.admin_recordidno) === idStr)) || (d.RecordIdNo !== undefined && d.RecordIdNo !== null && (d.RecordIdNo === id || String(d.RecordIdNo) === idStr)))
                 || state.allData.find(d => d.Title !== undefined && d.Title !== null && String(d.Title) === idStr && !d.IsSubRecord)
                 || state.allData.find(d => d.Title !== undefined && d.Title !== null && String(d.Title) === idStr);
             if (!item) return;
 
             state.currentRecord = { ...item };
+            if (!state.currentRecord.admin_recordidno) {
+                state.currentRecord.admin_recordidno = item.admin_recordidno || item.RecordIdNo || item.Title;
+            }
+            if (!state.currentRecord.RecordIdNo) {
+                state.currentRecord.RecordIdNo = item.RecordIdNo || item.admin_recordidno || item.Title;
+            }
             document.getElementById("edit-id").value = item.Id;
             state.isPREditing = false;
             const prInput = document.getElementById('edit-prno');
@@ -7913,7 +7974,7 @@
             syncBodyScrollLock();
 
             const param = new URLSearchParams(location.search);
-            param.set("record", id);
+            param.set("record", item.admin_recordidno || item.RecordIdNo || id);
             pushQueryStr(param);
         }
 
@@ -8048,12 +8109,14 @@
         function getSubRecords(parentRecordId) {
             if (!parentRecordId && parentRecordId !== 0) return [];
             const pIdStr = String(parentRecordId);
-            const parentRecord = state.allData.find(d => String(d.Id) === pIdStr);
+            const parentRecord = state.allData.find(d => String(d.Id) === pIdStr || (d.admin_recordidno && String(d.admin_recordidno) === pIdStr) || (d.RecordIdNo && String(d.RecordIdNo) === pIdStr));
+            const parentRecIdNo = parentRecord ? (parentRecord.admin_recordidno || parentRecord.RecordIdNo) : null;
             const parentTitle = parentRecord ? parentRecord.Title : null;
 
             return state.allData.filter(d => {
                 if (!d.IsSubRecord) return false;
                 if (d.ParentRecordId !== undefined && d.ParentRecordId !== null && String(d.ParentRecordId) === pIdStr) return true;
+                if (parentRecIdNo && (d.admin_recordidno === parentRecIdNo || d.RecordIdNo === parentRecIdNo) && d.SubNumber) return true;
                 if (parentTitle && d.Title === parentTitle && d.SubNumber) return true;
                 return false;
             }).sort((a, b) => {
@@ -8112,6 +8175,7 @@
                 cloned.Id = newId;
                 cloned.Title = source.Title;
                 cloned.RecordIdNo = source.RecordIdNo || source.Title;
+                cloned.admin_recordidno = source.admin_recordidno || source.RecordIdNo || source.Title;
                 cloned.SubNumber = subNumberStr;
                 cloned.ParentRecordId = String(parentId);
                 cloned.IsSubRecord = true;
@@ -8189,7 +8253,7 @@
             const parentId = (current.IsSubRecord && current.ParentRecordId)
                 ? String(current.ParentRecordId)
                 : String(current.Id);
-            const parentRecord = state.allData.find(d => String(d.Id) === parentId) || current;
+            const parentRecord = state.allData.find(d => String(d.Id) === parentId || ((d.admin_recordidno && d.admin_recordidno === (current.admin_recordidno || current.RecordIdNo)) && !d.IsSubRecord) || ((d.RecordIdNo && d.RecordIdNo === (current.RecordIdNo || current.admin_recordidno)) && !d.IsSubRecord)) || current;
             const subRecords = getSubRecords(parentId);
             const count = subRecords.length;
 

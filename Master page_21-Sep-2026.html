@@ -745,8 +745,8 @@
                 <!-- Sticky Navigation Bar with Urgent Case Toggle -->
                 <div data-z-offset="30" class="sticky mt-6 top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-t-xl border border-[var(--line)] shadow-sm flex flex-col gap-2.5 shrink-0">
                     <!-- Sub Record Navigation Bar (Requirement 6, 7, 8) -->
-                    <div class="top-0 z-10 bg-white/95 backdrop-blur-md">
-                        <div id="subRecordsBar" class="w-full"></div>
+                    <div class="top-0 z-10 bg-white/95 backdrop-blur-md hidden">
+                        <div id="subRecordsBar" class="w-full hidden"></div>
                         <div class="flex flex-wrap items-center justify-between gap-3 w-full">
                             <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
                                 <button type="button" onclick="switchModalTab('tab-request')" id="btn-tab-request" class="modal-tab-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all border-2 border-transparent text-[var(--orange-dark)] hover:bg-slate-100 hover:text-[var(--orange-dark)] border-amber-200 whitespace-nowrap">
@@ -832,7 +832,7 @@
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Request ID</label>
                                     <input type="text" id="edit-title" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
-                                <div class="flex flex-col gap-1.5">
+                                <div class="flex flex-col gap-1.5 hidden">
                                     <label class="text-[12px] font-semibold text-[var(--muted)]">Sub Number</label>
                                     <input type="text" id="edit-subnumber" disabled class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--muted)] bg-[var(--surface-soft)] rounded-lg border-[1.5px] border-[var(--line)]">
                                 </div>
@@ -8562,69 +8562,12 @@
         function renderSubRecordsTab() {
             const bar = document.getElementById('subRecordsBar');
             if (!bar) return;
-            if (!state.currentRecord) {
-                bar.innerHTML = '';
-                return;
+            bar.innerHTML = '';
+            bar.classList.add('hidden');
+            if (bar.parentElement) {
+                bar.parentElement.classList.add('hidden');
             }
-
-            const current = state.currentRecord;
-            const parentId = (current.IsSubRecord && current.ParentRecordId)
-                ? String(current.ParentRecordId)
-                : String(current.Id);
-            const parentRecord = state.allData.find(d => String(d.Id) === parentId || ((d.admin_recordidno && d.admin_recordidno === (current.admin_recordidno || current.RecordIdNo)) && !d.IsSubRecord) || ((d.RecordIdNo && d.RecordIdNo === (current.RecordIdNo || current.admin_recordidno)) && !d.IsSubRecord)) || current;
-            const subRecords = getSubRecords(parentId);
-            const count = subRecords.length;
-
-            const isCurrentParent = String(current.Id) === String(parentRecord.Id);
-
-            let html = `
-                <div class="flex items-center gap-2 flex-wrap w-full pb-2 border-b border-slate-100">
-                    <div class="flex items-center gap-2">
-                        <span class="w-5 h-5 rounded bg-amber-100/80 text-[var(--orange-dark)] flex items-center justify-center shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect width="18" height="18" x="3" y="3" rx="2"/>
-                                <path d="M9 3v18"/>
-                            </svg>
-                        </span>
-                        <span class="text-[12.5px] font-bold text-[var(--ink)] whitespace-nowrap">
-                            Sub Records (${count}):
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-1.5 flex-wrap flex-1" id="subRecordsList">
-            `;
-
-            if (count > 0 || current.IsSubRecord) {
-                const parentActive = isCurrentParent;
-                html += `
-                    <button type="button" onclick="openEditModal('${escapeHtml(String(parentRecord.Id))}')"
-                        title="View Main Record (${escapeHtml(parentRecord.Title)})"
-                        class="ui-transition pressable px-2.5 py-1 rounded-lg text-[12px] font-semibold flex items-center gap-1 ${parentActive ? 'bg-[var(--orange)] text-[var(--ink)] font-bold shadow-xs border border-[var(--orange-dark)]' : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3D6] hover:text-[var(--ink)]'}">
-                        <span>Main</span>
-                    </button>
-                `;
-            }
-
-            if (count === 0 && !current.IsSubRecord) {
-                html += `<span class="text-[12px] text-[var(--muted)] italic">No sub-records</span>`;
-            } else {
-                subRecords.forEach(sub => {
-                    const isSubActive = String(current.Id) === String(sub.Id);
-                    html += `
-                        <button type="button" onclick="openEditModal('${escapeHtml(String(sub.Id))}')"
-                            title="Open ${escapeHtml(sub.SubNumber || '')}"
-                            class="ui-transition pressable px-2.5 py-1 rounded-lg text-[12px] font-semibold ${isSubActive ? 'bg-[var(--orange)] text-[var(--ink)] font-bold shadow-xs border border-[var(--orange-dark)]' : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3D6] hover:text-[var(--ink)]'}">
-                            ${escapeHtml(sub.SubNumber || 'Sub')}
-                        </button>
-                    `;
-                });
-            }
-
-            html += `
-                    </div>
-                </div>
-            `;
-
-            bar.innerHTML = html;
+            return;
         }
 
         function persistCurrentRecord(closeAfter, skipStageValidation = false) {

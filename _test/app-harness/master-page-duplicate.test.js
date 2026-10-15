@@ -110,13 +110,22 @@ const mockWebApi = {
   }
 };
 
+const storageStore = new Map();
+const mockLocalStorage = {
+  getItem: (k) => (storageStore.has(k) ? storageStore.get(k) : null),
+  setItem: (k, v) => storageStore.set(k, String(v)),
+  removeItem: (k) => storageStore.delete(k),
+  clear: () => storageStore.clear()
+};
+
 const sandbox = {
   console,
   setTimeout, clearTimeout,
   TextEncoder, Uint8Array,
+  localStorage: mockLocalStorage,
   window: {
     addEventListener() {},
-    localStorage: { getItem: () => null, setItem: () => {} },
+    localStorage: mockLocalStorage,
     history: { pushState: () => {} },
     location: { search: "" }
   },
@@ -174,6 +183,8 @@ EXPORTS.closeDuplicateModal = typeof closeDuplicateModal === 'function' ? closeD
 EXPORTS.confirmDuplicateRecord = typeof confirmDuplicateRecord === 'function' ? confirmDuplicateRecord : undefined;
 EXPORTS.openEditModal = typeof openEditModal === 'function' ? openEditModal : undefined;
 EXPORTS.persistRecordToDataverse = typeof persistRecordToDataverse === 'function' ? persistRecordToDataverse : undefined;
+EXPORTS.openColumnModal = typeof openColumnModal === 'function' ? openColumnModal : undefined;
+EXPORTS.loadColumnPreferences = typeof loadColumnPreferences === 'function' ? loadColumnPreferences : undefined;
 `;
 
 try {
@@ -187,10 +198,28 @@ try {
 const X = sandbox.EXPORTS;
 
 // 3. COLUMN_CONFIG verification
-ok("COLUMN_CONFIG includes SubNumber column", !!X.COLUMN_CONFIG.find(c => c.key === "SubNumber"));
+const subNumCol = X.COLUMN_CONFIG.find(c => c.key === "SubNumber");
+ok("COLUMN_CONFIG includes SubNumber column", !!subNumCol);
 const titleIdx = X.COLUMN_CONFIG.findIndex(c => c.key === "Title");
 const subNumIdx = X.COLUMN_CONFIG.findIndex(c => c.key === "SubNumber");
 ok("SubNumber column is placed after Title in COLUMN_CONFIG", subNumIdx === titleIdx + 1);
+ok("SubNumber column is hidden by default in COLUMN_CONFIG (visible: false)", subNumCol && subNumCol.visible === false);
+ok("SubNumber column has hidden: true in COLUMN_CONFIG", subNumCol && subNumCol.hidden === true);
+
+// Verify Sub Number is excluded from Column selection modal
+if (typeof X.openColumnModal === "function") {
+  const container = getMockElement("columnCheckboxContainer");
+  X.openColumnModal();
+  ok("Column selection modal does NOT render Sub Number checkbox", !container.innerHTML.includes('data-key="SubNumber"') && !container.innerHTML.includes('Sub Number'));
+}
+
+// Verify loadColumnPreferences forces SubNumber to stay hidden even if saved in localStorage
+if (typeof X.loadColumnPreferences === "function") {
+  sandbox.localStorage.setItem("master_list_column_config", JSON.stringify({ SubNumber: true, Title: true }));
+  X.loadColumnPreferences();
+  const loadedSubNumCol = X.COLUMN_CONFIG.find(c => c.key === "SubNumber");
+  ok("loadColumnPreferences keeps SubNumber visible: false even when saved in localStorage", loadedSubNumCol && loadedSubNumCol.visible === false);
+}
 
 // 4. Mappings verification
 ok("FIELD_ID_TO_RECORD_KEY maps edit-subnumber to SubNumber", X.FIELD_ID_TO_RECORD_KEY["edit-subnumber"] === "SubNumber");

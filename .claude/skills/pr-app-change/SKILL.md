@@ -146,7 +146,7 @@ Apply only the ones the change actually touches.
 
 Both of these, every time, without being asked:
 
-**1. Bump `APP_VERSION`** (`PR Assistant App.html:675`) — exactly one segment,
+**1. Bump `APP_VERSION`** (`PR Assistant App.html:675` or `Master page_21-Sep-2026.html`) — exactly one segment,
 reset everything to its right:
 - **MAJOR** — a redesign, or reshaping how an existing page/flow works
 - **MINOR** — a new column, field, section or page; capability added

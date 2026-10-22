@@ -203,22 +203,22 @@ ok("COLUMN_CONFIG includes SubNumber column", !!subNumCol);
 const titleIdx = X.COLUMN_CONFIG.findIndex(c => c.key === "Title");
 const subNumIdx = X.COLUMN_CONFIG.findIndex(c => c.key === "SubNumber");
 ok("SubNumber column is placed after Title in COLUMN_CONFIG", subNumIdx === titleIdx + 1);
-ok("SubNumber column is hidden by default in COLUMN_CONFIG (visible: false)", subNumCol && subNumCol.visible === false);
-ok("SubNumber column has hidden: true in COLUMN_CONFIG", subNumCol && subNumCol.hidden === true);
+ok("SubNumber column is not visible by default in COLUMN_CONFIG (visible: false)", subNumCol && subNumCol.visible === false);
+ok("SubNumber column does not have hidden: true in COLUMN_CONFIG", subNumCol && !subNumCol.hidden);
 
-// Verify Sub Number is excluded from Column selection modal
+// Verify Sub Number is included in Column selection modal so user can choose it
 if (typeof X.openColumnModal === "function") {
   const container = getMockElement("columnCheckboxContainer");
   X.openColumnModal();
-  ok("Column selection modal does NOT render Sub Number checkbox", !container.innerHTML.includes('data-key="SubNumber"') && !container.innerHTML.includes('Sub Number'));
+  ok("Column selection modal renders Sub Number checkbox", container.innerHTML.includes('data-key="SubNumber"') && container.innerHTML.includes('Sub Number'));
 }
 
-// Verify loadColumnPreferences forces SubNumber to stay hidden even if saved in localStorage
+// Verify loadColumnPreferences allows SubNumber to become visible when saved in localStorage
 if (typeof X.loadColumnPreferences === "function") {
   sandbox.localStorage.setItem("master_list_column_config", JSON.stringify({ SubNumber: true, Title: true }));
   X.loadColumnPreferences();
   const loadedSubNumCol = X.COLUMN_CONFIG.find(c => c.key === "SubNumber");
-  ok("loadColumnPreferences keeps SubNumber visible: false even when saved in localStorage", loadedSubNumCol && loadedSubNumCol.visible === false);
+  ok("loadColumnPreferences sets SubNumber visible: true when saved in localStorage", loadedSubNumCol && loadedSubNumCol.visible === true);
 }
 
 // 4. Mappings verification

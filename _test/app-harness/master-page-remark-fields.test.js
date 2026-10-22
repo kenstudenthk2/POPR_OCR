@@ -47,6 +47,8 @@ ok("Remark auto-match hint includes {Contract Start Date}", HTML.includes('{Cont
 ok("Remark auto-match hint includes {Customer Address}", HTML.includes('{Customer Address}'));
 ok("Remark auto-match hint includes {IPT Unit Mgr}", HTML.includes('{IPT Unit Mgr}'));
 ok("Remark auto-match hint includes {Contract No. / Agreement No.}", HTML.includes('{Contract No. / Agreement No.}'));
+ok("Remark input #edit-remarks exists", HTML.includes('id="edit-remarks"'));
+ok("Only one Remark field exists without separate last-remark-container", !HTML.includes('id="last-remark-container"'));
 
 // 2. JavaScript script execution & data mappings
 const scriptMatch = HTML.match(/<script>([\s\S]*?)<\/script>[\s\S]*?<\/body>/);
@@ -82,7 +84,9 @@ function createMockEl(id, tagName = "input") {
     setAttribute: () => {},
     removeAttribute: () => {},
     closest: () => null,
-    addEventListener: () => {}
+    addEventListener: () => {},
+    appendChild: () => {},
+    remove: () => {}
   };
 }
 
@@ -94,7 +98,7 @@ const sandbox = {
     addEventListener: () => {},
     localStorage: { getItem: () => null, setItem: () => {} },
     history: { pushState: () => {} },
-    location: { search: "" },
+    location: { search: "", href: "http://localhost/test" },
     Xrm: { WebApi: mockWebApi }
   },
   parent: {
@@ -109,10 +113,11 @@ const sandbox = {
       }
       return domStore[id];
     },
+    createElement: (tag) => createMockEl("created-" + tag, tag),
     querySelector: () => null,
     querySelectorAll: () => []
   },
-  location: { search: "" },
+  location: { search: "", href: "http://localhost/test" },
   history: { pushState: () => {} },
   navigator: { clipboard: { writeText: async () => {} } },
   Set,
@@ -126,6 +131,8 @@ const sandbox = {
   RegExp,
   Object,
   JSON,
+  URL,
+  URLSearchParams,
   EXPORTS: {}
 };
 sandbox.globalThis = sandbox;
@@ -137,6 +144,9 @@ EXPORTS.FIELD_ID_TO_RECORD_KEY = FIELD_ID_TO_RECORD_KEY;
 EXPORTS.interpolateRemark = interpolateRemark;
 EXPORTS.getRemarkFields = getRemarkFields;
 EXPORTS.persistRecordToDataverse = persistRecordToDataverse;
+EXPORTS.getLatestRemarkFromLogsOrItem = getLatestRemarkFromLogsOrItem;
+EXPORTS.prefillLastRemarkInput = prefillLastRemarkInput;
+EXPORTS.saveRecord = saveRecord;
 EXPORTS.state = state;
 `;
 
@@ -272,6 +282,67 @@ eq("Interpolates from currentRecord dataverse attributes",
     eq("payload has admin_contractstartdate", lastUpdate.payload.admin_contractstartdate, "2026-01-01");
     eq("payload has admin_contractenddate", lastUpdate.payload.admin_contractenddate, "2026-12-31");
     eq("payload has admin_quotationno", lastUpdate.payload.admin_quotationno, "Q-12345");
+  }
+
+  // 7. Test getLatestRemarkFromLogsOrItem & prefillLastRemarkInput
+  eq("getLatestRemarkFromLogsOrItem returns empty string for null item", sandbox.EXPORTS.getLatestRemarkFromLogsOrItem(null), "");
+
+  const itemWithRemark = {
+    Id: "REC-REMARK-1",
+    Remarks: "Vendor quoted HK$ 50,000 for maintenance",
+  };
+  eq("Returns item.Remarks when no audit log", sandbox.EXPORTS.getLatestRemarkFromLogsOrItem(itemWithRemark), "Vendor quoted HK$ 50,000 for maintenance");
+
+  const auditLogs = [
+    {
+      admin_caserecordid: "REC-REMARK-2",
+      admin_modifyfield: "Remark",
+      admin_newvalue: "Newest remark from audit log",
+      admin_modifyby: "Lee, Mandy MY",
+      admin_whenmodify: "2026-10-16T12:00:00Z"
+    }
+  ];
+  const itemWithAudit = {
+    Id: "REC-REMARK-2",
+    Remarks: "Old remark"
+  };
+  eq("Prefers audit log remark over stale item.Remarks", sandbox.EXPORTS.getLatestRemarkFromLogsOrItem(itemWithAudit, auditLogs), "Newest remark from audit log");
+
+  // Test prefillLastRemarkInput into #edit-remarks
+  const editRemarksEl = domStore["edit-remarks"] || createMockEl("edit-remarks", "textarea");
+  domStore["edit-remarks"] = editRemarksEl;
+  await sandbox.EXPORTS.prefillLastRemarkInput(itemWithAudit, auditLogs);
+  eq("#edit-remarks value prefilled with latest remark", editRemarksEl.value, "Newest remark from audit log");
+
+  // 8. Test saveRecord creates audit log with admin_modifyfield = 'Remark' and empty admin_existingvalue
+  sandbox.EXPORTS.state.currentRecord = { ...itemWithAudit, Remarks: "Updated remark after discussion with vendor" };
+  sandbox.EXPORTS.state.allData = [sandbox.EXPORTS.state.currentRecord];
+  const editIdEl = domStore["edit-id"] || createMockEl("edit-id");
+  editIdEl.value = itemWithAudit.Id;
+  domStore["edit-id"] = editIdEl;
+
+  sandbox.EXPORTS.state.originalRecordSnapshot = {
+    Id: itemWithAudit.Id,
+    Remarks: "Newest remark from audit log",
+    Title: "REC-REMARK-2"
+  };
+  editRemarksEl.value = "Updated remark after discussion with vendor";
+
+  // Mock createRecord in WebApi for audit log
+  const createdAuditRecords = [];
+  mockWebApi.createRecord = async (entity, payload) => {
+    createdAuditRecords.push({ entity, payload });
+    return { id: "audit-rec-1" };
+  };
+
+  await sandbox.EXPORTS.saveRecord();
+
+  const remarkAuditLog = createdAuditRecords.find(r => r.entity === "admin_btb_audit_log" && r.payload.admin_modifyfield === "Remark");
+  ok("Audit log entry created for Remark change", !!remarkAuditLog);
+  if (remarkAuditLog) {
+    eq("Audit log modifyfield is 'Remark'", remarkAuditLog.payload.admin_modifyfield, "Remark");
+    eq("Audit log existingvalue is empty string", remarkAuditLog.payload.admin_existingvalue, "");
+    eq("Audit log newvalue matches user updated remark", remarkAuditLog.payload.admin_newvalue, "Updated remark after discussion with vendor");
   }
 
   if (failures > 0) {

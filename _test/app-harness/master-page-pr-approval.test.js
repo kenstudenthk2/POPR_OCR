@@ -2,7 +2,7 @@
    ----------------------------------------------------------------------------------------------------------------
    Verifies:
    1. Duplication of red warning text and "Send Approval Request" button in "PR Approval Status" section.
-   2. "Send Approval Request" button in "PR Approval Status" has no function (no onclick).
+   2. "Send Approval Request" button in "PR Approval Status" calls the PR approval handler.
    3. Below the button, approval information for AVP, VP, SVP, MD is rendered in order AVP > VP > SVP > MD when columns have value.
    4. Dataverse columns mapping in DV_COLUMN_MAP:
       - admin_avpapprovalname, admin_avpapproveddatetime
@@ -52,7 +52,7 @@ ok("Red text has bold and red styling", prSectionHtml.includes('text-[var(--red)
 ok("btn-send-pr-approval button exists in PR Approval Section", prSectionHtml.includes('id="btn-send-pr-approval"'));
 const btnMatch = prSectionHtml.match(/<button[^>]*id="btn-send-pr-approval"[^>]*>([\s\S]*?)<\/button>/);
 ok("Button has text 'Send Approval Request'", btnMatch && btnMatch[1].includes("Send Approval Request"));
-ok("Button has no onclick handler", btnMatch && !btnMatch[0].includes("onclick"));
+ok("Button calls PR approval handler", btnMatch && btnMatch[0].includes('onclick="sendPRApprovalRequest()"'));
 
 // Check roles approval info container and element IDs
 ok("pr-roles-approval-info container exists", prSectionHtml.includes('id="pr-roles-approval-info"'));
@@ -77,6 +77,13 @@ ok("AVP precedes VP", avpPos !== -1 && vpPos !== -1 && avpPos < vpPos);
 ok("VP precedes SVP", vpPos !== -1 && svpPos !== -1 && vpPos < svpPos);
 ok("SVP precedes MD", svpPos !== -1 && mdPos !== -1 && svpPos < mdPos);
 
+// Check MD approval input fields in PR Approval Status
+ok("pr-md-approval-fields container exists", prSectionHtml.includes('id="pr-md-approval-fields"'));
+ok("edit-md-name dropdown exists", prSectionHtml.includes('id="edit-md-name"'));
+ok("edit-md-name has option 'Coming Soon'", prSectionHtml.includes('Coming Soon'));
+ok("edit-md-approve-date input exists", prSectionHtml.includes('id="edit-md-approve-date"'));
+ok("edit-md-approve-date is a date input", /<input[^>]*type="date"[^>]*id="edit-md-approve-date"/.test(prSectionHtml) || /<input[^>]*id="edit-md-approve-date"[^>]*type="date"/.test(prSectionHtml));
+
 // 2. Evaluate script and check mappings
 const scriptMatch = HTML.match(/<script>([\s\S]*?)<\/script>[\s\S]*?<\/body>/);
 if (!scriptMatch) {
@@ -88,7 +95,8 @@ const scriptCode = scriptMatch[1] + `
 ;this.EXPORTS = {
   DV_COLUMN_MAP,
   FIELD_ID_TO_RECORD_KEY,
-  updatePRApprovalRolesUI: typeof updatePRApprovalRolesUI !== 'undefined' ? updatePRApprovalRolesUI : undefined
+  updatePRApprovalRolesUI: typeof updatePRApprovalRolesUI !== 'undefined' ? updatePRApprovalRolesUI : undefined,
+  updateMDApprovalUI: typeof updateMDApprovalUI !== 'undefined' ? updateMDApprovalUI : undefined
 };
 `;
 
@@ -234,6 +242,44 @@ if (typeof sandbox.updatePRApprovalRolesUI === "function") {
   ok("AVP container visible with name only", !getMockElement("pr-approval-info-avp").classList.contains("hidden"));
   ok("AVP name row visible", !getMockElement("pr-approval-avp-name-row").classList.contains("hidden"));
   ok("AVP date row hidden when empty", getMockElement("pr-approval-avp-date-row").classList.contains("hidden"));
+}
+
+// Check FIELD_ID_TO_RECORD_KEY mappings for MD approval fields
+const FKEY = sandbox.EXPORTS.FIELD_ID_TO_RECORD_KEY;
+ok("FIELD_ID_TO_RECORD_KEY maps edit-md-name to MDApprovalName", FKEY && FKEY["edit-md-name"] === "MDApprovalName");
+ok("FIELD_ID_TO_RECORD_KEY maps edit-md-approve-date to MDApprovedDateTime", FKEY && FKEY["edit-md-approve-date"] === "MDApprovedDateTime");
+
+// Check updateMDApprovalUI function
+ok("updateMDApprovalUI is defined", typeof sandbox.EXPORTS.updateMDApprovalUI === "function");
+if (typeof sandbox.EXPORTS.updateMDApprovalUI === "function") {
+  const btn = getMockElement("btn-send-pr-approval");
+  const warn = getMockElement("pr-approval-send-warning");
+  const mdFields = getMockElement("pr-md-approval-fields");
+  const mdName = getMockElement("edit-md-name");
+  const mdDate = getMockElement("edit-md-approve-date");
+
+  // Initial state: reset
+  btn.classList.remove("hidden");
+  warn.classList.remove("hidden");
+  mdFields.classList.add("hidden");
+  mdName.value = "";
+  mdDate.value = "";
+
+  // 1. When approval level is MD
+  sandbox.EXPORTS.updateMDApprovalUI("MD");
+  ok("Approval Level MD: btn-send-pr-approval is hidden", btn.classList.contains("hidden"));
+  ok("Approval Level MD: pr-approval-send-warning is hidden", warn.classList.contains("hidden"));
+  ok("Approval Level MD: pr-md-approval-fields is visible", !mdFields.classList.contains("hidden"));
+  eq("Approval Level MD: edit-md-name defaults to Coming Soon", mdName.value, "Coming Soon");
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  eq("Approval Level MD: edit-md-approve-date defaults to today", mdDate.value, todayStr);
+
+  // 2. When approval level is non-MD (e.g. VP)
+  sandbox.EXPORTS.updateMDApprovalUI("VP");
+  ok("Approval Level VP: btn-send-pr-approval is visible", !btn.classList.contains("hidden"));
+  ok("Approval Level VP: pr-approval-send-warning is visible", !warn.classList.contains("hidden"));
+  ok("Approval Level VP: pr-md-approval-fields is hidden", mdFields.classList.contains("hidden"));
 }
 
 if (failures > 0) {

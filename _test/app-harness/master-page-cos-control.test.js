@@ -56,6 +56,15 @@ ok("Summary display elements exist",
   HTML.includes('id="cos-file-name"') &&
   HTML.includes('id="cos-matched-rows-count"'));
 
+ok("Modal has Charge CCC filter button",
+  HTML.includes('id="cos-filter-charge-ccc-btn"'));
+
+ok("Modal has Charge CCC options container",
+  HTML.includes('id="cos-filter-charge-ccc-options"'));
+
+ok("Modal has Issued By dropdown select",
+  HTML.includes('id="cos-filter-issued-by"'));
+
 ok("Generate button exists with handler",
   HTML.includes('id="btn-generate-cos"') && HTML.includes('onclick="generateCosControlFile()"'));
 
@@ -154,6 +163,14 @@ EXPORTS.ENGINEERING_TEAM_PRODUCT_LINE_CONFIG = ENGINEERING_TEAM_PRODUCT_LINE_CON
 EXPORTS.DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS = DEMO_ENGINEERING_TEAM_PRODUCT_LINE_ROWS;
 EXPORTS.fetchEngineeringTeamProductLineRows = fetchEngineeringTeamProductLineRows;
 EXPORTS.lookupEngineeringTeamProductLine = lookupEngineeringTeamProductLine;
+EXPORTS.getRecordChargeCcc = getRecordChargeCcc;
+EXPORTS.getRecordIssuedBy = getRecordIssuedBy;
+EXPORTS.refreshCosFilterOptions = refreshCosFilterOptions;
+EXPORTS.handleCosCccCheckboxChange = handleCosCccCheckboxChange;
+EXPORTS.selectAllCosCcc = selectAllCosCcc;
+EXPORTS.handleCosIssuedByChange = handleCosIssuedByChange;
+EXPORTS.toggleCosCccDropdown = toggleCosCccDropdown;
+EXPORTS.closeCosCccDropdown = closeCosCccDropdown;
 `;
 
 try {
@@ -566,6 +583,144 @@ ok("data row carries Vendor Name", sheetXml.includes("Nice Systems BV"));
   eq("fetchEngineeringTeamProductLineRows queries admin_btb_engineering_team_product_line", queriedEntity, "admin_btb_engineering_team_product_line");
   ok("query includes $select", queriedQuery && queriedQuery.includes("$select="));
   eq("returns fetched entities", fetched.length, 3);
+
+  // 11. Test Charge CCC multi-select and Issued By dropdown filters
+  // 11.1 Helper extraction checks
+  eq("getRecordChargeCcc extracts ChargeCCC", X.getRecordChargeCcc({ ChargeCCC: "C716" }), "C716");
+  eq("getRecordChargeCcc extracts admin_chargex0020ccc", X.getRecordChargeCcc({ admin_chargex0020ccc: "CD37" }), "CD37");
+  eq("getRecordChargeCcc trims whitespace", X.getRecordChargeCcc({ ChargeCCC: " C600 " }), "C600");
+  eq("getRecordChargeCcc empty returns empty string", X.getRecordChargeCcc({}), "");
+
+  eq("getRecordIssuedBy extracts IssueBy", X.getRecordIssuedBy({ IssueBy: "Alice Wong" }), "Alice Wong");
+  eq("getRecordIssuedBy extracts admin_issuex0020by", X.getRecordIssuedBy({ admin_issuex0020by: "Bob Lee" }), "Bob Lee");
+  eq("getRecordIssuedBy trims whitespace", X.getRecordIssuedBy({ IssueBy: " Charlie " }), "Charlie");
+  eq("getRecordIssuedBy empty returns empty string", X.getRecordIssuedBy({}), "");
+
+  // 11.2 Period isolation for options
+  // Create test records across two months: October 2026 vs November 2026
+  const octRec1 = { ...masterRecord, Id: "OCT-1", Title: "OCT-1", RecordDate: "2026-10-05", ChargeCCC: "C716", IssueBy: "Alice", ProcessStatus: "Complete", SBReportGenerated: "" };
+  const octRec2 = { ...masterRecord, Id: "OCT-2", Title: "OCT-2", RecordDate: "2026-10-15", ChargeCCC: "CD37", IssueBy: "Bob", ProcessStatus: "Complete", SBReportGenerated: "" };
+  const octRec3 = { ...masterRecord, Id: "OCT-3", Title: "OCT-3", RecordDate: "2026-10-25", ChargeCCC: "C716", IssueBy: "Bob", ProcessStatus: "Complete", SBReportGenerated: "" };
+  const novRec1 = { ...masterRecord, Id: "NOV-1", Title: "NOV-1", RecordDate: "2026-11-02", ChargeCCC: "C556", IssueBy: "Charlie", ProcessStatus: "Complete", SBReportGenerated: "" };
+
+  X.state.allData = [octRec1, octRec2, octRec3, novRec1];
+  X.handleCosMonthChange("2026-10");
+
+  eq("October has 3 records", X.cosModalState.filteredRecords.length, 3);
+  eq("October available CCCs are C716 and CD37", X.cosModalState.availableCccs, ["C716", "CD37"]);
+  eq("October available Issued Bys are Alice and Bob", X.cosModalState.availableIssuedBys, ["Alice", "Bob"]);
+  ok("November CCC C556 is NOT in October available CCCs", !X.cosModalState.availableCccs.includes("C556"));
+  ok("November Issued By Charlie is NOT in October available Issued Bys", !X.cosModalState.availableIssuedBys.includes("Charlie"));
+
+  // When changing month to November:
+  X.handleCosMonthChange("2026-11");
+  eq("November has 1 record", X.cosModalState.filteredRecords.length, 1);
+  eq("November available CCCs are only C556", X.cosModalState.availableCccs, ["C556"]);
+  eq("November available Issued Bys are only Charlie", X.cosModalState.availableIssuedBys, ["Charlie"]);
+  ok("October CCC C716 is NOT in November available CCCs", !X.cosModalState.availableCccs.includes("C716"));
+
+  // 11.3 Multi-select Charge CCC filtering
+  // Switch back to October with multiple CCCs
+  X.handleCosMonthChange("2026-10");
+  eq("All CCCs selected by default", X.cosModalState.allCccsSelected, true);
+  eq("Filtered records count is 3 when all selected", X.cosModalState.filteredRecords.length, 3);
+
+  // Filter to C716 only
+  X.handleCosCccCheckboxChange({ value: "CD37", checked: false });
+  eq("Only C716 selected", [...X.cosModalState.selectedCccs], ["C716"]);
+  eq("allCccsSelected is false", X.cosModalState.allCccsSelected, false);
+  eq("filteredRecords has 2 records with C716", X.cosModalState.filteredRecords.length, 2);
+  ok("OCT-1 is in filteredRecords", X.cosModalState.filteredRecords.some(r => r.Id === "OCT-1"));
+  ok("OCT-3 is in filteredRecords", X.cosModalState.filteredRecords.some(r => r.Id === "OCT-3"));
+  ok("OCT-2 is NOT in filteredRecords", !X.cosModalState.filteredRecords.some(r => r.Id === "OCT-2"));
+
+  // Select both C716 and CD37
+  X.handleCosCccCheckboxChange({ value: "CD37", checked: true });
+  eq("allCccsSelected is true when all checked again", X.cosModalState.allCccsSelected, true);
+  eq("filteredRecords has all 3 records", X.cosModalState.filteredRecords.length, 3);
+
+  // Deselect all / clear
+  X.selectAllCosCcc(false);
+  eq("selectedCccs is empty after clear", X.cosModalState.selectedCccs.size, 0);
+  eq("filteredRecords has 0 records when none selected", X.cosModalState.filteredRecords.length, 0);
+
+  // Select all via helper
+  X.selectAllCosCcc(true);
+  eq("selectedCccs has all 2 CCCs", X.cosModalState.selectedCccs.size, 2);
+  eq("allCccsSelected is true", X.cosModalState.allCccsSelected, true);
+  eq("filteredRecords has 3 records", X.cosModalState.filteredRecords.length, 3);
+
+  // 11.4 Single-select Issued By filtering
+  X.handleCosIssuedByChange("Alice");
+  eq("selectedIssuedBy is Alice", X.cosModalState.selectedIssuedBy, "Alice");
+  eq("filteredRecords has 1 record for Alice", X.cosModalState.filteredRecords.length, 1);
+  eq("matched record is OCT-1", X.cosModalState.filteredRecords[0].Id, "OCT-1");
+
+  X.handleCosIssuedByChange("Bob");
+  eq("filteredRecords has 2 records for Bob", X.cosModalState.filteredRecords.length, 2);
+  ok("OCT-2 is in filteredRecords", X.cosModalState.filteredRecords.some(r => r.Id === "OCT-2"));
+  ok("OCT-3 is in filteredRecords", X.cosModalState.filteredRecords.some(r => r.Id === "OCT-3"));
+
+  // Reset Issued By to All
+  X.handleCosIssuedByChange("");
+  eq("filteredRecords has all 3 records when Issued By reset", X.cosModalState.filteredRecords.length, 3);
+
+  // 11.5 Combined filtering (Charge CCC multi-select + Issued By)
+  // Charge CCC = C716 (OCT-1, OCT-3), Issued By = Bob (OCT-2, OCT-3)
+  // Intersection should be OCT-3 only
+  X.handleCosCccCheckboxChange({ value: "CD37", checked: false });
+  X.handleCosIssuedByChange("Bob");
+  eq("Combined filter matches exactly 1 record", X.cosModalState.filteredRecords.length, 1);
+  eq("Combined matched record is OCT-3", X.cosModalState.filteredRecords[0].Id, "OCT-3");
+
+  // Reset both filters
+  X.selectAllCosCcc(true);
+  X.handleCosIssuedByChange("");
+  eq("Both reset restores all 3 records", X.cosModalState.filteredRecords.length, 3);
+
+  // 11.6 Fallback column names (admin_chargex0020ccc and admin_issuex0020by)
+  const dvKeyRec = {
+    ...masterRecord,
+    Id: "OCT-DV",
+    Title: "OCT-DV",
+    RecordDate: "2026-10-18",
+    ChargeCCC: undefined,
+    admin_chargex0020ccc: "C665",
+    IssueBy: undefined,
+    admin_issuex0020by: "David",
+    ProcessStatus: "Complete",
+    SBReportGenerated: ""
+  };
+  X.state.allData.push(dvKeyRec);
+  X.handleCosMonthChange("2026-10");
+  ok("C665 from admin_chargex0020ccc is in available CCCs", X.cosModalState.availableCccs.includes("C665"));
+  ok("David from admin_issuex0020by is in available Issued Bys", X.cosModalState.availableIssuedBys.includes("David"));
+
+  X.handleCosIssuedByChange("David");
+  eq("Filtering by David matches OCT-DV", X.cosModalState.filteredRecords.length, 1);
+  eq("Matched record is OCT-DV", X.cosModalState.filteredRecords[0].Id, "OCT-DV");
+
+  // 11.7 Blank CCC / Blank Issued By handling
+  const blankRec = {
+    ...masterRecord,
+    Id: "OCT-BLANK",
+    Title: "OCT-BLANK",
+    RecordDate: "2026-10-20",
+    ChargeCCC: "",
+    admin_chargex0020ccc: "",
+    IssueBy: "",
+    admin_issuex0020by: "",
+    ProcessStatus: "Complete",
+    SBReportGenerated: ""
+  };
+  X.state.allData.push(blankRec);
+  X.handleCosMonthChange("2026-10");
+  ok("availableCccs includes __BLANK__", X.cosModalState.availableCccs.includes("__BLANK__"));
+  ok("availableIssuedBys includes __BLANK__", X.cosModalState.availableIssuedBys.includes("__BLANK__"));
+
+  X.handleCosIssuedByChange("__BLANK__");
+  eq("Filtering by __BLANK__ Issued By matches OCT-BLANK", X.cosModalState.filteredRecords.length, 1);
+  eq("Matched record is OCT-BLANK", X.cosModalState.filteredRecords[0].Id, "OCT-BLANK");
 
   if (failures > 0) {
     console.error(`\nFAILED: ${failures} assertions failed.`);

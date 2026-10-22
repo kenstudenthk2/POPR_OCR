@@ -1,5 +1,15 @@
 # PR Assistant — repo notes for future changes
 
+- Before completing a user-visible Master page change, automatically bump
+  `APP_VERSION` once per logical change following `CLAUDE.md`: MAJOR for a
+  redesign/restructured flow, MINOR for added capability, PATCH for a fix.
+  Reset segments to the right to zero and synchronize the initial header badge.
+
+- For the PR approval webhook change, target `Master page_21-Sep-2026.html`,
+  not `Master page_21-Sep-2026(Apple).html`. Follow the user's latest confirmed
+  filename when similarly named page variants exist; do not propagate changes
+  between variants without an explicit request.
+
 ## Git: two diverged branches, not yet reconciled
 
 `origin/main` and the local work in this repo are two independently-developed

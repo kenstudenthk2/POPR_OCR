@@ -98,6 +98,7 @@ CODE_ROW_IDS.forEach(id => {
 
 eq(FEATURES.verifyLisCodes, false, 'verifyLisCodes is off');
 eq(FEATURES.prAmountCurrency, true, 'PR Amount currency format is on for dev side');
+eq(FEATURES.saveToMasterDocViewer, true, 'Save to Master Document Viewer flow is on for dev side');
 
 eq(VERIFY_TABLE_ROWS.length, VERIFY_TABLE_ROWS_ALL.length,
   'every remaining row reaches the table');

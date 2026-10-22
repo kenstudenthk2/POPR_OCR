@@ -798,6 +798,10 @@ const FEATURES = {
   prAmountCurrency: !IS_ADMIN,
   // Case Type dropdown on To Supplier Remark reading admin_btb_supplier_remark (dev side only).
   supplierRemarkLookup: !IS_ADMIN,
+  // Document Workbench Admin picker on dev side only (user prompt 2026-10-14).
+  workbenchAdminPicker: !IS_ADMIN,
+  // When Save to Master clicked on LIS & Remark, show Document Viewer with multi-radio selector (dev side only).
+  saveToMasterDocViewer: !IS_ADMIN,
 };
 
 /* ---------- Mock data ---------- */
@@ -911,7 +915,7 @@ const OUR_COMPANY = {
 //            already there.
 //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it
 //            isn't; no new capability.
-const APP_VERSION = "5.28.0";
+const APP_VERSION = "5.32.1";
 
 
 // Matched against a normName()-normalised value, which has already uppercased
@@ -3280,7 +3284,7 @@ function btbTypeOf(value) {
 // admin_itemno at Start. If atqNo is omitted or "", it falls back to
 // fieldsSnapshot's extracted atqRefNo.
 function buildLisStartPayload(fieldsSnapshot, recordId, uidValue, btbType, createdOn, atqNo, itemNo) {
-  const getVal = (key) => (fieldsSnapshot[key] && fieldsSnapshot[key].value) ? String(fieldsSnapshot[key].value).trim() : "";
+  const getVal = (key) => (fieldsSnapshot[key] && fieldsSnapshot[key].value) ? String(fieldsSnapshot[key].value).trim() : (typeof fieldsSnapshot[key] === "string" ? fieldsSnapshot[key].trim() : "");
   const resolvedAtqNo = (atqNo != null && String(atqNo).trim() !== "") ? String(atqNo).trim() : getVal("atqRefNo");
   return mapPayload(SCHEMA.lis.write, {
     recordId:   recordId,
@@ -3288,6 +3292,7 @@ function buildLisStartPayload(fieldsSnapshot, recordId, uidValue, btbType, creat
     iptUnitMgr: getVal("iptUnitMgr"),
     uid:        (uidValue || "").trim(),
     btbType:    (btbType || "").trim(),
+    issueBy:    getVal("issueBy") || getVal("processadmin"),
     // Rec'd Date = the day the record was created (2026-09-28, BOTH sides --
     // admin_recx0027dx0020datex0020 on dev, ...x00204 on admin, and both were
     // already in `write`, so nothing new is transcribed here).
@@ -3305,6 +3310,227 @@ function buildLisStartPayload(fieldsSnapshot, recordId, uidValue, btbType, creat
     itemNo:     itemNo != null ? String(itemNo).trim() : "",
   });
 }
+
+// Trims the value after "|" and strips any internal or surrounding whitespace:
+// e.g. "i:0#.f|membership|02007572 @corphq.hk.pccw.com" -> "02007572@corphq.hk.pccw.com"
+function extractCreatedByName(text) {
+  if (!text) return "";
+  const s = String(text).trim();
+  const parts = s.split("|");
+  const candidate = parts[parts.length - 1];
+  return candidate.replace(/\s+/g, "").trim();
+}
+
+async function retrieveRecordCreatedBy(entityName, targetId, webApi) {
+  const cleanId = String(targetId).replace(/[{}]/g, "");
+  let rec = null;
+  if (typeof webApi.retrieveRecord === "function") {
+    try {
+      rec = await webApi.retrieveRecord(entityName, cleanId, "?$select=admin_createdbytext,admin_createdbyname,admin_issuex0020by");
+    } catch (e) {}
+    if (!rec) {
+      try {
+        rec = await webApi.retrieveRecord(entityName, cleanId, "");
+      } catch (e) {}
+    }
+  }
+  if (!rec && typeof webApi.retrieveMultipleRecords === "function") {
+    try {
+      const res = await webApi.retrieveMultipleRecords(entityName, `?$select=admin_createdbytext,admin_createdbyname,admin_issuex0020by&$filter=${entityName}id eq '${cleanId}'`);
+      rec = res && res.entities && res.entities[0];
+    } catch (e) {}
+    if (!rec) {
+      try {
+        const res = await webApi.retrieveMultipleRecords(entityName, `?$filter=${entityName}id eq '${cleanId}'`);
+        rec = res && res.entities && res.entities[0];
+      } catch (e) {}
+    }
+  }
+  return rec;
+}
+
+let cachedAdminUserList = null;
+
+function resetAdminUserListCache() {
+  cachedAdminUserList = null;
+}
+
+async function fetchAdminUserList(webApi) {
+  if (cachedAdminUserList && cachedAdminUserList.length > 0) {
+    return cachedAdminUserList;
+  }
+  if (!webApi || typeof webApi.retrieveMultipleRecords !== "function") return null;
+
+  const entitiesToTry = ["admin_btb_admin_user_list", "admin_btb_admin_user_lists"];
+  for (const entityName of entitiesToTry) {
+    let succeeded = false;
+    try {
+      const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_admin1corphqemail,admin_admin1name");
+      if (res && res.entities) {
+        succeeded = true;
+        if (res.entities.length > 0) {
+          cachedAdminUserList = res.entities;
+          return res.entities;
+        }
+      }
+    } catch (e1) {}
+
+    if (!succeeded) {
+      try {
+        const res = await webApi.retrieveMultipleRecords(entityName, "");
+        if (res && res.entities) {
+          succeeded = true;
+          if (res.entities.length > 0) {
+            cachedAdminUserList = res.entities;
+            return res.entities;
+          }
+        }
+      } catch (e2) {}
+    }
+
+    if (succeeded) break;
+  }
+  return null;
+}
+
+// Uses column "admin_createdbyname" (email) to look up table "admin_btb_admin_user_list"
+// column "admin_admin1corphqemail", to get the column "admin_admin1name" value.
+async function lookupAdminNameByEmail(email, webApi) {
+  const target = String(email || "").trim().toLowerCase();
+  if (!target) return "";
+
+  // 1. Direct query with filter if available
+  if (webApi && typeof webApi.retrieveMultipleRecords === "function") {
+    const escaped = target.replace(/'/g, "''");
+    const entitiesToTry = ["admin_btb_admin_user_list", "admin_btb_admin_user_lists"];
+    for (const entityName of entitiesToTry) {
+      try {
+        const res = await webApi.retrieveMultipleRecords(
+          entityName,
+          `?$select=admin_admin1corphqemail,admin_admin1name&$filter=admin_admin1corphqemail eq '${escaped}'`
+        );
+        if (res && res.entities) {
+          const row = res.entities[0];
+          if (row) {
+            const name = row.admin_admin1name || row.admin_name || row.name || "";
+            if (name) return String(name).trim();
+          }
+          break;
+        }
+      } catch (e) {}
+    }
+  }
+
+  // 2. In-memory matching against cached admin user list
+  const rows = await fetchAdminUserList(webApi);
+  if (Array.isArray(rows) && rows.length > 0) {
+    const matched = rows.find(r => {
+      const em = String(r.admin_admin1corphqemail || r.admin_admin1emailaddress || r.admin_emailaddress || r.email || "").trim().toLowerCase();
+      return em === target;
+    });
+    if (matched) {
+      const name = matched.admin_admin1name || matched.admin_name || matched.admin_title || matched.name || "";
+      if (name) return String(name).trim();
+    }
+
+    // Match username prefix before @ (e.g. "02007572")
+    const targetUser = target.split("@")[0];
+    if (targetUser && targetUser.length >= 4) {
+      const userMatched = rows.find(r => {
+        const em = String(r.admin_admin1corphqemail || r.admin_admin1emailaddress || r.admin_emailaddress || r.email || "").trim().toLowerCase();
+        return em.split("@")[0] === targetUser;
+      });
+      if (userMatched) {
+        const name = userMatched.admin_admin1name || userMatched.admin_name || userMatched.admin_title || userMatched.name || "";
+        if (name) return String(name).trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+// Retrieves distinct admin names from table "admin_btb_admin_user_list" column "admin_admin1name",
+// deduplicates them, and falls back to BTB_ADMIN_NAMES if Dataverse is unavailable or returns no rows.
+async function fetchDistinctAdminNames(webApi) {
+  if (webApi && typeof webApi.retrieveMultipleRecords === "function") {
+    const entitiesToTry = ["admin_btb_admin_user_list", "admin_btb_admin_user_lists"];
+    for (const entityName of entitiesToTry) {
+      try {
+        const res = await webApi.retrieveMultipleRecords(entityName, "?$select=admin_admin1name");
+        if (res && Array.isArray(res.entities) && res.entities.length > 0) {
+          const names = res.entities
+            .map(r => r.admin_admin1name || r.admin_name || r.name || "")
+            .map(s => String(s).trim())
+            .filter(Boolean);
+          const unique = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+          if (unique.length > 0) return unique;
+        }
+      } catch (e1) {}
+      try {
+        const res = await webApi.retrieveMultipleRecords(entityName, "");
+        if (res && Array.isArray(res.entities) && res.entities.length > 0) {
+          const names = res.entities
+            .map(r => r.admin_admin1name || r.admin_name || r.name || "")
+            .map(s => String(s).trim())
+            .filter(Boolean);
+          const unique = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+          if (unique.length > 0) return unique;
+        }
+      } catch (e2) {}
+    }
+  }
+  return Array.from(new Set(BTB_ADMIN_NAMES)).sort((a, b) => a.localeCompare(b));
+}
+
+// When a record is created on the dev side, Dataverse populates column admin_createdbytext
+// (e.g. "i:0#.f|membership|02007572 @corphq.hk.pccw.com"). This helper retrieves that value,
+// trims the email portion after "|" and saves it into admin_createdbyname.
+async function syncCreatedByName(entityName, targetId, webApi, maxRetries = 2, delayMs = 600, fieldsSnapshot = null) {
+  if (!webApi || !targetId || !entityName || IS_ADMIN) return false;
+  const cleanId = String(targetId).replace(/[{}]/g, "");
+
+  const attempt = async () => {
+    try {
+      const rec = await retrieveRecordCreatedBy(entityName, cleanId, webApi);
+      const rawText = rec && rec.admin_createdbytext;
+      const createdByName = (rawText ? extractCreatedByName(rawText) : "") || (rec && rec.admin_createdbyname) || "";
+      if (createdByName) {
+        const patch = {};
+        if (createdByName !== (rec && rec.admin_createdbyname)) {
+          patch.admin_createdbyname = createdByName;
+        }
+
+        if (Object.keys(patch).length > 0) {
+          await webApi.updateRecord(entityName, cleanId, patch);
+          console.log("[createdby] Successfully updated admin_createdbyname on " + cleanId + ":", patch);
+        }
+        return true;
+      }
+    } catch (err) {
+      console.warn("syncCreatedByName attempt failed:", err);
+    }
+    return false;
+  };
+
+  const found = await attempt();
+  if (found || maxRetries <= 0) return found;
+
+  // Poll after creation because admin_createdbytext is filled by Dataverse after record creation
+  return new Promise((resolve) => {
+    let retriesLeft = maxRetries;
+    const interval = setInterval(async () => {
+      retriesLeft--;
+      const ok = await attempt();
+      if (ok || retriesLeft <= 0) {
+        clearInterval(interval);
+        resolve(ok);
+      }
+    }, delayMs);
+  });
+}
+
+const pollAndSyncCreatedBy = syncCreatedByName;
 
 // `btbType`, `atqNo`, and `itemNo` are optional trailing arguments so existing
 // calls without them keep their exact behaviour.
@@ -3324,7 +3550,28 @@ async function writeLisStartRecord(fieldsSnapshot, recordId, uidValue, alreadyWr
       if (targetId) {
         await webApi.updateRecord(SCHEMA.lis.entity, targetId, payload);
       } else {
-        await webApi.createRecord(SCHEMA.lis.entity, payload);
+        const createResult = await webApi.createRecord(SCHEMA.lis.entity, payload);
+        targetId = createResult && (createResult.id || createResult[SCHEMA.lis.entity + "id"]);
+        if (!targetId && typeof findExistingLisRecordId === "function") {
+          try {
+            targetId = await findExistingLisRecordId(recordId, webApi);
+          } catch (e) {}
+        }
+      }
+      if (targetId) {
+        // Because admin_createdbytext is filled by Dataverse AFTER the record is created,
+        // we run an immediate check (which completes instantly if data is already present),
+        // and if not yet filled, polling continues in the background without blocking the UI.
+        const immediateCheck = syncCreatedByName(SCHEMA.lis.entity, targetId, webApi, 0, 0, fieldsSnapshot);
+        if (immediateCheck && typeof immediateCheck.then === "function") {
+          immediateCheck.then(done => {
+            if (!done) {
+              syncCreatedByName(SCHEMA.lis.entity, targetId, webApi, 20, 1500, fieldsSnapshot)
+                .catch(syncErr => console.warn("Could not sync admin_createdbyname:", syncErr));
+            }
+          }).catch(syncErr => console.warn("Could not sync admin_createdbyname:", syncErr));
+          await immediateCheck;
+        }
       }
     } else {
       console.warn("parent.Xrm.WebApi not detected. Skipping BTB_LIS_Excel_Datas stub write (Demo / Standalone mode).");
@@ -3375,6 +3622,7 @@ const LIS_ROW_TO_FIELD_KEY = {
   quotationExpireDate: "quotationExpireDate",
   handledBy:           "handledBy",
   iptUnitMgr:          "iptUnitMgr",
+  issueBy:             "issueBy",
 };
 
 // The Verify Table's LIS Value column, pushed into the App-level `fields` state
@@ -3506,6 +3754,8 @@ function buildLisExcelPayload(values, recordId, remark) {
     chargeCcc:          v("chargeCcc"),
     accountCode:        v("accountCode"),
     worksOrderCode:     v("worksOrderCode"),
+    // Issue By (admin_issuex0020by) selected via Admin Name dropdown on Document Workbench / Verify Table
+    issueBy:            v("issueBy"),
     // Column AD ("Y / N") -- the same schema column buildRecordPayload's own
     // "yn" writes for the LIS & Remark page's manual field, but here it
     // carries the Back-to-Back reading off the Verify Table's own crosscheck
@@ -3527,11 +3777,34 @@ async function writeLisExcelRecord(values, recordId, alreadyWritten, markWritten
   if (alreadyWritten || !recordId) return "";
   try {
     const payload = buildLisExcelPayload(values, recordId);
+    let targetId = existingId;
     if (webApi) {
-      if (existingId) {
-        await webApi.updateRecord(SCHEMA.lis.entity, existingId, payload);
+      if (targetId) {
+        await webApi.updateRecord(SCHEMA.lis.entity, targetId, payload);
       } else {
-        await webApi.createRecord(SCHEMA.lis.entity, payload);
+        const createResult = await webApi.createRecord(SCHEMA.lis.entity, payload);
+        targetId = createResult && (createResult.id || createResult[SCHEMA.lis.entity + "id"]);
+        if (!targetId && typeof findExistingLisRecordId === "function") {
+          try {
+            targetId = await findExistingLisRecordId(recordId, webApi);
+          } catch (e) {}
+        }
+      }
+      if (targetId) {
+        // Run after the record is created at "Continue to save" on Verify Table.
+        // Because admin_createdbytext is filled by Dataverse AFTER the record is created,
+        // we run an immediate check, and if not yet filled, polling continues in the background
+        // (20 retries @ 1500ms = 30s) without blocking the UI.
+        const immediateCheck = syncCreatedByName(SCHEMA.lis.entity, targetId, webApi, 0, 0, values);
+        if (immediateCheck && typeof immediateCheck.then === "function") {
+          immediateCheck.then(done => {
+            if (!done) {
+              syncCreatedByName(SCHEMA.lis.entity, targetId, webApi, 20, 1500, values)
+                .catch(syncErr => console.warn("Could not sync admin_createdbyname at Continue to save:", syncErr));
+            }
+          }).catch(syncErr => console.warn("Could not sync admin_createdbyname at Continue to save:", syncErr));
+          await immediateCheck;
+        }
       }
     } else {
       console.warn("parent.Xrm.WebApi not detected. Skipping BTB_LIS_Excel_Datas write (Demo / Standalone mode).");
@@ -6336,6 +6609,18 @@ async function printDocument(printable, onStatus, onFail) {
 
 /* ---------- Viewer chrome ---------- */
 
+function defaultSaveToMasterDocKeys(attachments) {
+  const keys = new Set();
+  const vq = attachments && attachments["Vendor Quotation"];
+  if (vq && vq.parsed) {
+    if (vq.fileObj || vq.self) keys.add("Vendor Quotation#-1");
+    (vq.docs || []).forEach(d => {
+      keys.add(`Vendor Quotation#${d.index}`);
+    });
+  }
+  return keys;
+}
+
 // The ✕ is drawn in BOTH modes, and what it means differs by mode because
 // `onClose` differs. Modal: dismiss the overlay. Inline (the Upload page's
 // workspace panel): collapse the whole viewer back to the document list --
@@ -6345,7 +6630,8 @@ async function printDocument(printable, onStatus, onFail) {
 // was withheld inline while that was true; a control that does nothing is
 // worse than no control, but a defined one beats making the reader hunt for
 // the text button in the header above.
-function ViewerHeader({ doc, entry, url, onClose, diffCount, inline }) {
+function ViewerHeader({ doc, entry, url, onClose, diffCount, inline,
+  canSaveToMaster = false, onSaveToMaster = null, saving = false, savedRecordId = null, uploadProgress = null }) {
   // Local to the header because it is about the last click of this button, not
   // about the document: switching files or closing the viewer should forget it.
   // `printBusy` is not cosmetic -- rendering a 22-page scan to printable pages
@@ -6376,6 +6662,22 @@ function ViewerHeader({ doc, entry, url, onClose, diffCount, inline }) {
             <Pill key={p.label} className={p.ours ? VIEWER_OURS_PILL : VIEWER_FOUND_PILL} title={p.title}>{p.label}</Pill>)}
         </div>
       </div>
+      {canSaveToMaster && (
+        <PrimaryButton
+          disabled={saving || !!savedRecordId || !!uploadProgress}
+          onClick={onSaveToMaster}
+          className="shrink-0"
+        >
+          {saving
+            ? "Saving..."
+            : uploadProgress
+              ? `Uploading chunk ${uploadProgress.current} of ${uploadProgress.total}...`
+              : savedRecordId
+                ? "Saved"
+                : "Save to master"
+          }
+        </PrimaryButton>
+      )}
       {printErr && <span title={printErr}
         className="shrink-0 max-w-[220px] truncate text-[11px] font-semibold text-[#B78312]">{printErr}</span>}
       {printBusy && !printErr && <span
@@ -6400,11 +6702,30 @@ function ViewerHeader({ doc, entry, url, onClose, diffCount, inline }) {
   );
 }
 
-function ViewerSidebarRow({ doc, active, muted, onClick, flagged }) {
+function ViewerSidebarRow({ doc, active, muted, onClick, flagged, selectable = false, selected = false, onToggleSelect = null }) {
   return (
     <button onClick={onClick}
-      className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left ui-transition pressable-surface
+      className={`group w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left ui-transition pressable-surface
         ${active ? "bg-[#FBF0E8]" : "hover:bg-[#F3EBE2]"}`}>
+      {selectable && (
+        <span
+          role="checkbox"
+          aria-checked={selected}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect && onToggleSelect();
+          }}
+          title={selected ? "Selected to pass to flow (click to exclude)" : "Excluded from flow (click to include)"}
+          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ui-transition
+            ${selected ? "bg-[var(--orange)] border-[var(--orange)] text-white" : "border-[#8E8E93] bg-white hover:border-[var(--orange)]"}`}
+        >
+          {selected && (
+            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2.5 6.5L4.5 8.5L9.5 3.5" />
+            </svg>
+          )}
+        </span>
+      )}
       <span className={`text-[14px] shrink-0 ${muted ? "opacity-50" : ""}`}><Icon name={PREVIEW_ICONS[doc.previewKind] || "file"} className="w-5 h-5" /></span>
       {/* The underline is the affordance: nothing else in this row says "click
           me", and a reviewer scanning the list should not have to hover to
@@ -6427,7 +6748,65 @@ function ViewerSidebarRow({ doc, active, muted, onClick, flagged }) {
   );
 }
 
-function ViewerSidebar({ selfDoc, docs, currentKey, onSelect, showInline, setShowInline, flaggedIndexes, label }) {
+function ViewerSidebar({ selfDoc, docs, currentKey, onSelect, showInline, setShowInline, flaggedIndexes, label,
+  saveToMasterMode = false, attachments = null, selectedDocKeys = null, onToggleSelect = null, currentTypeKey = "" }) {
+  if (saveToMasterMode && attachments) {
+    const selectedCount = selectedDocKeys ? selectedDocKeys.size : 0;
+    return (
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+        <div className="px-2.5 pb-2 border-b border-[#C5BEB6] flex flex-col gap-0.5">
+          <div className="fs-12-14 font-bold text-[var(--ink)]">Select Documents to Pass</div>
+          <div className="fs-11-13 text-[var(--muted)]">
+            <span className="font-semibold text-[var(--orange-dark)]">{selectedCount}</span> document{selectedCount === 1 ? "" : "s"} selected for flow
+          </div>
+        </div>
+        {ATTACHMENT_TYPES.map(typeKey => {
+          const entry = attachments[typeKey];
+          if (!entry || !entry.parsed) return null;
+          const sDoc = selfDocFor(entry);
+          const visibleDocs = (entry.docs || []).filter(d => !d.inline);
+          const totalDocsCount = (sDoc ? 1 : 0) + visibleDocs.length;
+          if (totalDocsCount === 0) return null;
+
+          return (
+            <div key={typeKey} className="flex flex-col gap-1 mt-1">
+              <div className="px-2.5 pt-1 text-[11px] font-bold tracking-[0.5px] uppercase text-[var(--muted)] flex items-center justify-between">
+                <span>{typeKey}</span>
+                <span className="text-[10px] text-[#8E8E93]">({visibleDocs.length || 1})</span>
+              </div>
+              {sDoc && (
+                <ViewerSidebarRow
+                  doc={{ ...sDoc, fileName: sDoc.textLines ? (entry.file || "Email body") : sDoc.fileName }}
+                  active={currentTypeKey === typeKey && currentKey === "self"}
+                  onClick={() => onSelect(typeKey, -1)}
+                  flagged={false}
+                  selectable={true}
+                  selected={selectedDocKeys ? selectedDocKeys.has(`${typeKey}#-1`) : false}
+                  onToggleSelect={() => onToggleSelect && onToggleSelect(`${typeKey}#-1`)}
+                />
+              )}
+              {visibleDocs.map(d => {
+                const docKey = `${typeKey}#${d.index}`;
+                return (
+                  <ViewerSidebarRow
+                    key={d.index}
+                    doc={d}
+                    active={currentTypeKey === typeKey && currentKey === String(d.index)}
+                    onClick={() => onSelect(typeKey, d.index)}
+                    flagged={flaggedIndexes ? flaggedIndexes.has(d.index) : false}
+                    selectable={true}
+                    selected={selectedDocKeys ? selectedDocKeys.has(docKey) : false}
+                    onToggleSelect={() => onToggleSelect && onToggleSelect(docKey)}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   const visible = docs.filter(d => !d.inline);
   const inline = docs.filter(d => d.inline);
   return (
@@ -6601,10 +6980,27 @@ const VIEWER_EMPTY_ENTRY = {};
 // all of the state and effects above) is the same component either way. Only
 // the two modal-specific behaviours, the backdrop and the body-scroll lock, are
 // conditional; nothing about which document is open or how it is read changes.
-function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDiffs, toggleDismissDiff, setField, fields, openViewer, census, inline }) {
+function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDiffs, toggleDismissDiff, setField, fields, openViewer, census, inline,
+  canSaveToMaster = false, onSaveToMaster = null, saving = false, savedRecordId = null, uploadProgress = null }) {
+  const saveToMasterMode = canSaveToMaster;
+  const [selectedDocKeys, setSelectedDocKeys] = useState(() => defaultSaveToMasterDocKeys(attachments));
+  const [currentTypeKey, setCurrentTypeKey] = useState(() => {
+    if (viewer && viewer.typeKey && attachments[viewer.typeKey]?.parsed) return viewer.typeKey;
+    return (attachments["Vendor Quotation"] && attachments["Vendor Quotation"].parsed)
+      ? "Vendor Quotation"
+      : (ATTACHMENT_TYPES.find(t => attachments[t]?.parsed) || "Vendor Quotation");
+  });
+  const [docIndex, setDocIndex] = useState(() => {
+    if (typeof (viewer && viewer.docIndex) === "number") return viewer.docIndex;
+    const tKey = (viewer && viewer.typeKey) || "Vendor Quotation";
+    const ent = attachments[tKey];
+    if (ent && ent.docs && ent.docs.length > 0) return ent.docs[0].index;
+    return -1;
+  });
+
   // A shared constant, not a fresh {} -- entry identity feeds useMemo and the
   // effects below, and a new object every render would re-run them forever.
-  const entry = attachments[viewer.typeKey] || VIEWER_EMPTY_ENTRY;
+  const entry = attachments[currentTypeKey] || VIEWER_EMPTY_ENTRY;
   const allDocs = entry.docs || [];
   // `viewer.only` -- opened from somewhere that means one document, or a
   // specific SET of documents (an array of doc indexes -- a Quotation slot's
@@ -6618,7 +7014,7 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
   // whole list rather than showing none.
   const onlyIndexes = Array.isArray(viewer.only) ? viewer.only : (viewer.only ? [viewer.docIndex] : []);
   const onlyDocs = allDocs.filter(d => onlyIndexes.indexOf(d.index) !== -1);
-  const narrowed = onlyIndexes.length > 0 && onlyDocs.length > 0;
+  const narrowed = !saveToMasterMode && onlyIndexes.length > 0 && onlyDocs.length > 0;
   const docs = narrowed ? onlyDocs : allDocs;
   const selfDoc = useMemo(() => selfDocFor(entry), [entry]);
   // The email body itself is a sibling of the narrowed-to document, so it goes
@@ -6636,13 +7032,12 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
   // documents list collapsed so the preview gets the space by default; the
   // modal viewer used elsewhere keeps its old always-open behaviour.
   const [docsOpen, setDocsOpen] = useState(!inline);
-  const [docIndex, setDocIndex] = useState(viewer.docIndex);
   const [page, setPage] = useState(viewer.page || 1);
   const [zoom, setZoom] = useState("fit");
   const [numPages, setNumPages] = useState(0);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [showInline, setShowInline] = useState(() => {
-    const d = docs.find(x => x.index === viewer.docIndex);
+    const d = docs.find(x => x.index === (viewer ? viewer.docIndex : 0));
     return !!(d && d.inline);
   });
   const [urlState, setUrlState] = useState({ doc: null, url: "" });
@@ -6650,17 +7045,38 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
 
   const doc = docIndex < 0 ? selfDoc : (docs.find(d => d.index === docIndex) || selfDoc);
 
-  const selectDoc = (i) => { setDocIndex(i); setPage(1); setNumPages(0); setSheetIndex(0); };
+  const selectDoc = (targetTypeKeyOrIdx, maybeIdx) => {
+    let tKey = currentTypeKey;
+    let idx = targetTypeKeyOrIdx;
+    if (typeof maybeIdx === "number") {
+      tKey = targetTypeKeyOrIdx;
+      idx = maybeIdx;
+    }
+    setCurrentTypeKey(tKey);
+    setDocIndex(idx);
+    setPage(1);
+    setNumPages(0);
+    setSheetIndex(0);
+  };
   const onLoaded = useCallback(n => setNumPages(n), []);
+
+  const toggleDocSelect = (docKey) => {
+    setSelectedDocKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(docKey)) next.delete(docKey);
+      else next.add(docKey);
+      return next;
+    });
+  };
 
   // Both derived from the one `crosschecks` memo App computes -- the viewer
   // never runs its own comparison, it only asks which of these documents are in
   // one. Reading the crosscheck rather than the raw diff is what stops an amber
   // dot appearing on a document whose field row shows no ⚠.
-  const flaggedIndexes = useMemo(() => crosscheckDocIndexes(crosschecks, dismissedDiffs, viewer.typeKey),
-    [crosschecks, dismissedDiffs, viewer.typeKey]);
-  const differences = useMemo(() => crosschecksForDoc(crosschecks, dismissedDiffs, viewer.typeKey, docIndex),
-    [crosschecks, dismissedDiffs, viewer.typeKey, docIndex]);
+  const flaggedIndexes = useMemo(() => crosscheckDocIndexes(crosschecks, dismissedDiffs, currentTypeKey),
+    [crosschecks, dismissedDiffs, currentTypeKey]);
+  const differences = useMemo(() => crosschecksForDoc(crosschecks, dismissedDiffs, currentTypeKey, docIndex),
+    [crosschecks, dismissedDiffs, currentTypeKey, docIndex]);
   // Single-open, so the field grid in the left column can only ever grow by one
   // panel however long the list of fields is.
   const [compareKey, setCompareKey] = useState(null);
@@ -6737,7 +7153,13 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
 
   const body = (
     <React.Fragment>
-        <ViewerHeader doc={doc} entry={entry} url={url} onClose={onClose} diffCount={differences.length} inline={inline} />
+        <ViewerHeader doc={doc} entry={entry} url={url} onClose={onClose} diffCount={differences.length} inline={inline}
+          canSaveToMaster={canSaveToMaster}
+          onSaveToMaster={() => onSaveToMaster && onSaveToMaster(selectedDocKeys)}
+          saving={saving}
+          savedRecordId={savedRecordId}
+          uploadProgress={uploadProgress}
+        />
         <div className="flex-1 flex min-h-0">
           {inline ? (
             docsOpen ? (
@@ -6778,7 +7200,13 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
               {leftTab === "documents" ? (
                 <ViewerSidebar selfDoc={sidebarSelfDoc} docs={docs} currentKey={currentKey} onSelect={selectDoc}
                   showInline={showInline} setShowInline={setShowInline} flaggedIndexes={flaggedIndexes}
-                  label={documentListLabel} />
+                  label={documentListLabel}
+                  saveToMasterMode={saveToMasterMode}
+                  attachments={attachments}
+                  selectedDocKeys={selectedDocKeys}
+                  onToggleSelect={toggleDocSelect}
+                  currentTypeKey={currentTypeKey}
+                />
               ) : (
                 <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3.5">
                   <div className="w-full flex gap-2 p-2.5 bg-[#FDF6E0] border-l-[3px] border-[#B78312] rounded-lg">
@@ -6806,7 +7234,7 @@ function DocumentViewer({ viewer, attachments, onClose, crosschecks, dismissedDi
             zoom={zoom} setZoom={setZoom} onLoaded={onLoaded}
             sheetIndex={sheetIndex} setSheetIndex={setSheetIndex} />
           {infoPaneOpen ? (
-            <InfoPane doc={doc} typeKey={viewer.typeKey} docIndex={docIndex} differences={differences}
+            <InfoPane doc={doc} typeKey={currentTypeKey} docIndex={docIndex} differences={differences}
               onSelectDoc={selectDoc} setField={setField} onCollapse={() => setInfoPaneOpen(false)} />
           ) : (
             <button type="button" onClick={() => setInfoPaneOpen(true)}
@@ -7470,6 +7898,30 @@ function n8nMetadataForSend(fields, attachments, itemIndex, census) {
   };
 }
 
+// Browser storage key for remembering the selected process admin on Document Workbench (dev side).
+// Marked as "processadmin" for later reuse.
+const PROCESS_ADMIN_STORAGE_KEY = "processadmin";
+
+function getSavedProcessAdmin() {
+  try {
+    return (typeof window !== "undefined" && window.localStorage && window.localStorage.getItem(PROCESS_ADMIN_STORAGE_KEY)) || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function saveProcessAdmin(name) {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      if (name) {
+        window.localStorage.setItem(PROCESS_ADMIN_STORAGE_KEY, name);
+      } else {
+        window.localStorage.removeItem(PROCESS_ADMIN_STORAGE_KEY);
+      }
+    }
+  } catch (e) {}
+}
+
 function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fields, setField, setFieldAuto, applyMatches, applyUid, detectFromRoles, goProcess, goVerify, onN8nSent, demoMode, adminMode, toggleDemo, openViewer, viewer, closeViewer, crosschecks, dismissedDiffs, toggleDismissDiff, itemIndex, setItemIndex, selectItem, resetRecordData, itemSelectionLocked, lockItemSelection, itemRecordIds, savedRecordIds, itemPickHint, clearItemPickHint, atqExcelRecordId, atqExcelAlreadyWritten, markAtqExcelWritten, lisStartUid, lisStartAlreadyWritten, markLisStartWritten, census, autoCensus, roleOverrides, setRoleOverrides, emailSubject, onUploadComplete, records, lisStartWritten, filterProcessedItems = false, processedItems = {}, goRecords }) {
   const parsedCount = Object.values(attachments).filter(a => a.parsed).length;
   const [checkingExisting, setCheckingExisting] = useState(false);
@@ -7511,6 +7963,50 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
   const [supplierOption, setSupplierOption] = useState("");
   const [supplierRemarkText, setSupplierRemarkText] = useState("");
   const [supplierCopied, setSupplierCopied] = useState(false);
+  const [savedAdmin, setSavedAdmin] = useState(() => getSavedProcessAdmin());
+  const [isEditingAdmin, setIsEditingAdmin] = useState(false);
+  const selectedAdmin = (fields.issueBy && fields.issueBy.value) || (fields.processadmin && fields.processadmin.value) || savedAdmin || "";
+  const isUploadDisabled = Boolean(FEATURES.workbenchAdminPicker && !selectedAdmin);
+  const hasSavedAdmin = Boolean(savedAdmin);
+  const isAdminLocked = Boolean(hasSavedAdmin && !isEditingAdmin);
+  const [adminUserList, setAdminUserList] = useState(() => Array.from(new Set(BTB_ADMIN_NAMES)).sort((a, b) => a.localeCompare(b)));
+
+  useEffect(() => {
+    if (!FEATURES.workbenchAdminPicker) return;
+    const saved = getSavedProcessAdmin();
+    if (saved) {
+      setSavedAdmin(saved);
+      if (setField && !fields.issueBy?.value) {
+        setField("issueBy", saved);
+        setField("processadmin", saved);
+      }
+    }
+  }, [setField]);
+
+  useEffect(() => {
+    if (!FEATURES.workbenchAdminPicker) return;
+    let cancelled = false;
+    const api = (typeof parent !== "undefined" && parent && parent.Xrm && parent.Xrm.WebApi) || writeApi();
+    fetchDistinctAdminNames(api).then(names => {
+      if (!cancelled && Array.isArray(names) && names.length > 0) {
+        setAdminUserList(names);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const adminOptions = useMemo(() => {
+    const list = [...adminUserList];
+    if (selectedAdmin && !list.includes(selectedAdmin)) {
+      list.push(selectedAdmin);
+      list.sort((a, b) => a.localeCompare(b));
+    }
+    return [
+      { value: "", label: "— Select Admin Name —" },
+      ...list.map(n => ({ value: n, label: n }))
+    ];
+  }, [adminUserList, selectedAdmin]);
+
   const fileInputRef = React.useRef(null);
   // The inline viewer sits below the fold, so opening a document from higher up
   // the page has to bring it into view or the click looks inert. Keyed off
@@ -7547,6 +8043,10 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
 
   const handleUpload = async (file) => {
     if (!file) return;
+    if (isUploadDisabled) {
+      setUploadError("Please select an Admin Name above before uploading files.");
+      return;
+    }
     // Dropping a file onto a tab that already has one means "this is a
     // different case now" -- confirm, then wipe the whole record (every tab,
     // every field) before the new file's own extraction repopulates it.
@@ -8014,6 +8514,62 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
           <input ref={fileInputRef} type="file" className="hidden"
             accept={ACCEPT_EXTS}
             onChange={e => { handleUpload(e.target.files[0]); e.target.value = ""; }} />
+
+          {FEATURES.workbenchAdminPicker && (
+            <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-white border border-[var(--line)] rounded-2xl shadow-[0_4px_16px_rgba(29,29,31,0.05)]">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#FFF3D6] border border-[var(--orange)] text-[var(--orange-dark)] flex items-center justify-center">
+                  <Icon name="database" className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="fs-13-16 font-bold text-[var(--ink)]">Select Admin to Process Record</div>
+                  <div className="text-[12px] text-[var(--muted)]">Choose the admin before uploading files to proceed</div>
+                </div>
+              </div>
+              <div className="w-full sm:w-auto flex items-center gap-2">
+                <div className="w-full sm:w-72 md:w-80">
+                  <AnimatedSelect
+                    value={selectedAdmin}
+                    onChange={name => {
+                      if (setField) {
+                        setField("issueBy", name);
+                        setField("processadmin", name);
+                      }
+                      saveProcessAdmin(name);
+                      setSavedAdmin(name);
+                      setIsEditingAdmin(false);
+                      setUploadError("");
+                    }}
+                    placeholder="— Select Admin Name —"
+                    options={adminOptions}
+                    disabled={isAdminLocked}
+                    fullWidth
+                    optionClassName="fs-13-16"
+                    triggerClassName={"w-full flex items-center justify-between gap-2 px-3.5 py-2.5 fs-14-16 text-[var(--ink)] rounded-xl border-[1.5px] border-[var(--line)] ui-transition font-medium shadow-sm " +
+                      (isAdminLocked
+                        ? "bg-[#F5F5F7] text-[#6E6E73] cursor-not-allowed border-[var(--line)] opacity-80"
+                        : "bg-white hover:border-[var(--orange)] focus:border-[var(--orange)]")}
+                  />
+                </div>
+                {hasSavedAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAdmin(prev => !prev)}
+                    title={isAdminLocked ? "Edit Process Admin" : "Done editing"}
+                    aria-label="Edit"
+                    className={"inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border fs-13-16 font-semibold ui-transition pressable shadow-sm shrink-0 " +
+                      (isAdminLocked
+                        ? "border-[var(--line)] bg-white hover:border-[var(--orange)] hover:text-[var(--orange-dark)] text-[var(--ink)]"
+                        : "border-[var(--orange)] bg-[#FFF3D6] text-[var(--orange-dark)]")}
+                  >
+                    <Icon name="edit" className="w-4 h-4 text-[var(--orange-dark)]" />
+                    <span>Edit</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* While handleUpload's light pass is running, the drop box itself
               is not rendered at all -- there is nothing to disable, only the
               scan loader below to show in its place. Reverts to the box the
@@ -8027,12 +8583,27 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
           ) : (
             <button type="button"
               aria-label={`Upload ${activeTab}`}
-              onClick={() => fileInputRef.current && fileInputRef.current.click()}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              disabled={isUploadDisabled}
+              onClick={() => {
+                if (isUploadDisabled) {
+                  setUploadError("Please select an Admin Name above before uploading files.");
+                  return;
+                }
+                fileInputRef.current && fileInputRef.current.click();
+              }}
+              onDragOver={e => {
+                e.preventDefault();
+                if (isUploadDisabled) return;
+                setDragOver(true);
+              }}
               onDragLeave={() => setDragOver(false)}
               onDrop={e => {
                 e.preventDefault();
                 setDragOver(false);
+                if (isUploadDisabled) {
+                  setUploadError("Please select an Admin Name above before uploading files.");
+                  return;
+                }
                 // Synchronous read first (see collectDroppedFiles): the
                 // DataTransfer does not survive the handler returning.
                 const drop = collectDroppedFiles(e.dataTransfer);
@@ -8041,18 +8612,37 @@ function UploadPage({ attachments, setAttachments, activeTab, setActiveTab, fiel
                   setUploadError(drop.emptyMessage);
                 });
               }}
-              className={`w-full flex flex-col gap-3 py-12 px-5 items-center text-center bg-[#FFF8EA] border-2 rounded-2xl cursor-pointer hover:bg-[#FFF3D6] hover:text-[var(--ink)] hover:border-[var(--orange-dark)] ui-transition pressable-surface clickable-cue group
-                ${dragOver ? "border-[var(--orange)] bg-[#FFF4DE]" : "border-[var(--orange)]"}`}>
-              <div className="w-16 h-16 rounded-2xl bg-[#F4F0E8] border border-[#D8D3C9] text-[var(--orange-dark)] group-hover:bg-[var(--orange)] group-hover:text-[var(--ink)] flex items-center justify-center ui-transition">
+              className={`w-full flex flex-col gap-3 py-12 px-5 items-center text-center rounded-2xl ui-transition
+                ${isUploadDisabled
+                  ? "bg-[#F7F7F8] border-2 border-dashed border-[#D2D2D7] text-[#8E8E93] cursor-not-allowed opacity-75"
+                  : `bg-[#FFF8EA] border-2 cursor-pointer hover:bg-[#FFF3D6] hover:text-[var(--ink)] hover:border-[var(--orange-dark)] pressable-surface clickable-cue group ${
+                      dragOver ? "border-[var(--orange)] bg-[#FFF4DE]" : "border-[var(--orange)]"
+                    }`
+                }`}>
+              <div className={`w-16 h-16 rounded-2xl border flex items-center justify-center ui-transition ${
+                isUploadDisabled
+                  ? "bg-[#EBEBEF] border-[#D2D2D7] text-[#8E8E93]"
+                  : "bg-[#F4F0E8] border-[#D8D3C9] text-[var(--orange-dark)] group-hover:bg-[var(--orange)] group-hover:text-[var(--ink)]"
+              }`}>
                 <Icon name="upload" className="w-8 h-8" />
               </div>
-              <div className="text-[clamp(20px,2vw,28px)] leading-tight font-bold text-[var(--ink)] group-hover:text-[var(--ink)] ui-transition">
+              <div className={`text-[clamp(20px,2vw,28px)] leading-tight font-bold text-[var(--ink)] ui-transition ${
+                isUploadDisabled ? "text-[#8E8E93]" : "group-hover:text-[var(--ink)]"
+              }`}>
                 {attachments[activeTab].parsed
                   ? `${activeTab} uploaded — click to re-upload`
                   : "Drop Email / Documents here"}
               </div>
-              <div className="fs-15-16 text-[var(--muted)] group-hover:text-[var(--muted)] ui-transition" style={{fontFamily:"Newsreader, serif"}}>PDF · XLSX / XLS / CSV · PNG / JPG · MSG / EML · MHT</div>
-              <div className="fs-15-16 text-[var(--muted)] group-hover:text-[var(--muted)] ui-transition" style={{fontFamily:"Newsreader, serif"}}>Classic Outlook: drag a mail straight in. New Outlook: save it as .eml first.</div>
+              {isUploadDisabled ? (
+                <div className="fs-14-16 font-medium text-[var(--amber)] bg-[#FEF3C7] px-3.5 py-1.5 rounded-full border border-[#FCD34D]">
+                  Please choose an admin above to enable uploading
+                </div>
+              ) : (
+                <React.Fragment>
+                  <div className="fs-15-16 text-[var(--muted)] group-hover:text-[var(--muted)] ui-transition" style={{fontFamily:"Newsreader, serif"}}>PDF · XLSX / XLS / CSV · PNG / JPG · MSG / EML · MHT</div>
+                  <div className="fs-15-16 text-[var(--muted)] group-hover:text-[var(--muted)] ui-transition" style={{fontFamily:"Newsreader, serif"}}>Classic Outlook: drag a mail straight in. New Outlook: save it as .eml first.</div>
+                </React.Fragment>
+              )}
             </button>
           ))}
 
@@ -8702,7 +9292,8 @@ const DATAVERSE_SCHEMAS = {
         "admin_worksx0020orderx0020code", "admin_accountx0020code",
         "admin_prx0020issuedx0020on", "admin_prx0020nox002e",
         "admin_handledx0020byx0020", "admin_iptx0020unitx0020mgr",
-        "admin_quotationstartdates", "admin_quotationenddates"],
+        "admin_quotationstartdates", "admin_quotationenddates",
+        "admin_createdbytext", "admin_createdbyname"],
       fields: {
         customerName: "admin_customerx0020name",
         vendor: "admin_vendor",
@@ -8736,6 +9327,8 @@ const DATAVERSE_SCHEMAS = {
         handledBy: "admin_handledx0020byx0020",
         iptUnitMgr: "admin_iptx0020unitx0020mgr",
         processStatus: "admin_processstatus",
+        createdbytext: "admin_createdbytext",
+        createdbyname: "admin_createdbyname",
       },
       // The WRITE half of the same table. Separate from `fields` because the
       // two genuinely differ: the write side carries columns the Verify Table
@@ -8820,6 +9413,9 @@ const DATAVERSE_SCHEMAS = {
         // (2026-09-30, user-supplied, dev only).
         atqNo: "admin_atqno",
         itemNo: "admin_itemno",
+        // Created by text / name from Start (2026-10-14, dev only)
+        createdbytext: "admin_createdbytext",
+        createdbyname: "admin_createdbyname",
         poPrDescription: "admin_prx0020description",
         poDate: "admin_pox0020date",
         poNo: "admin_pox0020nox002e",
@@ -8938,6 +9534,8 @@ const DATAVERSE_SCHEMAS = {
         // ATQ no and Item No (2026-09-30, dev only)
         atqNo:              "admin_atqno",
         itemNo:             "admin_itemno",
+        createdbytext:      "admin_createdbytext",
+        createdbyname:      "admin_createdbyname",
       },
     },
     // BTB ATQ Excel source — the record written by "Send to n8n".
@@ -9063,6 +9661,18 @@ const DATAVERSE_SCHEMAS = {
       fields: {
         ccc: "admin_ccc",
         remark: "admin_reamrk",
+      },
+    },
+
+    // Reference table for Admin User lookup (admin_btb_admin_user_list).
+    // Matches admin_admin1corphqemail against admin_createdbyname to get admin_admin1name.
+    adminUserList: {
+      entity: "admin_btb_admin_user_list",
+      altEntity: "admin_btb_admin_user_lists",
+      select: ["admin_admin1corphqemail", "admin_admin1name"],
+      fields: {
+        corphqEmail: "admin_admin1corphqemail",
+        adminName: "admin_admin1name",
       },
     },
   },
@@ -9818,7 +10428,15 @@ async function fetchDataverseVerifyRecords(recordId) {
   try {
     const lisResponse = await parent.Xrm.WebApi.retrieveMultipleRecords(
       DATAVERSE_LIS_SOURCE.entity, dataverseVerifyQuery(recordId, DATAVERSE_LIS_SOURCE));
-    lis = dataverseVerifyRecord("lis", lisResponse.entities && lisResponse.entities[0]);
+    const lisEntity = lisResponse.entities && lisResponse.entities[0];
+    lis = dataverseVerifyRecord("lis", lisEntity);
+    if (!IS_ADMIN && lisEntity && lisEntity.admin_createdbytext && !lisEntity.admin_createdbyname) {
+      const lisId = lisEntity[DATAVERSE_LIS_SOURCE.entity + "id"] || lisEntity.id;
+      if (lisId) {
+        syncCreatedByName(DATAVERSE_LIS_SOURCE.entity, lisId, parent.Xrm.WebApi, 0, 0)
+          .catch(e => console.warn("fetchDataverseVerifyRecords sync error:", e));
+      }
+    }
   } catch (_lisErr) { /* LIS table may not exist yet — lis stays null */ }
   return { agreement, quotation, atqExcel, lis };
 }
@@ -10060,7 +10678,7 @@ function verifyValueTone(cc, value) {
   };
 }
 
-function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLis, openViewer, uid, recordId, emailSubject, dataverseVerify, refreshDataverse, dismissedDiffs, toggleDismissDiff, adminMode = false }) {
+function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLis, openViewer, uid, recordId, emailSubject, dataverseVerify, refreshDataverse, dismissedDiffs, toggleDismissDiff, adminMode = false, fields = {} }) {
   // The one column this table shows: the ATQ workbook's own reading of each
   // field. Agreement / Quotation / the email subject still feed the severity
   // that colours this value (via crosschecks[key].severity below) -- they no
@@ -10724,6 +11342,13 @@ function ExtractedFieldsPage({ attachments, crosschecks, census, itemIndex, goLi
     if (FEATURES.prAmountCurrency) {
       out.currency = prCurrency;
       out.prCurrency = prCurrency;
+    }
+    const issueByVal = (selectedLisValues && selectedLisValues.issueBy) ||
+      (fields && fields.issueBy && (typeof fields.issueBy === "string" ? fields.issueBy : fields.issueBy.value)) ||
+      (fields && fields.processadmin && (typeof fields.processadmin === "string" ? fields.processadmin : fields.processadmin.value)) ||
+      (dataverseVerify && dataverseVerify.lis && dataverseVerify.lis.issueBy) || "";
+    if (issueByVal) {
+      out.issueBy = issueByVal;
     }
     return out;
   };
@@ -12314,28 +12939,55 @@ async function splitUpload(serializedFiles, recordId, chunkSize, onProgress) {
  * @param {string} recordId
  * @param {import("../../lib/interfaces/AttachmentRecord").IAttachments} attachments
  * @param {((current: number, total: number) => void)} [onProgress]
+ * @param {Set<string>|string[]|Array<{ fileName: string, blob: Blob }>} [selectedDocs]
  */
-async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
+async function saveAttachmentToPowerFlow(recordId, attachments, onProgress, selectedDocs) {
   if (!recordId || recordId.length === 0) {
     throw new Error("recordId is required to save attachments to PowerFlow");
   }
-  const emailFile = attachments["Vendor Quotation"].fileObj;
 
-  const promises = attachments["Vendor Quotation"].docs.map(async (doc) => {
-    if (!doc.fileName) throw new Error("Invalid filename");
+  let itemsToUpload = [];
+
+  if (selectedDocs && Array.isArray(selectedDocs) && selectedDocs.length > 0 && typeof selectedDocs[0] === "object" && selectedDocs[0].fileName) {
+    itemsToUpload = selectedDocs;
+  } else if (selectedDocs && (selectedDocs instanceof Set || Array.isArray(selectedDocs))) {
+    const keys = selectedDocs instanceof Set ? selectedDocs : new Set(selectedDocs);
+    ATTACHMENT_TYPES.forEach(typeKey => {
+      const entry = attachments && attachments[typeKey];
+      if (!entry || !entry.parsed) return;
+      const selfKey = `${typeKey}#-1`;
+      if (keys.has(selfKey)) {
+        const file = entry.fileObj || (entry.self && entry.self.blob);
+        const name = entry.file || (entry.fileObj && entry.fileObj.name) || (entry.self && entry.self.fileName);
+        if (file && name) itemsToUpload.push({ fileName: name, blob: file });
+      }
+      (entry.docs || []).forEach(doc => {
+        const docKey = `${typeKey}#${doc.index}`;
+        if (keys.has(docKey) && doc.fileName && doc.blob) {
+          itemsToUpload.push({ fileName: doc.fileName, blob: doc.blob });
+        }
+      });
+    });
+  } else {
+    const vq = attachments && attachments["Vendor Quotation"];
+    if (vq) {
+      (vq.docs || []).forEach(doc => {
+        if (doc.fileName && doc.blob) itemsToUpload.push({ fileName: doc.fileName, blob: doc.blob });
+      });
+      if (vq.fileObj) {
+        itemsToUpload.push({ fileName: vq.fileObj.name, blob: vq.fileObj });
+      }
+    }
+  }
+
+  const promises = itemsToUpload.map(async (item) => {
+    if (!item.fileName) throw new Error("Invalid filename");
     return {
-      filename: doc.fileName,
-      base64: await blobToBase64(doc.blob),
+      filename: item.fileName,
+      base64: await blobToBase64(item.blob),
     };
   });
-  if (emailFile) {
-    promises.push(
-      blobToBase64(emailFile).then((base64) => ({
-        filename: emailFile.name,
-        base64,
-      })),
-    );
-  }
+
   const base64Files = (await Promise.allSettled(promises)).filter(
     (res) => res.status === "fulfilled",
   );
@@ -12357,7 +13009,7 @@ async function saveAttachmentToPowerFlow(recordId, attachments, onProgress) {
 // No `census` prop: every role this page names travels inside the crosscheck
 // already, so taking the census too would be a second way to answer the same
 // question and a second way to be out of date.
-function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectItem, itemRecordIds, savedRecordIds, processAnotherItem, goUpload, goSave, saving, recordId, savedRecordId, setField, adminMode = false, records = [], lisStartWritten = {}, processedItems = {} }) {
+function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectItem, itemRecordIds, savedRecordIds, processAnotherItem, goUpload, goSave, saving, recordId, savedRecordId, setField, adminMode = false, records = [], lisStartWritten = {}, processedItems = {}, openViewer = null, uploadProgress = null }) {
   // The sales contact the reviewer picked HERE. `null` means they have not
   // touched the picker -- distinct from `""`, which is them CLEARING it, and
   // the picker really does offer a blank row. That is why this is a sentinel
@@ -12437,7 +13089,7 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   // or "" when it names nobody this list knows -- an Admin who has left, a
   // typo, or a blank column all land here and the old first-in-the-list default
   // still answers.
-  const autoAdminName = (FEATURES.adminNameFromIssueBy && findBtbAdminName(valueOf("issueBy"))) || "";
+  const autoAdminName = (FEATURES.adminNameFromIssueBy && (findBtbAdminName(valueOf("issueBy")) || findBtbAdminName(valueOf("processadmin")))) || "";
   // DERIVED, not state, and that is the load-bearing part: Issue By is seeded
   // into `fields` by "Continue to save" before this page ever mounts, so an
   // effect that set state would have to race the two remark-building effects
@@ -12446,6 +13098,26 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   // race: the first render already has the right name and every btbTextFor /
   // supplierTextFor default picks it up.
   const adminName = adminNameOverride || autoAdminName || BTB_ADMIN_NAMES[0];
+
+  // If Issue By is not yet filled (e.g. background Dataverse flow was still running when advancing from Verify Table),
+  // refresh it from Dataverse once populated so autoAdminName derives the correct name.
+  useEffect(() => {
+    if (!recordId || valueOf("issueBy")) return;
+    const api = writeApi();
+    if (!api) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const id = await findExistingLisRecordId(recordId, api);
+        if (!id || cancelled) return;
+        const rec = await retrieveRecordCreatedBy(SCHEMA.lis.entity, id, api);
+        if (!cancelled && rec && rec.admin_issuex0020by) {
+          if (setField) setField("issueBy", rec.admin_issuex0020by, true);
+        }
+      } catch (e) {}
+    })();
+    return () => { cancelled = true; };
+  }, [recordId, valueOf("issueBy")]);
 
   const [supplierRemarkRows, setSupplierRemarkRows] = useState(
     FEATURES.supplierRemarkLookup ? DEMO_SUPPLIER_REMARKS : []
@@ -12539,6 +13211,7 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   // next selectSalesContact/auto-match instead of producing text now.
   const selectAdminName = name => {
     setAdminNameOverride(name);
+    if (setField) setField("issueBy", name);
     const contact = BTB_SALES_CONTACTS.find(c => c.key === salesContactKey);
     if (contact) setBtbRemarkText(btbTextFor(contact, name));
     // The To Supplier sentence names the same Admin on its "PR Issued by" line,
@@ -12640,17 +13313,34 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
   );
 
   
-  const [uploadProgress, setUploadProgress] = useState(null);
+  const [localUploadProgress, setLocalUploadProgress] = useState(null);
+  const activeUploadProgress = uploadProgress || localUploadProgress;
 
   const onSaveToMasterClick = async () => {
     const navigateNext = await goSave(false);
-    setUploadProgress({current: 0, total: 0})
+    setLocalUploadProgress({current: 0, total: 0})
     await saveAttachmentToPowerFlow(recordId, attachments, (current, total)=>{
-      setUploadProgress({current, total})
+      setLocalUploadProgress({current, total})
     })
-    setUploadProgress(null)
+    setLocalUploadProgress(null)
     navigateNext?.();
-  }
+  };
+
+  const onSaveToMasterButtonClick = () => {
+    if (FEATURES.saveToMasterDocViewer) {
+      if (openViewer) {
+        const initialType = (attachments["Vendor Quotation"] && attachments["Vendor Quotation"].parsed)
+          ? "Vendor Quotation"
+          : (ATTACHMENT_TYPES.find(t => attachments[t] && attachments[t].parsed) || "Vendor Quotation");
+        const initialEntry = attachments[initialType] || {};
+        const initialDocs = initialEntry.docs || [];
+        const initialDocIndex = initialDocs.length > 0 ? initialDocs[0].index : -1;
+        openViewer(initialType, initialDocIndex, 1, false, { saveToMaster: true });
+      }
+    } else {
+      onSaveToMasterClick();
+    }
+  };
 
   return <React.Fragment>
     <TopBar title="LIS & Remark" desc="Review the LIS row and add remarks"
@@ -12665,13 +13355,13 @@ function LisRemarkPage({ fields, lisRowValues, attachments, itemIndex, selectIte
           triggerClassName="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border-[1.5px] border-[var(--line)] bg-white text-[13px] font-semibold text-[var(--ink)]" />}
         <GhostButton onClick={goUpload}><span className="inline-flex items-center gap-1.5"><Icon name="chevronLeft" className="w-4 h-4" />Upload</span></GhostButton>
         <PrimaryButton
-          disabled={saving || !!savedRecordId || uploadProgress}
-          onClick={onSaveToMasterClick}
+          disabled={saving || !!savedRecordId || !!activeUploadProgress}
+          onClick={onSaveToMasterButtonClick}
         >
           {saving
             ? "Saving..."
-            : uploadProgress
-              ? `Uploading chunk ${uploadProgress.current} of ${uploadProgress.total}...`
+            : activeUploadProgress
+              ? `Uploading chunk ${activeUploadProgress.current} of ${activeUploadProgress.total}...`
               : savedRecordId
                 ? "Saved"
                 : "Save to master"
@@ -15614,10 +16304,10 @@ function App() {
   // Table's column header is the opposite case: it names the file(s) the
   // column beneath it actually answers from, so offering every other document
   // in the tab invites checking a number against one that never reported it.
-  const openViewer = useCallback((typeKey, docIndex, page, only) => {
+  const openViewer = useCallback((typeKey, docIndex, page, only, extra = {}) => {
     lastFocusRef.current = document.activeElement;
     setViewer({ typeKey, docIndex, page: page || 1,
-      only: Array.isArray(only) ? only : !!only });
+      only: Array.isArray(only) ? only : !!only, ...extra });
   }, []);
   const closeViewer = useCallback(() => {
     setViewer(null);
@@ -16212,7 +16902,29 @@ function App() {
       return ()=>setPage("records")
     }
   };
-  const markSent = id => setRecords(prev => prev.map(r => r.id === id ? { ...r, status: "Completed" } : r));
+
+  const [uploadProgress, setUploadProgress] = useState(null);
+
+  const handleSaveToMasterFromViewer = async (selectedDocKeys) => {
+    closeViewer();
+    try {
+      const navigateNext = await goSave(false);
+      setUploadProgress({ current: 0, total: 0 });
+      await saveAttachmentToPowerFlow(
+        recordIdForItem(savePlans, itemIndex),
+        attachments,
+        (current, total) => setUploadProgress({ current, total }),
+        selectedDocKeys
+      );
+      setUploadProgress(null);
+      navigateNext?.();
+    } catch (err) {
+      console.error("Save to master failed:", err);
+      setUploadProgress(null);
+    }
+  };
+
+  const markSent = (recordId) => setRecords(prev => prev.map(r => r.recordId === recordId ? { ...r, status: "Completed" } : r));
 
   // Shared by the "+ New Record" button and by dropping a replacement file
   // over an attachment tab that's already parsed -- both mean "this is a
@@ -16356,7 +17068,8 @@ function App() {
           itemIndex={itemIndex} goLis={goLis} openViewer={openViewer}
           uid={uidFromEmail(attachments, fields, emailSubject)} recordId={recordIdForItem(savePlans, itemIndex)}
           emailSubject={emailSubject} dataverseVerify={dataverseVerify} refreshDataverse={openVerifyAfterN8n}
-          dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff} adminMode={adminMode} />}
+          dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff} adminMode={adminMode}
+          fields={fields} />}
         {page === "lis" && (
           <LisRemarkPage 
             fields={fields} 
@@ -16376,7 +17089,9 @@ function App() {
             adminMode={adminMode}
             records={records} 
             lisStartWritten={lisStartWritten}
-            processedItems={processedItems} 
+            processedItems={processedItems}
+            openViewer={openViewer}
+            uploadProgress={uploadProgress}
           />)}
         {page === "verify" && <VerifyPage attachments={attachments} fields={fields} manualChecks={manualChecks} toggleManualCheck={toggleManualCheck}
           goUpload={goUpload} goSave={goSave} demoMode={demoMode} adminMode={adminMode} itemRecordIds={itemRecordIds} saveStatus={saveStatus} saving={saving} savedRecordId={savedRecordId}
@@ -16395,10 +17110,15 @@ function App() {
           Upload is the exception: there the same viewer is rendered inline at
           the foot of UploadPage instead, so the document sits beside the fields
           it is being checked against rather than on top of them. */}
-      {viewer && page !== "upload" && <DocumentViewer key={viewer.typeKey + ":" + viewer.docIndex}
+      {viewer && page !== "upload" && <DocumentViewer key={viewer.typeKey + ":" + viewer.docIndex + ":" + (viewer.saveToMaster ? "save" : "view")}
         viewer={viewer} attachments={attachments} onClose={closeViewer}
         crosschecks={crosschecks} dismissedDiffs={dismissedDiffs} toggleDismissDiff={toggleDismissDiff}
-        setField={setField} fields={fields} openViewer={openViewer} census={census} />}
+        setField={setField} fields={fields} openViewer={openViewer} census={census}
+        canSaveToMaster={!!viewer.saveToMaster}
+        onSaveToMaster={handleSaveToMasterFromViewer}
+        saving={saving}
+        savedRecordId={savedRecordId}
+        uploadProgress={uploadProgress} />}
     </div>
   );
 }

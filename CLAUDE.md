@@ -1305,6 +1305,16 @@ in service of one feature (e.g. the fetch query, the table columns, and the
 sidebar counts all landing together) still bump only once. Displayed as
 `V<APP_VERSION>` (capital V) in the sidebar.
 
+### Master page version number (`APP_VERSION`)
+
+`Master page_21-Sep-2026.html`'s `APP_VERSION` constant (displayed in `#app-version-badge` beside the header title `Master List Management System`) follows the identical `MAJOR.MINOR.PATCH` convention, started at `1.0.0` on 2026-10-21:
+
+- **MAJOR** — a big update: a redesign, or a change that reshapes how the master list workflow / page works.
+- **MINOR** — a small update or a function added: a new column (e.g. Sub Number), a new field, a new modal section, a new filter — adds capability without reshaping what's already there.
+- **PATCH** — a bug fixed or a problem solved: behaviour was wrong and is now right; no new capability.
+
+Bump it **without being asked**, as the last step of the change — a file whose version did not move is indistinguishable in the browser from one that was never re-uploaded. One bump per logical change, not per file edit or per commit. Displayed as `V<APP_VERSION>` (capital V) in the header badge.
+
 ## Print — a separate document, not this window
 
 The Documents Viewer's header carries **🖨 Print** beside **⤓ Download**. It is

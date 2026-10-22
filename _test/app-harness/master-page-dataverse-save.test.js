@@ -173,7 +173,9 @@ const X = sandbox.EXPORTS;
     MarkReceiptDate: "2026-10-10",
     ChargeCCC: "C716",
     AccountCode: "512100",
-    WorksOrderCode: "WO-SEC-01"
+    WorksOrderCode: "WO-SEC-01",
+    admin_mdapprovalname: "Coming Soon",
+    admin_mdapproveddatetime: "2026-10-16"
   });
 
   eq("updateRecord was called once in bulk mode", updatedRecords.length, 1);
@@ -186,6 +188,8 @@ const X = sandbox.EXPORTS;
   eq("admin_itemno is included in payload", pHkd.admin_itemno, "ITM-99");
   eq("admin_buyer is included in payload", pHkd.admin_buyer, "Chan, Peter");
   eq("admin_markreceivedate is included in payload", pHkd.admin_markreceivedate, "2026-10-10");
+  eq("admin_mdapprovalname is included in payload", pHkd.admin_mdapprovalname, "Coming Soon");
+  eq("admin_mdapproveddatetime is included in payload", pHkd.admin_mdapproveddatetime, "2026-10-16");
   eq("PO Amount HK$ is numeric Float", pHkd.admin_pox0020amountx0020hkx0024, 12500.50);
   eq("PO_Amount text copy is String", pHkd.admin_poamount, "12500.5");
   eq("No. is numeric Float", pHkd.admin_nox002e, 42);

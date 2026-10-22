@@ -63,7 +63,8 @@ const EXPORTS = [
   'diffDocIndexes', 'diffsForDoc', 'mapDetectedFields',
   'itemNoOf', 'anchorRecordsOf', 'anchoredRecordOf', 'recordIdFor', 'assignRecordIds',
   'recordsBearingEntry', 'fallbackBaseFor', 'buildRecordPayload', 'buildAtqExcelPayload', 'writeAtqExcelRecord',
-  'buildLisExcelPayload', 'writeLisExcelRecord', 'writeLisStartRecord', 'formatProcessStatusLabel', 'checkExistingLisRecord', 'findExistingAtqExcelRecordId', 'parseDecimal', 'parseIsoDate',
+  'buildLisExcelPayload', 'writeLisExcelRecord', 'writeLisStartRecord', 'fetchDistinctAdminNames', 'extractCreatedByName', 'retrieveRecordCreatedBy', 'syncCreatedByName', 'pollAndSyncCreatedBy', 'lookupAdminNameByEmail', 'fetchAdminUserList', 'resetAdminUserListCache', 'formatProcessStatusLabel', 'checkExistingLisRecord', 'findExistingAtqExcelRecordId', 'parseDecimal', 'parseIsoDate',
+  'PROCESS_ADMIN_STORAGE_KEY', 'getSavedProcessAdmin', 'saveProcessAdmin',
   'LIS_ROW_TO_FIELD_KEY', 'seedFieldsFromLisRows',
   // The Verify Table's row list, unfiltered and filtered -- the pair is what
   // lets side-schema.test.js pin that a devOnly row is dropped on Admin
@@ -118,6 +119,7 @@ const EXPORTS = [
   'RoleAssignmentEditor', 'FieldCrossCheck', 'FieldComparePanel', 'InfoPane',
   'renderFieldInput', 'initialFormState', 'DEMO_RECORDS', 'EMPTY_RECORDS',
   'LisRemarkPage', 'EXCEL_COLUMN_MAP',
+  'defaultSaveToMasterDocKeys', 'saveAttachmentToPowerFlow', 'APP_VERSION',
 ];
 
 // The block, minus the one line that needs a browser.
@@ -201,6 +203,7 @@ function load(opts) {
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox, { filename: 'app-src.js' });
+  sandbox.__app.sandbox = sandbox;
   cached[slot] = sandbox.__app;
   return cached[slot];
 }

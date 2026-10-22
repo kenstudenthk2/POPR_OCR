@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=Funnel+Sans:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.1/dist/xlsx.min.js"></script>
     <style>
         :root {
             --ease-out-ui: cubic-bezier(0.16, 1, 0.3, 1);
@@ -121,6 +121,15 @@
             border-radius: 50%;
             width: 18px; height: 18px;
             animation: spin 0.8s linear infinite;
+        }
+        .loader-sm {
+            border: 2px solid var(--line);
+            border-top: 2px solid var(--orange-dark);
+            border-radius: 50%;
+            width: 13px; height: 13px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            flex-shrink: 0;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         table { border-collapse: collapse; }
@@ -350,6 +359,10 @@
             content: " *";
             color: var(--red);
         }
+
+        #umVerificationCard.is-urgent {
+            border: 2.5px solid var(--red) !important;
+        }
     </style>
 
 <!--[if gte mso 9]><xml>
@@ -381,10 +394,21 @@
                         <h1 class="text-[clamp(22px,2.2vw,30px)] leading-tight font-bold text-[var(--ink)] tracking-tight" style="font-family:'Space Grotesk', system-ui, sans-serif;">
                             Master List Management System
                         </h1>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-200/90 shadow-2xs">
+                        <span id="app-version-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#F3EBE2] text-[#6B6B6B] border border-[#E5DDD0] shadow-2xs" title="Master Records Version">
+                            V1.3.0
+                        </span>
+                        <button type="button" id="btn-toggle-admin-mode" onclick="promptAdminMode()"
+                            title="Click to activate Admin Mode (Password: admin2026, or press Ctrl+Alt+A)"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-200/90 shadow-2xs hover:bg-amber-100 ui-transition cursor-pointer">
                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                             DEV
-                        </span>
+                        </button>
+                        <div id="admin-mode-badge" class="hidden inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B] text-[11px] font-bold shadow-2xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse"></span>
+                            <span>ADMIN MODE</span>
+                            <button type="button" onclick="setAdminMode(false)" aria-label="Exit admin mode" title="Exit Admin Mode"
+                                class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#F59E0B]/30 ui-transition text-[#92400E] font-bold text-[12px] ml-0.5">×</button>
+                        </div>
                     </div>
                     <p class="mt-0.5 text-[13px] leading-relaxed text-[var(--muted)]">
                         Browse, filter, and manage automated workflow records.
@@ -393,7 +417,21 @@
             </div>
 
             <!-- Primary Action: Refresh Data & Loader -->
-            <div class="flex items-center gap-2.5 self-start md:self-auto shrink-0">
+            <div class="flex items-center gap-3 self-start md:self-auto shrink-0 flex-wrap sm:flex-nowrap">
+                <!-- Live Digital Clock Widget -->
+                <div id="digital-clock" class="flex items-center gap-2.5 px-3 py-1.5 bg-white/95 rounded-xl border border-slate-200/90 shadow-2xs select-none" title="Current Date and Time">
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-[var(--orange-dark)] border border-amber-200/70 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col text-right sm:text-left">
+                        <span id="digital-clock-date" class="text-[11px] font-semibold text-[var(--muted)] leading-tight tracking-tight">--</span>
+                        <span id="digital-clock-time" class="text-[14px] font-bold font-mono text-[var(--ink)] leading-tight tracking-normal">--:--:--</span>
+                    </div>
+                </div>
+
                 <div id="main-loader" class="loader hidden"></div>
                 <button type="button" onclick="initApp()" id="btn-refresh-data"
                     class="ui-transition pressable group inline-flex items-center gap-2 min-h-[40px] px-4 py-2 rounded-xl text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">
@@ -621,7 +659,7 @@
             <div class="px-6 py-4 border-b border-slate-200/80 bg-slate-50/50 flex items-center justify-between shrink-0">
                 <div>
                     <h2 class="text-[19px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Manage Columns</h2>
-                    <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible in the main records table.</p>
+                    <p class="text-[12px] text-[var(--muted)] mt-0.5">Customize columns visible and display order (1, 2, 3...) in the main records table.</p>
                 </div>
                 <button type="button" onclick="closeColumnModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">Close ✕</button>
             </div>
@@ -645,7 +683,7 @@
                 <!-- Checkboxes populated dynamically -->
             </div>
             <div class="px-6 py-4 border-t border-slate-200/80 bg-slate-50/50 flex justify-between items-center shrink-0">
-                <span class="text-[12px] text-[var(--muted)]">Locked columns are always visible</span>
+                <span class="text-[12px] text-[var(--muted)]">Locked columns (Action, Record ID) are always visible. Numbers 1, 2, 3... set display order after Record ID.</span>
                 <div class="flex gap-2">
                     <button type="button" onclick="closeColumnModal()" class="ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-semibold border border-slate-200 bg-white text-[var(--ink)] hover:bg-slate-50 shadow-2xs">Cancel</button>
                     <button type="button" onclick="saveColumnPreferences()" class="ui-transition pressable min-h-[40px] px-5 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--orange)] text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] border-[1.5px] border-transparent shadow-xs">Save</button>
@@ -712,12 +750,16 @@
                             </svg>
                         </span>
                         <span>Record Details & Workflow Engine</span>
+                        <span id="modal-admin-badge" class="hidden px-2 py-0.5 rounded bg-[#FFF4DE] text-[var(--orange-dark)] border border-[var(--orange)] text-[11px] font-bold">Admin bypass</span>
                     </h2>
                     <p class="text-[12px] text-[var(--muted)] mt-0.5">Enterprise Master Record Management System</p>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button type="button" id="btn-modal-history" onclick="openHistoryModal()" class="ui-transition pressable px-3 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] flex items-center gap-1.5" title="View change history">
+                        <span>🕒</span> Change History
+                    </button>
                     <button type="button" id="btn-modal-remark" onclick="openRemarkModal()" class="ui-transition pressable px-3 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)] hover:bg-[#FFF3D6] hover:border-[var(--orange-dark)] flex items-center gap-1.5" title="View or edit Remark">
-                        <span>💬</span> Remark
+                        <span>💬</span> LIS Remark
                     </button>
                     <button type="button" onclick="closeModal()" class="ui-transition pressable px-2.5 py-1 rounded-md bg-white border border-[#B8B8BD] text-[13px] font-semibold text-[#6B6B6B] hover:text-[var(--ink)]">✕ Close</button>
                     
@@ -742,10 +784,10 @@
                 <input type="hidden" id="edit-id">
                 <input type="hidden" id="edit-processstatus">
 
-                <!-- Sticky Navigation Bar with Urgent Case Toggle -->
+                <!-- Sticky Navigation Bar -->
                 <div data-z-offset="30" class="sticky mt-6 top-0 bg-white/95 backdrop-blur-md pt-2 pb-3 px-3 rounded-t-xl border border-[var(--line)] shadow-sm flex flex-col gap-2.5 shrink-0">
                     <!-- Sub Record Navigation Bar (Requirement 6, 7, 8) -->
-                    <div class="top-0 z-10 bg-white/95 backdrop-blur-md hidden">
+                    <div class="top-0 z-10 bg-white/95 backdrop-blur-md">
                         <div id="subRecordsBar" class="w-full hidden"></div>
                         <div class="flex flex-wrap items-center justify-between gap-3 w-full">
                             <div class="flex gap-1 overflow-x-auto" id="modalTabButtons">
@@ -796,17 +838,6 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Urgent Case Toggle -->
-                    <div class="flex items-center gap-2.5 px-3 py-1.5 bg-red-50/80 border border-red-200 rounded-lg">
-                        <span class="text-[13px] font-bold text-red-700 flex items-center gap-1">
-                            Urgent Case <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block animate-pulse"></span>
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="edit-urgent-flag" onchange="handleFormInputChange()" class="sr-only peer">
-                            <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--red)]"></div>
-                        </label>
                     </div>
                 </div>
                 <!-- Tab Content Sections -->
@@ -1213,11 +1244,23 @@
                                 <!-- PR Action Control inside PR Info Tab -->
                                 <div class="col-span-1 md:col-span-2 grid grid-cols-1 gap-4 mt-2">
                                     <!-- Requirement 5: UM Verified Button Card -->
-                                    <div class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB]">
+                                    <div id="umVerificationCard" class="border border-[#E5E5EA] rounded-xl p-4 bg-[#F9F9FB] transition-all duration-200">
                                         <div class="flex flex-col gap-3">
-                                            <span class="text-[13px] font-bold text-[var(--ink)]">
-                                                UM Verification
-                                            </span>
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="text-[13px] font-bold text-[var(--ink)]">
+                                                    UM Verification
+                                                </span>
+                                                <!-- Urgent Case Toggle -->
+                                                <div class="flex items-center gap-2.5 px-3 py-1.5 bg-red-50/80 border border-red-200 rounded-lg shrink-0">
+                                                    <span class="text-[13px] font-bold text-red-700 flex items-center gap-1">
+                                                        Urgent Approval <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block animate-pulse"></span>
+                                                    </span>
+                                                    <label class="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" id="edit-urgent-flag" onchange="handleUrgentFlagChange()" class="sr-only peer">
+                                                        <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--red)]"></div>
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <span class="text-[11px] font-bold text-[var(--red)]">
                                                 **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
                                             </span>
@@ -1308,19 +1351,34 @@
                                             <span class="text-[11px] text-[var(--muted)]">Check the box after obtaining approval to advance to the next workflow stage.</span>
                                         </div>
 
-                                        <span class="text-[11px] font-bold text-[var(--red)]">
+                                        <span class="text-[11px] font-bold text-[var(--red)]" id="pr-approval-send-warning">
                                             **Before sending the approval request, please review the Attachment URL to ensure that the folder contains all required attachments.**
                                         </span>
 
                                         <button
                                             type="button"
                                             id="btn-send-pr-approval"
+                                            onclick="sendPRApprovalRequest()"
                                             class="
                                                 ui-transition pressable px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 border border-transparent
                                             "
                                         >
                                             Send Approval Request
                                         </button>
+
+                                        <!-- MD Approval Inputs (Replaces Send Approval Request button when Approval Level is MD) -->
+                                        <div id="pr-md-approval-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div class="flex flex-col gap-1">
+                                                <label class="text-[12px] font-semibold text-[var(--muted)]">MD Name</label>
+                                                <select id="edit-md-name" onchange="handleFormInputChange()" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] cursor-pointer">
+                                                    <option value="Coming Soon">Coming Soon</option>
+                                                </select>
+                                            </div>
+                                            <div class="flex flex-col gap-1">
+                                                <label class="text-[12px] font-semibold text-[var(--muted)]">MD Approve Date</label>
+                                                <input type="date" id="edit-md-approve-date" onchange="handleFormInputChange()" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                            </div>
+                                        </div>
 
                                         <div id="pr-roles-approval-info" class="hidden flex flex-col gap-2.5">
                                             <div id="pr-approval-info-avp" class="hidden flex flex-col gap-0.5">
@@ -1701,10 +1759,10 @@
                     class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
                 <span id="duplicate-error" class="hidden text-[12px] font-medium text-[var(--red)]">Please enter a whole number between 1 and 10.</span>
             </div>
-            <p class="text-[14px] text-[var(--muted)]">Do you want to bring PR/PO Info to new records?</p>
+            <p class="text-[14px] text-[var(--muted)]">Do you want to replicate PR/PO Info to new records?</p>
             <select id="select-duplicate-bringover" class="field-control w-full px-3.5 py-2 text-[14px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                <option selected value="leave_po">Bring PR Info</option>
-                <option value="leave_prpo">Leave PR/PO Info</option>
+                <option selected value="leave_po">Replicate PR Info</option>
+                <option value="leave_prpo">Create New PR/PO Info</option>
             </select>
             <div class="flex justify-end gap-3 mt-2">
                 <button type="button" onclick="closeDuplicateModal()" class="ui-transition pressable px-4 py-2 rounded-lg text-[14px] font-semibold border border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-gray-100">
@@ -1835,6 +1893,76 @@
         </div>
     </div>
 
+    <!-- History Modal (Audit Log & Field Change History) -->
+    <div id="historyModal" data-z-offset="60" class="hidden fixed inset-0 z-[70] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 overflow-hidden modal-backdrop" onclick="if(event.target === this) closeHistoryModal()">
+        <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] overflow-hidden border border-slate-200/80 flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="px-6 py-4 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-amber-100/70 text-[var(--orange-dark)] flex items-center justify-center text-lg shrink-0">🕒</span>
+                    <div>
+                        <h3 class="text-[18px] font-bold text-[var(--ink)]" style="font-family:'Space Grotesk', system-ui, sans-serif;">Record Change History</h3>
+                        <p class="text-[12px] text-[var(--muted)]" id="history-modal-subtitle">Field modification logs for this record</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="refreshHistoryModal()" class="ui-transition pressable inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-600 hover:text-[var(--ink)] hover:bg-slate-50 shadow-2xs" title="Refresh history">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                            <path d="M16 16h5v5"></path>
+                        </svg>
+                        <span>Refresh</span>
+                    </button>
+                    <button type="button" onclick="closeHistoryModal()" class="ui-transition pressable px-2.5 py-1 rounded-md text-[13px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100">✕ Close</button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4 bg-slate-50/40">
+                <!-- History Modal Tab Switcher: Update & Remarks -->
+                <div class="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-xl border border-slate-200/80 w-fit shrink-0">
+                    <button type="button" id="history-tab-update" onclick="switchHistoryTab('update')"
+                        class="history-tab-btn ui-transition pressable inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold bg-white text-[var(--ink)] shadow-2xs">
+                        <span>Update</span>
+                        <span id="history-tab-update-count" class="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-slate-100 text-slate-700 font-semibold">0</span>
+                    </button>
+                    <button type="button" id="history-tab-remarks" onclick="switchHistoryTab('remarks')"
+                        class="history-tab-btn ui-transition pressable inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold text-slate-600 hover:text-[var(--ink)] hover:bg-white/60">
+                        <span>Remarks</span>
+                        <span id="history-tab-remarks-count" class="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-slate-100 text-slate-700 font-semibold">0</span>
+                    </button>
+                </div>
+
+                <div class="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-xs flex-1 min-h-[220px]">
+                    <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+                        <table class="w-full text-left border-collapse text-[13px]" id="history-records-table">
+                            <thead class="sticky top-0 bg-slate-50 z-10 border-b border-slate-200" id="history-records-thead">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Field</th>
+                                    <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Previous Value</th>
+                                    <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">New Value</th>
+                                    <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Modified By</th>
+                                    <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Date &amp; Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-records-tbody" class="divide-y divide-slate-100">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3.5 bg-white border-t border-[var(--line)] flex justify-between items-center shrink-0">
+                <span class="text-[12.5px] text-[var(--muted)] font-medium" id="history-modal-count">0 record(s)</span>
+                <button type="button" onclick="closeHistoryModal()" class="ui-transition pressable min-h-[38px] px-4 py-1.5 rounded-lg text-[13px] font-semibold border-[1.5px] border-[#B8B8BD] bg-white text-[var(--ink)] hover:bg-[#FFF3D6]">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- COS Control File Modal -->
     <div id="cosControlModal" data-z-offset="50" class="hidden fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm items-center justify-center p-3 md:p-6 overflow-hidden modal-backdrop" onclick="if(event.target === this) closeCosControlModal()">
         <div class="modal-pop bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] border border-slate-200/80 overflow-hidden flex flex-col"
@@ -1854,31 +1982,67 @@
             <!-- Filter Controls and Record Table -->
             <div class="p-6 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
                 <!-- Period Selection Card -->
-                <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex flex-col gap-1">
-                            <label for="cos-month-select" class="text-[12px] font-bold text-[var(--ink)]">Select by Month</label>
-                            <input type="month" id="cos-month-select" onchange="handleCosMonthChange(this.value)"
-                                class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 flex flex-col gap-3">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex flex-col gap-1">
+                                <label for="cos-month-select" class="text-[12px] font-bold text-[var(--ink)]">Select by Month</label>
+                                <input type="month" id="cos-month-select" onchange="handleCosMonthChange(this.value)"
+                                    class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                            </div>
+                            <div class="h-6 w-px bg-slate-200 hidden sm:block self-end mb-2"></div>
+                            <div class="flex items-center gap-2">
+                                <div class="flex flex-col gap-1">
+                                    <label for="cos-date-from" class="text-[12px] font-bold text-[var(--ink)]">From</label>
+                                    <input type="date" id="cos-date-from" onchange="handleCosDateRangeChange()"
+                                        class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                                <span class="text-[13px] font-semibold text-[var(--muted)] self-end mb-2">to</span>
+                                <div class="flex flex-col gap-1">
+                                    <label for="cos-date-to" class="text-[12px] font-bold text-[var(--ink)]">To</label>
+                                    <input type="date" id="cos-date-to" onchange="handleCosDateRangeChange()"
+                                        class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
+                                </div>
+                            </div>
                         </div>
-                        <div class="h-6 w-px bg-slate-200 hidden sm:block self-end mb-2"></div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex flex-col gap-1">
-                                <label for="cos-date-from" class="text-[12px] font-bold text-[var(--ink)]">From</label>
-                                <input type="date" id="cos-date-from" onchange="handleCosDateRangeChange()"
-                                    class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                            </div>
-                            <span class="text-[13px] font-semibold text-[var(--muted)] self-end mb-2">to</span>
-                            <div class="flex flex-col gap-1">
-                                <label for="cos-date-to" class="text-[12px] font-bold text-[var(--ink)]">To</label>
-                                <input type="date" id="cos-date-to" onchange="handleCosDateRangeChange()"
-                                    class="field-control px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)]">
-                            </div>
+
+                        <div class="text-[12px] text-slate-600 self-start md:self-end">
+                            <div>File name: <span class="font-semibold text-[var(--ink)] font-mono" id="cos-file-name"></span></div>
                         </div>
                     </div>
 
-                    <div class="text-[12px] text-slate-600 self-start md:self-end">
-                        <div>File name: <span class="font-semibold text-[var(--ink)] font-mono" id="cos-file-name"></span></div>
+                    <!-- Charge CCC and Issued By Filters -->
+                    <div class="flex flex-wrap items-end gap-3 pt-2 border-t border-slate-200/60">
+                        <div class="flex flex-col gap-1 relative" id="cos-filter-charge-ccc-container">
+                            <label class="text-[12px] font-bold text-[var(--ink)]">Charge CCC</label>
+                            <div class="relative">
+                                <button type="button" id="cos-filter-charge-ccc-btn" onclick="toggleCosCccDropdown(event)"
+                                    class="field-control flex items-center justify-between gap-2 min-w-[170px] w-full sm:w-52 px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] hover:border-[var(--orange)] ui-transition cursor-pointer text-left shadow-2xs">
+                                    <span id="cos-filter-charge-ccc-label" class="truncate font-medium">All Charge CCC</span>
+                                    <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-150" id="cos-filter-charge-ccc-chevron" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <div id="cos-filter-charge-ccc-menu" class="hidden absolute left-0 top-full mt-1 w-64 max-h-60 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-xl z-50 flex flex-col panel-rise">
+                                    <div class="p-2 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2 shrink-0">
+                                        <button type="button" onclick="selectAllCosCcc(true)" class="text-[11.5px] font-bold text-[var(--orange-dark)] hover:underline">Select All</button>
+                                        <button type="button" onclick="selectAllCosCcc(false)" class="text-[11.5px] font-semibold text-slate-500 hover:text-[var(--ink)] hover:underline">Clear</button>
+                                    </div>
+                                    <div id="cos-filter-charge-ccc-options" class="p-2 overflow-y-auto flex-1 flex flex-col gap-1 max-h-48">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="h-6 w-px bg-slate-200 hidden sm:block self-end mb-2"></div>
+
+                        <div class="flex flex-col gap-1">
+                            <label for="cos-filter-issued-by" class="text-[12px] font-bold text-[var(--ink)]">Issued By</label>
+                            <select id="cos-filter-issued-by" onchange="handleCosIssuedByChange(this.value)"
+                                class="field-control min-w-[170px] w-full sm:w-52 px-3 py-1.5 text-[13px] text-[var(--ink)] bg-white rounded-lg border-[1.5px] border-[var(--line)] hover:border-[var(--orange)] cursor-pointer shadow-2xs">
+                                <option value="">All Issued By</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -2100,6 +2264,16 @@
             }
         }
         
+        // Shown in the header, so a reviewer can tell whether they are looking at a stale cached copy
+        // or the real thing without asking. Classic MAJOR.MINOR.PATCH (see CLAUDE.md "Master page version number" for
+        // the full rule) -- whoever edits this file next bumps exactly one segment,
+        // whichever the change actually was, and resets everything to its right to 0:
+        //   MAJOR -- a big update: a redesign or a change that reshapes how an existing page/flow works.
+        //   MINOR -- a small update or a function added: a new column, a new field, a new section --
+        //            adds capability without reshaping what's already there.
+        //   PATCH -- a bug fixed or a problem solved: behaviour was wrong, now it isn't; no new capability.
+        const APP_VERSION = "1.3.0";
+
         const CONFIG = {
             itemsPerPage: 15,
             currentUser: "Local User"
@@ -2110,74 +2284,74 @@
 
         /** 
          * @template {string} TKey
-         * @typedef {{label: string, key: TKey; visible: boolean, sortable: boolean, locked?: boolean, hidden?: boolean}} IColConfig<TKey>
+         * @typedef {{label: string, key: TKey; visible: boolean, sortable: boolean, locked?: boolean, hidden?: boolean, order?: number}} IColConfig<TKey>
          */
         /** @type {IColConfig<IColumnConfigKey>[]} */
         const COLUMN_CONFIG = [
-            // Fixed indicator column
-            { key: "SBReportGenerated", label: "SB Report Generated", visible: true, sortable: true, locked: true },
+            // Fixed columns (Action = Col 1, Record ID = Col 2)
+            { key: "Actions", label: "Action", visible: true, sortable: false, locked: true, order: 0 },
+            { key: "Title", label: "Record ID", visible: true, sortable: true, locked: true, order: 0 },
 
-            // Core identity & primary columns
-            { key: "Title", label: "Record ID", visible: true, sortable: true },
-            { key: "SubNumber", label: "Sub Number", visible: false, sortable: true, hidden: true },
-            { key: "CustomerName", label: "Customer Name", visible: true, sortable: true },
-            { key: "CustomerAddress", label: "Customer Address", visible: false, sortable: true },
-            { key: "CustomerContactPerson", label: "Customer Contact Person", visible: false, sortable: true },
-            { key: "CustomerContactNo", label: "Customer Contact No.", visible: false, sortable: true },
-            { key: "CustomerEmailAddress", label: "Customer Email Address", visible: false, sortable: true },
-            { key: "Vendor", label: "Vendor", visible: true, sortable: true },
-            { key: "BTBType", label: "BTB / NON-BTB", visible: true, sortable: true },
-            { key: "PRAmount", label: "PR Amount", visible: true, sortable: true },
-            { key: "ProcessStatus", label: "Workflow Status", visible: true, sortable: true },
-            { key: "HandledBy", label: "Handled By", visible: true, sortable: true },
-            { key: "PRNo", label: "PR No.", visible: false, sortable: true },
-            { key: "PONo", label: "PO No.", visible: false, sortable: true },
-            { key: "ContractNo", label: "Contract No.", visible: false, sortable: true },
-            { key: "POAmount", label: "PO Amount", visible: false, sortable: true },
-            { key: "StartDate", label: "Contract Start Date", visible: false, sortable: true },
-            { key: "EndDate", label: "Contract End Date", visible: false, sortable: true },
-            { key: "QuotationExpiryDate", label: "Quotation Expiry Date", visible: false, sortable: true },
-            { key: "PRReference", label: "PR Reference", visible: false, sortable: true },
-            { key: "PODate", label: "PO Date", visible: false, sortable: true },
-            { key: "POReceiptDate", label: "PO Receipt Date", visible: false, sortable: true },
-            { key: "QuotationStartDate", label: "Quotation Start Date", visible: false, sortable: true },
-            { key: "QuotationEndDate", label: "Quotation End Date", visible: false, sortable: true },
-            { key: "QuotationNo", label: "Quotation No.", visible: false, sortable: true },
-            { key: "IPTUnitMgr", label: "IPT Unit Mgr", visible: false, sortable: true },
-            { key: "UID", label: "UID #", visible: false, sortable: true },
-            { key: "Remarks", label: "Remarks", visible: false, sortable: true },
-            { key: "Approver", label: "Approver", visible: false, sortable: true },
-            { key: "PRIssuedOn", label: "PR Issued On", visible: true, sortable: true },
-            { key: "ProductType", label: "Product Type", visible: true, sortable: true },
+            // Core identity & primary columns (SubNumber kept immediately after Title)
+            { key: "SubNumber", label: "Sub Number", visible: false, sortable: true, order: 0 },
+            { key: "SBReportGenerated", label: "SB Report Generated", visible: true, sortable: true, order: 1 },
+            { key: "CustomerName", label: "Customer Name", visible: true, sortable: true, order: 2 },
+            { key: "CustomerAddress", label: "Customer Address", visible: false, sortable: true, order: 0 },
+            { key: "CustomerContactPerson", label: "Customer Contact Person", visible: false, sortable: true, order: 0 },
+            { key: "CustomerContactNo", label: "Customer Contact No.", visible: false, sortable: true, order: 0 },
+            { key: "CustomerEmailAddress", label: "Customer Email Address", visible: false, sortable: true, order: 0 },
+            { key: "Vendor", label: "Vendor", visible: true, sortable: true, order: 3 },
+            { key: "BTBType", label: "BTB / NON-BTB", visible: true, sortable: true, order: 4 },
+            { key: "PRAmount", label: "PR Amount", visible: true, sortable: true, order: 5 },
+            { key: "ProcessStatus", label: "Workflow Status", visible: true, sortable: true, order: 6 },
+            { key: "HandledBy", label: "Handled By", visible: true, sortable: true, order: 7 },
+            { key: "PRNo", label: "PR No.", visible: false, sortable: true, order: 0 },
+            { key: "PONo", label: "PO No.", visible: false, sortable: true, order: 0 },
+            { key: "ContractNo", label: "Contract No.", visible: false, sortable: true, order: 0 },
+            { key: "POAmount", label: "PO Amount", visible: false, sortable: true, order: 0 },
+            { key: "StartDate", label: "Contract Start Date", visible: false, sortable: true, order: 0 },
+            { key: "EndDate", label: "Contract End Date", visible: false, sortable: true, order: 0 },
+            { key: "QuotationExpiryDate", label: "Quotation Expiry Date", visible: false, sortable: true, order: 0 },
+            { key: "PRReference", label: "PR Reference", visible: false, sortable: true, order: 0 },
+            { key: "PODate", label: "PO Date", visible: false, sortable: true, order: 0 },
+            { key: "POReceiptDate", label: "PO Receipt Date", visible: false, sortable: true, order: 0 },
+            { key: "QuotationStartDate", label: "Quotation Start Date", visible: false, sortable: true, order: 0 },
+            { key: "QuotationEndDate", label: "Quotation End Date", visible: false, sortable: true, order: 0 },
+            { key: "QuotationNo", label: "Quotation No.", visible: false, sortable: true, order: 0 },
+            { key: "IPTUnitMgr", label: "IPT Unit Mgr", visible: false, sortable: true, order: 0 },
+            { key: "UID", label: "UID #", visible: false, sortable: true, order: 0 },
+            { key: "Remarks", label: "Remarks", visible: false, sortable: true, order: 0 },
+            { key: "Approver", label: "Approver", visible: false, sortable: true, order: 0 },
+            { key: "PRIssuedOn", label: "PR Issued On", visible: true, sortable: true, order: 8 },
+            { key: "ProductType", label: "Product Type", visible: true, sortable: true, order: 9 },
 
             // Remaining dev-side table admin_btb_lis_excel_datas columns
-            { key: "Brand", label: "Brand", visible: false, sortable: true },
-            { key: "Model", label: "Model", visible: false, sortable: true },
-            { key: "No", label: "No.", visible: false, sortable: true },
-            { key: "RecdDate", label: "Rec'd Date", visible: false, sortable: true },
-            { key: "IssueBy", label: "Issue By", visible: false, sortable: true },
-            { key: "LicenseReceiveDate", label: "License Receive Date", visible: false, sortable: true },
-            { key: "ChargeCCC", label: "Charge CCC", visible: false, sortable: true },
-            { key: "WorksOrderCode", label: "Works Order Code", visible: false, sortable: true },
-            { key: "AccountCode", label: "Account Code", visible: false, sortable: true },
-            { key: "TotalRevenue", label: "Total Revenue", visible: false, sortable: true },
-            { key: "SellingAmountHKD", label: "Selling Amount HK$", visible: false, sortable: true },
-            { key: "CostRevenueRatio", label: "Ratio of Overall Cost / Revenue", visible: false, sortable: true },
-            { key: "SwappingRevenueRatio", label: "Ratio of Overall Swapping / Revenue", visible: false, sortable: true },
-            { key: "USDOthers", label: "USD / Others", visible: false, sortable: true },
-            { key: "PRDescription", label: "PR Description", visible: false, sortable: true },
-            { key: "UMMgr", label: "UM/Mgr", visible: false, sortable: true },
-            { key: "PRIssuedMonth", label: "PR Issued Month", visible: false, sortable: true },
-            { key: "YN", label: "Urgent (Y/N)", visible: false, sortable: true },
-            { key: "InvoiceDNNo", label: "Invoice # / DN #", visible: false, sortable: true },
-            { key: "InvoiceDNDate", label: "Invoice / DN Date", visible: false, sortable: true },
-            { key: "Status", label: "Status", visible: false, sortable: true },
-            { key: "StatusRemark", label: "Status Remark", visible: false, sortable: true },
-            { key: "Flagged", label: "Flagged", visible: false, sortable: true },
-            { key: "Buyer", label: "Buyer", visible: false, sortable: true },
-            { key: "ItemNo", label: "Item No.", visible: false, sortable: true },
-            { key: "MarkReceiptDate", label: "Mark Receipt Date", visible: false, sortable: true },
-            { key: "Actions", label: "Actions", visible: true, sortable: false, locked: true },
+            { key: "Brand", label: "Brand", visible: false, sortable: true, order: 0 },
+            { key: "Model", label: "Model", visible: false, sortable: true, order: 0 },
+            { key: "No", label: "No.", visible: false, sortable: true, order: 0 },
+            { key: "RecdDate", label: "Rec'd Date", visible: false, sortable: true, order: 0 },
+            { key: "IssueBy", label: "Issue By", visible: false, sortable: true, order: 0 },
+            { key: "LicenseReceiveDate", label: "License Receive Date", visible: false, sortable: true, order: 0 },
+            { key: "ChargeCCC", label: "Charge CCC", visible: false, sortable: true, order: 0 },
+            { key: "WorksOrderCode", label: "Works Order Code", visible: false, sortable: true, order: 0 },
+            { key: "AccountCode", label: "Account Code", visible: false, sortable: true, order: 0 },
+            { key: "TotalRevenue", label: "Total Revenue", visible: false, sortable: true, order: 0 },
+            { key: "SellingAmountHKD", label: "Selling Amount HK$", visible: false, sortable: true, order: 0 },
+            { key: "CostRevenueRatio", label: "Ratio of Overall Cost / Revenue", visible: false, sortable: true, order: 0 },
+            { key: "SwappingRevenueRatio", label: "Ratio of Overall Swapping / Revenue", visible: false, sortable: true, order: 0 },
+            { key: "USDOthers", label: "USD / Others", visible: false, sortable: true, order: 0 },
+            { key: "PRDescription", label: "PR Description", visible: false, sortable: true, order: 0 },
+            { key: "UMMgr", label: "UM/Mgr", visible: false, sortable: true, order: 0 },
+            { key: "PRIssuedMonth", label: "PR Issued Month", visible: false, sortable: true, order: 0 },
+            { key: "YN", label: "Urgent (Y/N)", visible: false, sortable: true, order: 0 },
+            { key: "InvoiceDNNo", label: "Invoice # / DN #", visible: false, sortable: true, order: 0 },
+            { key: "InvoiceDNDate", label: "Invoice / DN Date", visible: false, sortable: true, order: 0 },
+            { key: "Status", label: "Status", visible: false, sortable: true, order: 0 },
+            { key: "StatusRemark", label: "Status Remark", visible: false, sortable: true, order: 0 },
+            { key: "Flagged", label: "Flagged", visible: false, sortable: true, order: 0 },
+            { key: "Buyer", label: "Buyer", visible: false, sortable: true, order: 0 },
+            { key: "ItemNo", label: "Item No.", visible: false, sortable: true, order: 0 },
+            { key: "MarkReceiptDate", label: "Mark Receipt Date", visible: false, sortable: true, order: 0 }
         ];
 
         const STATUS_TABS = [
@@ -2279,13 +2453,155 @@
             isPOEditing: false
         };
 
-        document.addEventListener("DOMContentLoaded", () => { 
-            loadColumnPreferences();
-            loadExcelColumnPreferences();
-            renderTableHeader();
-            renderTabBar(); 
-            initProcessAdmin(); 
-        });
+        var ADMIN_ACTIVATION_PHRASE = "admin2026";
+        var adminMode = false;
+
+        function checkInitialAdminMode() {
+            if (typeof location !== "undefined" && location.search) {
+                const q = new URLSearchParams(location.search).get("admin");
+                return q === "1" || q === "true" || q === "admin2026";
+            }
+            return false;
+        }
+
+        function updateAdminModeUI() {
+            const badge = document.getElementById("admin-mode-badge");
+            if (badge) {
+                if (adminMode) badge.classList.remove("hidden");
+                else badge.classList.add("hidden");
+            }
+            const modalBadge = document.getElementById("modal-admin-badge");
+            if (modalBadge) {
+                if (adminMode) modalBadge.classList.remove("hidden");
+                else modalBadge.classList.add("hidden");
+            }
+            const devBtn = document.getElementById("btn-toggle-admin-mode");
+            if (devBtn) {
+                devBtn.title = adminMode ? "Admin Mode active (Click to exit)" : "Click to activate Admin Mode (Password: admin2026, or press Ctrl+Alt+A)";
+            }
+        }
+
+        function setAdminMode(active) {
+            adminMode = Boolean(active);
+            if (typeof window !== "undefined") {
+                window.adminMode = adminMode;
+            }
+            updateAdminModeUI();
+            if (state.currentRecord) {
+                const prInput = document.getElementById('edit-prno');
+                const prEditBtn = document.getElementById('btn-edit-prno');
+                const poInput = document.getElementById('edit-pono');
+                const poEditBtn = document.getElementById('btn-edit-pono');
+                if (adminMode) {
+                    if (prInput) { prInput.disabled = false; prInput.classList.remove('bg-gray-100', 'cursor-not-allowed'); }
+                    if (prEditBtn) { prEditBtn.innerText = "Save PR"; prEditBtn.classList.add("bg-[var(--orange)]", "border-transparent"); prEditBtn.classList.remove("bg-white", "border-[#B8B8BD]"); }
+                    state.isPREditing = true;
+                    if (poInput) { poInput.disabled = false; poInput.classList.remove('bg-gray-100', 'cursor-not-allowed'); }
+                    if (poEditBtn) { poEditBtn.innerText = "Save PO"; poEditBtn.classList.add("bg-[var(--orange)]", "border-transparent"); poEditBtn.classList.remove("bg-white", "border-[#B8B8BD]"); }
+                    state.isPOEditing = true;
+                }
+                updateFieldLockingAndApprovalUI(state.currentRecord.ProcessStatus);
+                updatePRApprovalRolesUI(state.currentRecord);
+                handlePRAmount();
+            }
+            const savedAdmin = typeof getSavedProcessAdmin === 'function' ? getSavedProcessAdmin() : "";
+            if (adminMode) {
+                if (state.allData.length === 0 && typeof initApp === 'function') {
+                    initApp();
+                }
+                showToast("Admin Mode activated.", "success");
+            } else {
+                if (!savedAdmin && state.allData.length > 0 && typeof renderEmptyAdminState === 'function') {
+                    renderEmptyAdminState();
+                }
+                showToast("Admin Mode deactivated.", "info");
+            }
+        }
+
+        function promptAdminMode() {
+            if (adminMode) {
+                setAdminMode(false);
+                return;
+            }
+            const phrase = window.prompt("Security activation");
+            if (phrase === ADMIN_ACTIVATION_PHRASE) {
+                setAdminMode(true);
+            } else if (phrase !== null) {
+                window.alert("Admin mode not activated.");
+            }
+        }
+
+        function renderVersionUI() {
+            const badge = document.getElementById("app-version-badge");
+            if (badge) {
+                badge.textContent = `V${APP_VERSION}`;
+            }
+        }
+
+        function updateDigitalClock(date) {
+            const dateEl = document.getElementById("digital-clock-date");
+            const timeEl = document.getElementById("digital-clock-time");
+            if (!dateEl && !timeEl) return;
+            const now = (date instanceof Date && !isNaN(date.getTime())) ? date : new Date();
+            const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dayName = days[now.getDay()];
+            const dayNum = String(now.getDate()).padStart(2, "0");
+            const monthName = months[now.getMonth()];
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            const seconds = String(now.getSeconds()).padStart(2, "0");
+            if (dateEl) {
+                dateEl.textContent = `${dayNum} ${monthName} ${year} (${dayName})`;
+            }
+            if (timeEl) {
+                timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+            }
+        }
+
+        let digitalClockTimer = null;
+        function initDigitalClock() {
+            updateDigitalClock();
+            if (typeof setInterval === "function" && !digitalClockTimer) {
+                digitalClockTimer = setInterval(updateDigitalClock, 1000);
+            }
+        }
+
+        if (typeof window !== "undefined") {
+            window.ADMIN_ACTIVATION_PHRASE = ADMIN_ACTIVATION_PHRASE;
+            window.adminMode = adminMode;
+            window.setAdminMode = setAdminMode;
+            window.promptAdminMode = promptAdminMode;
+            window.APP_VERSION = APP_VERSION;
+            window.renderVersionUI = renderVersionUI;
+            window.updateDigitalClock = updateDigitalClock;
+            window.initDigitalClock = initDigitalClock;
+            if (typeof window.addEventListener === "function") {
+                window.addEventListener("keydown", (event) => {
+                    if (!event.ctrlKey || !event.altKey || String(event.key).toLowerCase() !== "a") return;
+                    event.preventDefault();
+                    promptAdminMode();
+                });
+            }
+        }
+
+        if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+            document.addEventListener("DOMContentLoaded", () => {
+                adminMode = checkInitialAdminMode();
+                if (typeof window !== "undefined") {
+                    window.adminMode = adminMode;
+                }
+                updateAdminModeUI();
+                renderVersionUI();
+                initDigitalClock();
+                loadColumnPreferences();
+                loadExcelColumnPreferences();
+                renderTableHeader();
+                renderTabBar();
+                initProcessAdmin();
+            });
+        }
 
         /* --- Toast Notification Helper --- */
         /**
@@ -2443,21 +2759,26 @@
         function validatePRNoField() {
             const field = document.getElementById('edit-prno');
             const error = document.getElementById('prno-error');
-            const val = field.value.trim();
+            if (adminMode) {
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
+                return true;
+            }
+            const val = field ? field.value.trim() : '';
             
             if (val === '') {
-                field.classList.remove('is-invalid');
-                error.classList.add('hidden');
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
                 return true;
             }
 
             if (!validatePRNo(val)) {
-                field.classList.add('is-invalid');
-                error.classList.remove('hidden');
+                if (field) field.classList.add('is-invalid');
+                if (error) error.classList.remove('hidden');
                 return false;
             } else {
-                field.classList.remove('is-invalid');
-                error.classList.add('hidden');
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
                 return true;
             }
         }
@@ -2465,21 +2786,26 @@
         function validatePONoField() {
             const field = document.getElementById('edit-pono');
             const error = document.getElementById('pono-error');
-            const val = field.value.trim();
+            if (adminMode) {
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
+                return true;
+            }
+            const val = field ? field.value.trim() : '';
 
             if (val === '') {
-                field.classList.remove('is-invalid');
-                error.classList.add('hidden');
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
                 return true;
             }
 
             if (!validatePONo(val)) {
-                field.classList.add('is-invalid');
-                error.classList.remove('hidden');
+                if (field) field.classList.add('is-invalid');
+                if (error) error.classList.remove('hidden');
                 return false;
             } else {
-                field.classList.remove('is-invalid');
-                error.classList.add('hidden');
+                if (field) field.classList.remove('is-invalid');
+                if (error) error.classList.add('hidden');
                 return true;
             }
         }
@@ -2497,6 +2823,10 @@
             const wrapper = document.getElementById('approval-matrix-tooltip-wrapper');
             if (card && wrapper && !wrapper.contains(e.target)) {
                 card.classList.add('hidden');
+            }
+            const cccContainer = document.getElementById("cos-filter-charge-ccc-container");
+            if (cccContainer && typeof cccContainer.contains === 'function' && e && e.target && !cccContainer.contains(e.target)) {
+                closeCosCccDropdown();
             }
         });
 
@@ -2556,21 +2886,69 @@
         // TODO; pre-refactor compability. Remove later
         const handlePRIssuedDateChange = handlePRIssuedOnChange;
 
-        /* --- LocalStorage Column Preference Handling --- */
+        /* --- LocalStorage Column Preference & Dynamic Order Handling --- */
+        function normalizeColumnOrders() {
+            const active = COLUMN_CONFIG.filter(c => !c.locked && !c.hidden && c.visible && (c.order || 0) > 0);
+            active.sort((a, b) => (a.order || 0) - (b.order || 0));
+            active.forEach((col, idx) => {
+                col.order = idx + 1;
+                col.visible = true;
+            });
+            COLUMN_CONFIG.forEach(col => {
+                if (!col.locked && !col.hidden && (!col.visible || !col.order || col.order <= 0)) {
+                    col.visible = false;
+                    col.order = 0;
+                }
+            });
+        }
+
+        function getVisibleColumns() {
+            const actionCol = COLUMN_CONFIG.find(c => c.key === 'Actions');
+            const titleCol = COLUMN_CONFIG.find(c => c.key === 'Title');
+
+            const otherCols = COLUMN_CONFIG.filter(c => 
+                !c.hidden && c.key !== 'Actions' && c.key !== 'Title' && c.visible && (c.order || 0) > 0
+            );
+            otherCols.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            const result = [];
+            if (actionCol && (actionCol.visible || actionCol.locked)) result.push(actionCol);
+            if (titleCol && (titleCol.visible || titleCol.locked)) result.push(titleCol);
+            result.push(...otherCols);
+            return result;
+        }
+
         function loadColumnPreferences() {
             try {
                 const saved = localStorage.getItem(LOCAL_STORAGE_COLUMN_KEY);
                 if (saved) {
                     const parsed = JSON.parse(saved);
+                    let legacyOrder = 1;
                     COLUMN_CONFIG.forEach(col => {
                         if (col.locked) {
                             col.visible = true;
+                            col.order = 0;
                         } else if (col.hidden) {
                             col.visible = false;
+                            col.order = 0;
                         } else if (parsed.hasOwnProperty(col.key)) {
-                            col.visible = Boolean(parsed[col.key]);
+                            const val = parsed[col.key];
+                            if (typeof val === 'number' && val > 0) {
+                                col.order = val;
+                                col.visible = true;
+                            } else if (typeof val === 'boolean') {
+                                col.visible = val;
+                                col.order = val ? (col.order || legacyOrder++) : 0;
+                            } else if (val && typeof val === 'object') {
+                                col.visible = Boolean(val.visible);
+                                col.order = Number(val.order) || 0;
+                            } else {
+                                col.visible = false;
+                                col.order = 0;
+                            }
                         }
                     });
+                    normalizeColumnOrders();
                 }
             } catch (e) {
                 console.error("Failed to load saved column preferences:", e);
@@ -2579,35 +2957,57 @@
 
         function saveColumnPreferences() {
             const container = document.getElementById('columnCheckboxContainer');
-            const checkboxes = /** @type {NodeListOf<HTMLInputElement>}*/ (container.querySelectorAll('input[type="checkbox"]'));
-
-            let visibleDataCount = 0;
-            checkboxes.forEach(cb => {
-                const key = /** @type {IColumnKey} */ (cb.dataset.key);
-                const col = COLUMN_CONFIG.find(c => c.key === key);
-                if (col && !col.locked && !col.hidden && cb.checked) {
-                    visibleDataCount++;
+            if (container) {
+                const selects = container.querySelectorAll('select.column-order-select');
+                if (selects && selects.length > 0) {
+                    selects.forEach(sel => {
+                        const key = sel.dataset.key;
+                        const col = COLUMN_CONFIG.find(c => c.key === key);
+                        if (col && !col.locked && !col.hidden) {
+                            const val = parseInt(sel.value, 10) || 0;
+                            col.order = val;
+                            col.visible = val > 0;
+                        }
+                    });
+                } else {
+                    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                    let nextFbOrder = 1;
+                    checkboxes.forEach(cb => {
+                        const key = cb.dataset.key;
+                        const col = COLUMN_CONFIG.find(c => c.key === key);
+                        if (col && !col.locked && !col.hidden) {
+                            col.visible = cb.checked;
+                            col.order = cb.checked ? (col.order || nextFbOrder++) : 0;
+                        }
+                    });
                 }
-            });
+            }
 
-            if (visibleDataCount === 0) {
+            normalizeColumnOrders();
+
+            const visibleDataCount = COLUMN_CONFIG.filter(col => !col.locked && !col.hidden && col.visible && col.order > 0).length;
+
+            if (!adminMode && visibleDataCount === 0) {
                 showToast("At least one data column must remain visible.", "warning");
                 return;
             }
 
-            /** @type {Record<IColumnKey, boolean>} */
+            /** @type {Record<string, number | boolean>} */
             const saveObj = {};
-            checkboxes.forEach(cb => {
-                const key = /** @type {IColumnKey} */ (cb.dataset.key);
-                const col = COLUMN_CONFIG.find(c => c.key === key);
-                if (col && !col.hidden) {
-                    col.visible = col.locked ? true : cb.checked;
-                    saveObj[key] = col.visible;
-                }
-            });
             COLUMN_CONFIG.forEach(col => {
-                if (col.hidden) {
+                if (col.locked) {
+                    col.visible = true;
+                    col.order = 0;
+                    saveObj[col.key] = true;
+                } else if (col.hidden) {
                     col.visible = false;
+                    col.order = 0;
+                    saveObj[col.key] = false;
+                } else if (col.visible && col.order > 0) {
+                    saveObj[col.key] = col.order;
+                } else {
+                    col.visible = false;
+                    col.order = 0;
                     saveObj[col.key] = false;
                 }
             });
@@ -2615,6 +3015,7 @@
             try {
                 localStorage.setItem(LOCAL_STORAGE_COLUMN_KEY, JSON.stringify(saveObj));
                 showToast("Column settings saved successfully.", "success");
+                columnConfigSnapshot = null;
                 closeColumnModal();
                 renderTableHeader();
                 renderTable();
@@ -2626,48 +3027,241 @@
 
         function updateColumnModalCounts() {
             const container = document.getElementById('columnCheckboxContainer');
-            if (!container) return;
-            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-            let visibleCount = 0;
-            checkboxes.forEach(cb => {
-                if (cb.checked) visibleCount++;
-            });
             const visEl = document.getElementById('columnVisibleCount');
             const totEl = document.getElementById('columnTotalCount');
+
+            let visibleCount = 0;
+            let totalCount = 0;
+
+            COLUMN_CONFIG.forEach(col => {
+                if (!col.hidden) {
+                    totalCount++;
+                    if (col.locked || (col.visible && (col.order || 0) > 0)) {
+                        visibleCount++;
+                    }
+                }
+            });
+
+            if (container) {
+                const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+                if (checkboxes && checkboxes.length > 0) {
+                    let cbVisCount = 0;
+                    checkboxes.forEach(cb => {
+                        if (cb.checked) cbVisCount++;
+                    });
+                    if (cbVisCount > 0) {
+                        visibleCount = cbVisCount;
+                    }
+                }
+            }
+
             if (visEl) visEl.innerText = String(visibleCount);
-            if (totEl) totEl.innerText = String(checkboxes.length);
+            if (totEl) totEl.innerText = String(totalCount);
+        }
+
+        function syncColumnModalUI() {
+            const container = document.getElementById('columnCheckboxContainer');
+            if (!container) return;
+
+            COLUMN_CONFIG.forEach(col => {
+                if (col.hidden) return;
+                const card = container.querySelector(`[data-col-card="${col.key}"]`);
+                const select = container.querySelector(`select[data-key="${col.key}"]`);
+                const checkbox = container.querySelector(`input[type="checkbox"][data-key="${col.key}"]`);
+
+                if (select) {
+                    select.value = col.order > 0 ? String(col.order) : "";
+                    if (col.order > 0) {
+                        select.className = "column-order-select w-12 h-7 px-1 text-[12px] font-bold font-mono rounded border text-center transition-colors cursor-pointer shrink-0 border-amber-500 bg-white text-amber-800 ring-1 ring-amber-400/50";
+                    } else {
+                        select.className = "column-order-select w-12 h-7 px-1 text-[12px] font-bold font-mono rounded border text-center transition-colors cursor-pointer shrink-0 border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300";
+                    }
+                }
+
+                if (checkbox) {
+                    checkbox.checked = Boolean(col.locked || (col.visible && col.order > 0));
+                }
+
+                if (card && !col.locked) {
+                    const isSelected = col.visible && col.order > 0;
+                    card.className = `column-select-card flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer ${
+                        isSelected ? 'border-amber-400 bg-amber-50/60 shadow-2xs' : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`;
+                    const labelEl = card.querySelector('.column-label-text');
+                    if (labelEl) {
+                        labelEl.className = `column-label-text text-[13px] font-semibold ${isSelected ? 'text-amber-950 font-bold' : 'text-slate-700'} truncate select-none flex-1`;
+                    }
+                }
+            });
+        }
+
+        function handleColumnSelectDropdownChange(key, newOrderStr) {
+            const col = COLUMN_CONFIG.find(c => c.key === key);
+            if (!col || col.locked || col.hidden) return;
+
+            const oldOrder = col.order || 0;
+            const newOrder = parseInt(newOrderStr, 10) || 0;
+
+            if (newOrder === oldOrder) return;
+
+            if (newOrder === 0) {
+                col.order = 0;
+                col.visible = false;
+                if (oldOrder > 0) {
+                    COLUMN_CONFIG.forEach(c => {
+                        if (!c.locked && !c.hidden && c.order > oldOrder) {
+                            c.order -= 1;
+                        }
+                    });
+                }
+            } else {
+                if (oldOrder === 0) {
+                    COLUMN_CONFIG.forEach(c => {
+                        if (!c.locked && !c.hidden && c.key !== key && c.order >= newOrder) {
+                            c.order += 1;
+                        }
+                    });
+                    col.order = newOrder;
+                    col.visible = true;
+                } else if (newOrder > oldOrder) {
+                    COLUMN_CONFIG.forEach(c => {
+                        if (!c.locked && !c.hidden && c.key !== key && c.order > oldOrder && c.order <= newOrder) {
+                            c.order -= 1;
+                        }
+                    });
+                    col.order = newOrder;
+                    col.visible = true;
+                } else {
+                    COLUMN_CONFIG.forEach(c => {
+                        if (!c.locked && !c.hidden && c.key !== key && c.order >= newOrder && c.order < oldOrder) {
+                            c.order += 1;
+                        }
+                    });
+                    col.order = newOrder;
+                    col.visible = true;
+                }
+            }
+
+            normalizeColumnOrders();
+            syncColumnModalUI();
+            updateColumnModalCounts();
+        }
+
+        function handleColumnCardClick(event, key) {
+            const col = COLUMN_CONFIG.find(c => c.key === key);
+            if (!col || col.locked || col.hidden) return;
+
+            if (col.visible && (col.order || 0) > 0) {
+                handleColumnSelectDropdownChange(key, "");
+            } else {
+                let maxOrder = 0;
+                COLUMN_CONFIG.forEach(c => {
+                    if (!c.locked && !c.hidden && c.visible && c.order > maxOrder) {
+                        maxOrder = c.order;
+                    }
+                });
+                handleColumnSelectDropdownChange(key, String(maxOrder + 1));
+            }
         }
 
         function toggleAllColumns(selectAll) {
             const container = document.getElementById('columnCheckboxContainer');
             if (!container) return;
+
             const checkboxes = container.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(cb => {
                 if (!cb.disabled) {
                     cb.checked = Boolean(selectAll);
                 }
             });
+
+            let nextOrder = 1;
+            COLUMN_CONFIG.forEach(col => {
+                if (!col.locked && !col.hidden) {
+                    if (selectAll) {
+                        col.visible = true;
+                        col.order = nextOrder++;
+                    } else {
+                        col.visible = false;
+                        col.order = 0;
+                    }
+                }
+            });
+
+            syncColumnModalUI();
             updateColumnModalCounts();
         }
 
+        let columnConfigSnapshot = null;
+
         function openColumnModal() {
             const container = document.getElementById('columnCheckboxContainer');
+            if (!container) return;
+
+            normalizeColumnOrders();
+
+            columnConfigSnapshot = COLUMN_CONFIG.map(c => ({ key: c.key, visible: c.visible, order: c.order }));
+
+            const selectableCount = COLUMN_CONFIG.filter(c => !c.locked && !c.hidden).length;
+
+            let optionsHtml = '';
+            for (let i = 1; i <= selectableCount; i++) {
+                optionsHtml += `<option value="${i}">${i}</option>`;
+            }
+
             container.innerHTML = COLUMN_CONFIG
                 .filter(col => !col.hidden)
                 .map(col => {
-                    const isDisabled = col.locked ? 'disabled' : '';
-                    const isChecked = col.visible ? 'checked' : '';
-                    const lockedTag = col.locked ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
+                    const isLocked = !adminMode && col.locked;
+                    if (isLocked) {
+                        const lockedBadge = col.key === 'Actions' ? 'Col 1' : 'Col 2';
+                        return `
+                            <div class="flex items-center gap-2.5 p-2 rounded-lg border border-slate-200 bg-slate-100/70 select-none cursor-not-allowed">
+                                <span class="inline-flex items-center justify-center w-12 h-7 rounded bg-slate-200 text-slate-700 text-[11px] font-bold font-mono shrink-0">
+                                    ${lockedBadge}
+                                </span>
+                                <input type="checkbox" data-key="${col.key}" checked disabled class="hidden">
+                                <span class="text-[13px] font-semibold text-[var(--ink)] truncate" title="${escapeHtml(col.label)}">
+                                    ${escapeHtml(col.label)} <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>
+                                </span>
+                            </div>
+                        `;
+                    }
+
+                    const isSelected = col.visible && (col.order || 0) > 0;
 
                     return `
-                        <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${col.locked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
-                            <input type="checkbox" data-key="${col.key}" ${isChecked} ${isDisabled}
-                                onchange="updateColumnModalCounts()"
-                                class="w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer disabled:cursor-not-allowed shrink-0">
-                            <span class="text-[13px] font-semibold text-[var(--ink)] truncate" title="${escapeHtml(col.label)}">${escapeHtml(col.label)}${lockedTag}</span>
-                        </label>
+                        <div data-col-card="${col.key}"
+                            class="column-select-card flex items-center gap-2.5 p-2 rounded-lg border transition-all cursor-pointer ${
+                                isSelected ? 'border-amber-400 bg-amber-50/60 shadow-2xs' : 'border-slate-200 bg-white hover:bg-slate-50'
+                            }"
+                            onclick="handleColumnCardClick(event, '${col.key}')">
+                            
+                            <select data-key="${col.key}"
+                                onclick="event.stopPropagation()"
+                                onchange="handleColumnSelectDropdownChange('${col.key}', this.value)"
+                                class="column-order-select w-12 h-7 px-1 text-[12px] font-bold font-mono rounded border text-center transition-colors cursor-pointer shrink-0 ${
+                                    isSelected ? 'border-amber-500 bg-white text-amber-800 ring-1 ring-amber-400/50' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300'
+                                }">
+                                <option value="">--</option>
+                                ${optionsHtml}
+                            </select>
+                            
+                            <input type="checkbox" data-key="${col.key}" ${isSelected ? 'checked' : ''} class="hidden">
+                            
+                            <span class="column-label-text text-[13px] font-semibold ${isSelected ? 'text-amber-950 font-bold' : 'text-slate-700'} truncate select-none flex-1" title="${escapeHtml(col.label)}">
+                                ${escapeHtml(col.label)}
+                            </span>
+                        </div>
                     `;
                 }).join('');
+
+            COLUMN_CONFIG.filter(col => !col.hidden && !col.locked).forEach(col => {
+                const sel = container.querySelector(`select[data-key="${col.key}"]`);
+                if (sel) {
+                    sel.value = col.order > 0 ? String(col.order) : '';
+                }
+            });
 
             updateColumnModalCounts();
 
@@ -2677,6 +3271,16 @@
         }
 
         function closeColumnModal() {
+            if (columnConfigSnapshot) {
+                columnConfigSnapshot.forEach(snap => {
+                    const col = COLUMN_CONFIG.find(c => c.key === snap.key);
+                    if (col) {
+                        col.visible = snap.visible;
+                        col.order = snap.order;
+                    }
+                });
+                columnConfigSnapshot = null;
+            }
             const modal = document.getElementById('columnModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
@@ -2687,10 +3291,9 @@
             const thead = document.getElementById('mainRecordsTableHead') || document.querySelector('table thead');
             if (!thead) return;
 
+            const visibleCols = getVisibleColumns();
             let headerHtml = '<tr>';
-            COLUMN_CONFIG.forEach(col => {
-                if (!col.visible || col.hidden) return;
-
+            visibleCols.forEach(col => {
                 const isSorted = state.sortCol === col.key;
                 const isCenter = col.key === 'SBReportGenerated' || col.key === 'Actions';
                 const alignClass = isCenter ? 'text-center' : 'text-left';
@@ -2738,7 +3341,7 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             
-            const visibleCols = COLUMN_CONFIG.filter(col => col.visible && !col.hidden);
+            const visibleCols = getVisibleColumns();
             const visibleCount = visibleCols.length || 1;
 
             const pageData = state.filteredData.slice((state.currentPage - 1) * CONFIG.itemsPerPage, state.currentPage * CONFIG.itemsPerPage);
@@ -2801,7 +3404,7 @@
                             if (item.UrgentFlag) {
                                 const urgentBadge = document.createElement('span');
                                 urgentBadge.className = 'inline-block w-2 h-2 rounded-full bg-red-600 mr-1.5';
-                                urgentBadge.title = 'Urgent Case';
+                                urgentBadge.title = 'Urgent approval';
                                 td.appendChild(urgentBadge);
                             }
                         
@@ -3662,7 +4265,7 @@
             await populateProcessAdminOptions(savedAdmin);
             updateProcessAdminUI(savedAdmin);
 
-            if (savedAdmin) {
+            if (savedAdmin || adminMode) {
                 initApp();
             } else {
                 renderEmptyAdminState();
@@ -3710,8 +4313,10 @@
                 saveProcessAdmin("");
                 isProcessAdminEditing = false;
                 updateProcessAdminUI("");
-                renderEmptyAdminState();
-                showToast("Please select an admin name to load records.", "warning");
+                if (!adminMode) {
+                    renderEmptyAdminState();
+                    showToast("Please select an admin name to load records.", "warning");
+                }
             }
         }
 
@@ -3753,11 +4358,22 @@
             return normOld !== normNew;
         }
 
+        function getRecordAdminTitle(item) {
+            if (!item) return "";
+            if (item.admin_title) return String(item.admin_title).trim();
+            const baseRecordId = item.RecordIdNo || item.admin_recordidno || item.Title || item.Id || "";
+            const subNum = item.SubNumber || "";
+            if (subNum && !String(baseRecordId).endsWith(`-${subNum}`)) {
+                return `${baseRecordId}-${subNum}`;
+            }
+            return String(baseRecordId).trim();
+        }
+
         function checkAndLogFieldChanges(item, originalSnapshot) {
             if (!originalSnapshot || !item) return [];
             const changes = [];
             const processAdmin = getSavedProcessAdmin() || "";
-            const caseRecordId = String(item.Title || item.RecordIdNo || item.Id || originalSnapshot.Title || "");
+            const caseRecordId = getRecordAdminTitle(item) || (originalSnapshot ? getRecordAdminTitle(originalSnapshot) : "");
             const nowIso = new Date().toISOString();
 
             for (const field of MONITORED_AUDIT_FIELDS) {
@@ -3791,8 +4407,11 @@
                 let saved = false;
                 for (const entity of entitiesToTry) {
                     try {
-                        await api.createRecord(entity, change);
+                        const res = await api.createRecord(entity, change);
                         saved = true;
+                        if (res && (res.id || res[entity + "id"])) {
+                            change.admin_btb_audit_logid = res.id || res[entity + "id"];
+                        }
                         break;
                     } catch (_err) {}
                 }
@@ -3800,6 +4419,462 @@
                     console.warn("[AuditLog] Failed to persist audit log entry:", change);
                 }
             }
+        }
+
+        function deduplicateAuditLogs(logs) {
+            if (!Array.isArray(logs) || logs.length === 0) return [];
+
+            const result = [];
+            const seenIds = new Set();
+
+            for (const log of logs) {
+                if (!log) continue;
+                const id = log.admin_btb_audit_logid || log.id;
+                if (id) {
+                    const idStr = String(id).toLowerCase().trim();
+                    if (seenIds.has(idStr)) {
+                        continue;
+                    }
+                    seenIds.add(idStr);
+                }
+
+                const field = String(log.admin_modifyfield || '').trim().toLowerCase();
+                const newVal = String(log.admin_newvalue || '').trim();
+                const user = String(log.admin_modifyby || '').trim().toLowerCase();
+                const dateDisplay = formatDateTimeDisplay(log.admin_whenmodify);
+                const timeMs = log.admin_whenmodify ? new Date(log.admin_whenmodify).getTime() : 0;
+
+                // Match against existing logs in result
+                const duplicateIndex = result.findIndex(existing => {
+                    const exField = String(existing.admin_modifyfield || '').trim().toLowerCase();
+                    if (exField !== field) return false;
+
+                    const exVal = String(existing.admin_newvalue || '').trim();
+                    if (exVal !== newVal) return false;
+
+                    const exUser = String(existing.admin_modifyby || '').trim().toLowerCase();
+                    if (user && exUser && user !== exUser) return false;
+
+                    // Match if formatted date/time is identical down to the second
+                    const exDisplay = formatDateTimeDisplay(existing.admin_whenmodify);
+                    if (dateDisplay && exDisplay && dateDisplay === exDisplay) {
+                        return true;
+                    }
+
+                    // Or if timestamps are within 3 seconds of each other
+                    const exTimeMs = existing.admin_whenmodify ? new Date(existing.admin_whenmodify).getTime() : 0;
+                    if (timeMs && exTimeMs && Math.abs(timeMs - exTimeMs) <= 3000) {
+                        return true;
+                    }
+
+                    return false;
+                });
+
+                if (duplicateIndex >= 0) {
+                    // Prefer the Dataverse record with server ID over an in-memory entry
+                    if (id && !(result[duplicateIndex].admin_btb_audit_logid || result[duplicateIndex].id)) {
+                        result[duplicateIndex] = log;
+                    }
+                    continue;
+                }
+
+                result.push(log);
+            }
+
+            return result;
+        }
+
+        /* --- History Modal UI & Audit Log Retrieval --- */
+        async function fetchAuditLogsForRecord(caseTitle, recordId) {
+            const rawLogs = [];
+
+            // 1. Gather in-memory audit logs from state
+            if (Array.isArray(state.auditLogs)) {
+                for (const l of state.auditLogs) {
+                    if (!l) continue;
+                    const logCid = String(l.admin_caserecordid || '').trim();
+                    if (logCid && (
+                        logCid === String(caseTitle || '').trim() ||
+                        logCid === String(recordId || '').trim() ||
+                        (state.currentRecord && (
+                            logCid === String(state.currentRecord.Title || '').trim() ||
+                            logCid === String(state.currentRecord.RecordIdNo || '').trim() ||
+                            logCid === String(state.currentRecord.admin_recordidno || '').trim()
+                        ))
+                    )) {
+                        rawLogs.push(l);
+                    }
+                }
+            }
+
+            // 2. Fetch from Dataverse WebApi if available
+            const api = getDataverseWebApi();
+            if (api && typeof api.retrieveMultipleRecords === "function") {
+                const idsToQuery = Array.from(new Set([
+                    caseTitle,
+                    recordId,
+                    state.currentRecord?.Title,
+                    state.currentRecord?.RecordIdNo,
+                    state.currentRecord?.admin_recordidno,
+                    state.currentRecord?.Id
+                ].filter(id => id && String(id).trim()))).map(s => String(s).trim());
+
+                const entities = ["admin_btb_audit_log", "admin_btb_audit_logs"];
+
+                for (const idVal of idsToQuery) {
+                    const escaped = encodeURIComponent(String(idVal).replace(/'/g, "''"));
+                    const queryWithOrder = `?$filter=admin_caserecordid eq '${escaped}'&$orderby=admin_whenmodify desc`;
+                    const queryBare = `?$filter=admin_caserecordid eq '${escaped}'`;
+
+                    for (const entity of entities) {
+                        let fetched = false;
+                        try {
+                            const res = await api.retrieveMultipleRecords(entity, queryWithOrder);
+                            if (res && Array.isArray(res.entities)) {
+                                res.entities.forEach(l => rawLogs.push(l));
+                                fetched = true;
+                            }
+                        } catch (_err) {
+                            try {
+                                const res = await api.retrieveMultipleRecords(entity, queryBare);
+                                if (res && Array.isArray(res.entities)) {
+                                    res.entities.forEach(l => rawLogs.push(l));
+                                    fetched = true;
+                                }
+                            } catch (_e2) {}
+                        }
+                        if (fetched) break;
+                    }
+                }
+            }
+
+            const uniqueLogs = deduplicateAuditLogs(rawLogs);
+
+            // Sort newest first
+            uniqueLogs.sort((a, b) => {
+                const timeA = new Date(a.admin_whenmodify || 0).getTime();
+                const timeB = new Date(b.admin_whenmodify || 0).getTime();
+                return timeB - timeA;
+            });
+
+            return uniqueLogs;
+        }
+
+        var historyActiveTab = 'update';
+        var currentHistoryLogs = [];
+
+        function isRemarkAuditLog(log) {
+            if (!log) return false;
+            const f = String(log.admin_modifyfield || '').trim().toLowerCase();
+            return f === 'remark' || f === 'remarks' || f === 'lis remark';
+        }
+
+        function updateHistoryTabUI() {
+            const btnUpdate = document.getElementById('history-tab-update');
+            const btnRemarks = document.getElementById('history-tab-remarks');
+            const activeClasses = ['bg-white', 'text-[var(--ink)]', 'shadow-2xs', 'font-bold'];
+            const inactiveClasses = ['text-slate-600', 'font-semibold'];
+
+            if (btnUpdate && btnRemarks) {
+                if (historyActiveTab === 'remarks') {
+                    btnUpdate.classList.remove(...activeClasses);
+                    btnUpdate.classList.add(...inactiveClasses);
+                    btnRemarks.classList.remove(...inactiveClasses);
+                    btnRemarks.classList.add(...activeClasses);
+                } else {
+                    btnRemarks.classList.remove(...activeClasses);
+                    btnRemarks.classList.add(...inactiveClasses);
+                    btnUpdate.classList.remove(...inactiveClasses);
+                    btnUpdate.classList.add(...activeClasses);
+                }
+            }
+        }
+
+        function switchHistoryTab(tabKey) {
+            historyActiveTab = (tabKey === 'remarks') ? 'remarks' : 'update';
+            updateHistoryTabUI();
+            renderHistoryTable();
+        }
+
+        function getAuditFieldBadge(field) {
+            const f = String(field || '').trim();
+            if (f === "PR No.") {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">PR No.</span>`;
+            }
+            if (f === "PR Amount") {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">PR Amount</span>`;
+            }
+            if (f === "PO No.") {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">PO No.</span>`;
+            }
+            if (f === "PO Amount") {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">PO Amount</span>`;
+            }
+            if (f.toLowerCase() === "remark" || f.toLowerCase() === "remarks") {
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">Remark</span>`;
+            }
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(f)}</span>`;
+        }
+
+        function renderHistoryTable(logs) {
+            if (Array.isArray(logs)) {
+                currentHistoryLogs = deduplicateAuditLogs(logs);
+            } else if (!Array.isArray(currentHistoryLogs)) {
+                currentHistoryLogs = [];
+            } else {
+                currentHistoryLogs = deduplicateAuditLogs(currentHistoryLogs);
+            }
+
+            const thead = document.getElementById("history-records-thead");
+            const tbody = document.getElementById("history-records-tbody");
+            const countEl = document.getElementById("history-modal-count");
+            const updateCountEl = document.getElementById("history-tab-update-count");
+            const remarksCountEl = document.getElementById("history-tab-remarks-count");
+
+            const updateLogs = currentHistoryLogs.filter(l => !isRemarkAuditLog(l));
+            const remarkLogs = currentHistoryLogs.filter(l => isRemarkAuditLog(l));
+
+            if (updateCountEl) updateCountEl.textContent = String(updateLogs.length);
+            if (remarksCountEl) remarksCountEl.textContent = String(remarkLogs.length);
+
+            const isRemarksTab = (historyActiveTab === 'remarks');
+            const activeList = isRemarksTab ? remarkLogs : updateLogs;
+
+            if (countEl) {
+                countEl.textContent = `${activeList.length} record(s)`;
+            }
+
+            if (thead) {
+                if (isRemarksTab) {
+                    thead.innerHTML = `
+                        <tr>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap w-48">Date &amp; Time</th>
+                            <th class="px-4 py-3 font-bold text-slate-700">Contents</th>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap w-44">Created By</th>
+                        </tr>
+                    `;
+                } else {
+                    thead.innerHTML = `
+                        <tr>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Modify Field</th>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Previous Value</th>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">New Value</th>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Modified By</th>
+                            <th class="px-4 py-3 font-bold text-slate-700 whitespace-nowrap">Date &amp; Time</th>
+                        </tr>
+                    `;
+                }
+            }
+
+            if (!tbody) return;
+
+            if (activeList.length === 0) {
+                if (isRemarksTab) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="px-6 py-12 text-center text-[var(--muted)]">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <span class="text-3xl">💬</span>
+                                    <p class="text-[14px] font-bold text-[var(--ink)]">No Remark History Found</p>
+                                    <p class="text-[12px] text-[var(--muted)]">No remark records have been logged for this case yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-[var(--muted)]">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <span class="text-3xl">📜</span>
+                                    <p class="text-[14px] font-bold text-[var(--ink)]">No Change History Found</p>
+                                    <p class="text-[12px] text-[var(--muted)]">No field changes (PR No., PR Amount, PO No., PO Amount) have been logged for this record yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                return;
+            }
+
+            if (isRemarksTab) {
+                tbody.innerHTML = activeList.map(log => {
+                    const newVal = (log.admin_newvalue !== null && log.admin_newvalue !== undefined && String(log.admin_newvalue).trim() !== '')
+                        ? escapeHtml(String(log.admin_newvalue))
+                        : '<span class="text-slate-400 italic">(empty)</span>';
+                    const modifyBy = escapeHtml(String(log.admin_modifyby || '—'));
+                    const dateDisplay = log.admin_whenmodify ? formatDateTimeDisplay(log.admin_whenmodify) : '—';
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="px-4 py-3 text-[12px] text-slate-500 font-mono whitespace-nowrap align-top">${escapeHtml(dateDisplay)}</td>
+                            <td class="px-4 py-3 text-[13px] text-[var(--ink)] whitespace-pre-wrap font-sans break-words align-top leading-relaxed">${newVal}</td>
+                            <td class="px-4 py-3 text-[13px] text-slate-700 whitespace-nowrap align-top">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    <span>${modifyBy}</span>
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                tbody.innerHTML = activeList.map(log => {
+                    const fieldBadge = getAuditFieldBadge(log.admin_modifyfield);
+                    const oldVal = (log.admin_existingvalue !== null && log.admin_existingvalue !== undefined && String(log.admin_existingvalue).trim() !== '')
+                        ? escapeHtml(String(log.admin_existingvalue))
+                        : '<span class="text-slate-400 italic">(empty)</span>';
+                    const newVal = (log.admin_newvalue !== null && log.admin_newvalue !== undefined && String(log.admin_newvalue).trim() !== '')
+                        ? escapeHtml(String(log.admin_newvalue))
+                        : '<span class="text-slate-400 italic">(empty)</span>';
+                    const modifyBy = escapeHtml(String(log.admin_modifyby || '—'));
+                    const dateDisplay = log.admin_whenmodify ? formatDateTimeDisplay(log.admin_whenmodify) : '—';
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="px-4 py-3 whitespace-nowrap align-top">${fieldBadge}</td>
+                            <td class="px-4 py-3 text-[13px] text-slate-500 font-mono whitespace-nowrap align-top">${oldVal}</td>
+                            <td class="px-4 py-3 text-[13px] font-semibold text-[var(--ink)] font-mono whitespace-nowrap align-top">${newVal}</td>
+                            <td class="px-4 py-3 text-[13px] text-slate-700 whitespace-nowrap align-top">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    <span>${modifyBy}</span>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-[12px] text-slate-500 font-mono whitespace-nowrap align-top">${escapeHtml(dateDisplay)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function loadAndRenderHistory(caseTitle, recordId) {
+            const tbody = document.getElementById("history-records-tbody");
+            const colSpan = (historyActiveTab === 'remarks') ? 3 : 5;
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${colSpan}" class="px-6 py-8 text-center text-slate-500">
+                            <div class="flex items-center justify-center gap-2">
+                                <div class="loader"></div>
+                                <span class="text-[13px] font-medium">Loading change history...</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            try {
+                const logs = await fetchAuditLogsForRecord(caseTitle, recordId);
+                renderHistoryTable(logs);
+            } catch (err) {
+                console.error("[HistoryModal] Failed to load audit history:", err);
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="${colSpan}" class="px-6 py-6 text-center text-red-600">
+                                <p class="text-[13px] font-medium">Failed to load change history.</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        }
+
+        async function openHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            if (!modal) return;
+
+            historyActiveTab = 'update';
+            updateHistoryTabUI();
+
+            const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+            const caseTitle = getRecordAdminTitle(state.currentRecord) || recordId;
+
+            const subtitle = document.getElementById('history-modal-subtitle');
+            if (subtitle) {
+                subtitle.innerText = `Record: ${caseTitle || 'Current Record'}`;
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            syncBodyScrollLock();
+
+            await loadAndRenderHistory(caseTitle, recordId);
+        }
+
+        function closeHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                syncBodyScrollLock();
+            }
+        }
+
+        function refreshHistoryModal() {
+            const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
+                (document.getElementById('edit-title')?.value) || '';
+            const caseTitle = getRecordAdminTitle(state.currentRecord) || recordId;
+            loadAndRenderHistory(caseTitle, recordId);
+        }
+
+        function getLatestRemarkFromLogs(logs, caseTitle, recordId) {
+            if (!Array.isArray(logs) || logs.length === 0) return null;
+            const latestLog = logs.find(l => {
+                if (!isRemarkAuditLog(l)) return false;
+                const cid = String(l.admin_caserecordid || '').trim();
+                return !cid || cid === String(caseTitle || '').trim() || cid === String(recordId || '').trim();
+            });
+            if (latestLog && latestLog.admin_newvalue !== undefined && latestLog.admin_newvalue !== null) {
+                return String(latestLog.admin_newvalue);
+            }
+            return null;
+        }
+
+        function getLatestRemarkFromLogsOrItem(item, logs) {
+            if (!item) return '';
+            const caseTitle = getRecordAdminTitle(item) || item.RecordIdNo || item.Title || item.Id || '';
+            const recordId = item.admin_recordidno || item.RecordIdNo || item.Title || item.Id || '';
+
+            const logRemark = getLatestRemarkFromLogs(logs, caseTitle, recordId);
+            if (logRemark !== null) {
+                return logRemark;
+            }
+
+            const itemRemark = item.Remarks != null ? item.Remarks : (item.PRRemarks != null ? item.PRRemarks : (item.admin_remarks != null ? item.admin_remarks : ''));
+            return itemRemark ? String(itemRemark) : '';
+        }
+
+        async function prefillLastRemarkInput(item, preloadedLogs) {
+            const remarksEl = document.getElementById('edit-remarks');
+            if (!remarksEl) return;
+
+            if (!item) {
+                remarksEl.value = '';
+                return;
+            }
+
+            const initialRemark = getLatestRemarkFromLogsOrItem(item, preloadedLogs || state.auditLogs);
+            remarksEl.value = initialRemark;
+            if (state.originalRecordSnapshot) {
+                state.originalRecordSnapshot.Remarks = initialRemark;
+            }
+
+            const caseTitle = getRecordAdminTitle(item) || item.RecordIdNo || item.Title || item.Id || '';
+            const recordId = item.admin_recordidno || item.RecordIdNo || item.Title || item.Id || '';
+
+            try {
+                const logs = await fetchAuditLogsForRecord(caseTitle, recordId);
+                const freshRemarkFromLog = getLatestRemarkFromLogs(logs, caseTitle, recordId);
+                if (remarksEl && freshRemarkFromLog !== null && (!remarksEl.value || remarksEl.value === initialRemark)) {
+                    remarksEl.value = freshRemarkFromLog;
+                    if (state.originalRecordSnapshot) {
+                        state.originalRecordSnapshot.Remarks = freshRemarkFromLog;
+                    }
+                }
+            } catch (_err) {}
         }
 
         const TO_SUPPLIER_OTHERS_INSERT = [
@@ -4729,133 +5804,175 @@
         }
 
         async function openRemarkModal() {
+            const btn = document.getElementById('btn-modal-remark');
+            if (btn && btn.dataset && btn.dataset.loading === 'true') return;
+
             const modal = document.getElementById('remarkModal');
             if (!modal) return;
 
-            const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
-                (document.getElementById('edit-title')?.value) || '';
-
-            // Look up this record's admin_btbtype & admin_uidx0020x0023 by record ID if connected to Dataverse
-            if (recordId && getDataverseWebApi()) {
-                try {
-                    await fetchRecordBtbAndUid(recordId);
-                } catch (_e) {}
-            }
-
-            const fields = getRemarkFields();
-            const subtitle = document.getElementById('remark-modal-subtitle');
-            if (subtitle && (state.currentRecord || recordId)) {
-                subtitle.innerText = `Record: ${recordId || 'Current Record'}`;
-            }
-
-            // 1. Load sales contact rows from Dataverse if not cached
-            if (!cachedSalesContactRows) {
-                try {
-                    cachedSalesContactRows = await fetchSalesContactRows();
-                } catch (_e) {
-                    cachedSalesContactRows = null;
+            let originalContent = null;
+            let originalMinWidth = '';
+            if (btn) {
+                if (btn.dataset) btn.dataset.loading = 'true';
+                btn.disabled = true;
+                if (typeof btn.setAttribute === 'function') btn.setAttribute('aria-busy', 'true');
+                originalContent = btn.innerHTML;
+                if (btn.style) {
+                    originalMinWidth = btn.style.minWidth || '';
+                    if (btn.offsetWidth) {
+                        btn.style.minWidth = btn.offsetWidth + 'px';
+                    }
+                }
+                btn.innerHTML = `<span class="loader-sm"></span> <span>Loading...</span>`;
+                if (btn.classList && typeof btn.classList.add === 'function') {
+                    ['cursor-wait', 'opacity-85', 'bg-[#FFF3D6]', 'border-[var(--orange-dark)]', 'text-[var(--orange-dark)]'].forEach(c => btn.classList.add(c));
                 }
             }
 
-            // 2. Populate Sales Name dropdown
-            const salesSelect = document.getElementById('remark-sales-contact');
-            if (salesSelect) {
-                const salesOptions = [];
-                const seenSales = new Set();
-                if (Array.isArray(cachedSalesContactRows) && cachedSalesContactRows.length > 0) {
-                    for (const r of cachedSalesContactRows) {
-                        const name = getSalesRowName(r);
-                        if (name && !seenSales.has(name.toUpperCase())) {
-                            seenSales.add(name.toUpperCase());
-                            salesOptions.push(name);
+            try {
+                // Short yield so the browser renders the loading animation immediately
+                await new Promise(resolve => setTimeout(resolve, 30));
+
+                const recordId = (state.currentRecord && (state.currentRecord.admin_recordidno || state.currentRecord.RecordIdNo || state.currentRecord.Title || state.currentRecord.Id)) ||
+                    (document.getElementById('edit-title')?.value) || '';
+
+                // Look up this record's admin_btbtype & admin_uidx0020x0023 by record ID if connected to Dataverse
+                if (recordId && getDataverseWebApi()) {
+                    try {
+                        await fetchRecordBtbAndUid(recordId);
+                    } catch (_e) {}
+                }
+
+                const fields = getRemarkFields();
+                const subtitle = document.getElementById('remark-modal-subtitle');
+                if (subtitle && (state.currentRecord || recordId)) {
+                    subtitle.innerText = `Record: ${recordId || 'Current Record'}`;
+                }
+
+                // 1. Load sales contact rows from Dataverse if not cached
+                if (!cachedSalesContactRows) {
+                    try {
+                        cachedSalesContactRows = await fetchSalesContactRows();
+                    } catch (_e) {
+                        cachedSalesContactRows = null;
+                    }
+                }
+
+                // 2. Populate Sales Name dropdown
+                const salesSelect = document.getElementById('remark-sales-contact');
+                if (salesSelect) {
+                    const salesOptions = [];
+                    const seenSales = new Set();
+                    if (Array.isArray(cachedSalesContactRows) && cachedSalesContactRows.length > 0) {
+                        for (const r of cachedSalesContactRows) {
+                            const name = getSalesRowName(r);
+                            if (name && !seenSales.has(name.toUpperCase())) {
+                                seenSales.add(name.toUpperCase());
+                                salesOptions.push(name);
+                            }
                         }
                     }
+
+                    salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
+                        salesOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+
+                    const autoSales = findSalesContactMatch(fields.handledBy.value, salesOptions);
+                    if (autoSales) salesSelect.value = autoSales;
                 }
 
-                salesSelect.innerHTML = `<option value="">— Select sales contact —</option>` +
-                    salesOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
-
-                const autoSales = findSalesContactMatch(fields.handledBy.value, salesOptions);
-                if (autoSales) salesSelect.value = autoSales;
-            }
-
-            // 3. Populate Admin Name dropdown
-            if (!cachedAdminUserListRows && getDataverseWebApi()) {
-                try {
-                    cachedAdminUserListRows = await fetchAdminUserList();
-                } catch (_e) {
-                    cachedAdminUserListRows = null;
+                // 3. Populate Admin Name dropdown
+                if (!cachedAdminUserListRows && getDataverseWebApi()) {
+                    try {
+                        cachedAdminUserListRows = await fetchAdminUserList();
+                    } catch (_e) {
+                        cachedAdminUserListRows = null;
+                    }
                 }
-            }
-            const adminSelect = document.getElementById('remark-admin-name');
-            if (adminSelect) {
-                const adminOptions = [];
-                const seenAdmins = new Set();
-                if (Array.isArray(cachedAdminUserListRows) && cachedAdminUserListRows.length > 0) {
-                    for (const r of cachedAdminUserListRows) {
-                        const name = getAdminRowName(r);
-                        if (name && !seenAdmins.has(name.toUpperCase())) {
-                            seenAdmins.add(name.toUpperCase());
-                            adminOptions.push(name);
+                const adminSelect = document.getElementById('remark-admin-name');
+                if (adminSelect) {
+                    const adminOptions = [];
+                    const seenAdmins = new Set();
+                    if (Array.isArray(cachedAdminUserListRows) && cachedAdminUserListRows.length > 0) {
+                        for (const r of cachedAdminUserListRows) {
+                            const name = getAdminRowName(r);
+                            if (name && !seenAdmins.has(name.toUpperCase())) {
+                                seenAdmins.add(name.toUpperCase());
+                                adminOptions.push(name);
+                            }
                         }
                     }
+                    for (const a of BTB_ADMINS) {
+                        if (a.name && !seenAdmins.has(a.name.toUpperCase())) {
+                            seenAdmins.add(a.name.toUpperCase());
+                            adminOptions.push(a.name);
+                        }
+                    }
+
+                    adminSelect.innerHTML = adminOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+                    const autoAdmin = findBtbAdminName(fields.issueBy.value) || (adminOptions.length > 0 ? adminOptions[0] : BTB_ADMIN_NAMES[0]);
+                    adminSelect.value = autoAdmin;
                 }
-                for (const a of BTB_ADMINS) {
-                    if (a.name && !seenAdmins.has(a.name.toUpperCase())) {
-                        seenAdmins.add(a.name.toUpperCase());
-                        adminOptions.push(a.name);
+
+                // 4. Load supplier remark rows if not cached
+                if (!cachedSupplierRemarkRows) {
+                    try {
+                        cachedSupplierRemarkRows = await fetchSupplierRemarkRows();
+                    } catch (_e) {
+                        cachedSupplierRemarkRows = DEMO_SUPPLIER_REMARKS;
                     }
                 }
+                const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
 
-                adminSelect.innerHTML = adminOptions.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
-                const autoAdmin = findBtbAdminName(fields.issueBy.value) || (adminOptions.length > 0 ? adminOptions[0] : BTB_ADMIN_NAMES[0]);
-                adminSelect.value = autoAdmin;
-            }
+                // 5. Populate Case Type dropdown
+                const caseSelect = document.getElementById('remark-case-type');
+                if (caseSelect) {
+                    const seenCcc = new Set();
+                    const caseOpts = [];
+                    rows.forEach(r => {
+                        const ccc = getRowCcc(r);
+                        if (ccc && !seenCcc.has(ccc.toUpperCase())) {
+                            seenCcc.add(ccc.toUpperCase());
+                            caseOpts.push(ccc);
+                        }
+                    });
+                    if (!seenCcc.has("OTHERS")) caseOpts.push("Others");
 
-            // 4. Load supplier remark rows if not cached
-            if (!cachedSupplierRemarkRows) {
-                try {
-                    cachedSupplierRemarkRows = await fetchSupplierRemarkRows();
-                } catch (_e) {
-                    cachedSupplierRemarkRows = DEMO_SUPPLIER_REMARKS;
-                }
-            }
-            const rows = cachedSupplierRemarkRows || DEMO_SUPPLIER_REMARKS;
+                    caseSelect.innerHTML = `<option value="">— Select Case Type —</option>` +
+                        caseOpts.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
-            // 5. Populate Case Type dropdown
-            const caseSelect = document.getElementById('remark-case-type');
-            if (caseSelect) {
-                const seenCcc = new Set();
-                const caseOpts = [];
-                rows.forEach(r => {
-                    const ccc = getRowCcc(r);
-                    if (ccc && !seenCcc.has(ccc.toUpperCase())) {
-                        seenCcc.add(ccc.toUpperCase());
-                        caseOpts.push(ccc);
+                    // Auto-match case type from Charge CCC:
+                    // If there are multiple options matching the CCC (e.g. "C665 IPT Cisco" and "C665 Non-Cisco"),
+                    // default to the FIRST match, letting the user select another option if desired.
+                    const charge = String(fields.chargeCcc.value || '').trim();
+                    let matchedCcc = "";
+                    if (charge) {
+                        matchedCcc = matchCaseTypeForChargeCcc(charge, caseOpts);
                     }
-                });
-                if (!seenCcc.has("OTHERS")) caseOpts.push("Others");
-
-                caseSelect.innerHTML = `<option value="">— Select Case Type —</option>` +
-                    caseOpts.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-
-                // Auto-match case type from Charge CCC:
-                // If there are multiple options matching the CCC (e.g. "C665 IPT Cisco" and "C665 Non-Cisco"),
-                // default to the FIRST match, letting the user select another option if desired.
-                const charge = String(fields.chargeCcc.value || '').trim();
-                let matchedCcc = "";
-                if (charge) {
-                    matchedCcc = matchCaseTypeForChargeCcc(charge, caseOpts);
+                    if (matchedCcc) caseSelect.value = matchedCcc;
                 }
-                if (matchedCcc) caseSelect.value = matchedCcc;
+
+                // 6. Generate and set initial remarks text
+                rebuildRemarksFromModalState();
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                syncBodyScrollLock();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    if (btn.dataset) delete btn.dataset.loading;
+                    if (typeof btn.removeAttribute === 'function') btn.removeAttribute('aria-busy');
+                    if (originalContent !== null) {
+                        btn.innerHTML = originalContent;
+                    }
+                    if (btn.style) {
+                        btn.style.minWidth = originalMinWidth;
+                    }
+                    if (btn.classList && typeof btn.classList.remove === 'function') {
+                        ['cursor-wait', 'opacity-85', 'bg-[#FFF3D6]', 'border-[var(--orange-dark)]', 'text-[var(--orange-dark)]'].forEach(c => btn.classList.remove(c));
+                    }
+                }
             }
-
-            // 6. Generate and set initial remarks text
-            rebuildRemarksFromModalState();
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            syncBodyScrollLock();
         }
 
         function closeRemarkModal() {
@@ -5153,7 +6270,7 @@
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             } else {
-                if (state.currentRecord && state.currentRecord.PRRequestApproved) {
+                if (!adminMode && state.currentRecord && state.currentRecord.PRRequestApproved) {
                     showToast('Cannot un-verify: PR Request has already been approved.', 'warning');
                     checkbox.checked = true;
                     return;
@@ -5846,6 +6963,7 @@
         }
 
         function isCosRecordCompleted(item) {
+            if (adminMode) return true;
             if (!item) return false;
             const ps = item.ProcessStatus ? String(item.ProcessStatus).trim().toLowerCase() : '';
             if (ps === 'complete' || ps === 'completed') return true;
@@ -5875,10 +6993,222 @@
             fromDate: '',
             toDate: '',
             month: '',
+            selectedCccs: new Set(),
+            allCccsSelected: true,
+            availableCccs: [],
+            selectedIssuedBy: '',
+            availableIssuedBys: [],
+            lastPeriodKey: '',
             filteredRecords: [],
             selectedIds: new Set(),
             hasUserModifiedSelection: false
         };
+
+        function getRecordChargeCcc(record) {
+            if (!record) return "";
+            const val = record.ChargeCCC !== undefined && record.ChargeCCC !== null && record.ChargeCCC !== ""
+                ? record.ChargeCCC
+                : (record.admin_chargex0020ccc !== undefined && record.admin_chargex0020ccc !== null && record.admin_chargex0020ccc !== ""
+                    ? record.admin_chargex0020ccc
+                    : (record.chargeCcc || ""));
+            return String(val).trim();
+        }
+
+        function getRecordIssuedBy(record) {
+            if (!record) return "";
+            const val = record.IssueBy !== undefined && record.IssueBy !== null && record.IssueBy !== ""
+                ? record.IssueBy
+                : (record.admin_issuex0020by !== undefined && record.admin_issuex0020by !== null && record.admin_issuex0020by !== ""
+                    ? record.admin_issuex0020by
+                    : (record.issueBy || ""));
+            return String(val).trim();
+        }
+
+        function toggleCosCccDropdown(e) {
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            const menu = document.getElementById("cos-filter-charge-ccc-menu");
+            const chevron = document.getElementById("cos-filter-charge-ccc-chevron");
+            if (!menu) return;
+            const isHidden = menu.classList.contains("hidden");
+            if (isHidden) {
+                menu.classList.remove("hidden");
+                if (chevron) chevron.classList.add("rotate-180");
+            } else {
+                closeCosCccDropdown();
+            }
+        }
+
+        function closeCosCccDropdown() {
+            const menu = document.getElementById("cos-filter-charge-ccc-menu");
+            const chevron = document.getElementById("cos-filter-charge-ccc-chevron");
+            if (menu) menu.classList.add("hidden");
+            if (chevron) chevron.classList.remove("rotate-180");
+        }
+
+        function renderCosCccOptions(cccs) {
+            const container = document.getElementById("cos-filter-charge-ccc-options");
+            if (!container) return;
+            if (!cccs || cccs.length === 0) {
+                container.innerHTML = `<div class="text-[12px] text-slate-400 py-2 text-center">No Charge CCC in period</div>`;
+                return;
+            }
+
+            container.innerHTML = cccs.map(c => {
+                const isBlank = (c === '__BLANK__');
+                const displayLabel = isBlank ? '(Blank)' : escapeHtml(c);
+                const isChecked = cosModalState.allCccsSelected || (cosModalState.selectedCccs && cosModalState.selectedCccs.has(c));
+                return `
+                    <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-[13px] text-[var(--ink)] ui-transition select-none">
+                        <input type="checkbox" value="${escapeHtml(c)}" ${isChecked ? 'checked' : ''}
+                            onchange="handleCosCccCheckboxChange(this)"
+                            class="cos-ccc-option-cb w-4 h-4 rounded border-[#C5BEB6] text-[var(--orange)] focus:ring-[var(--orange)] accent-[var(--orange)] cursor-pointer">
+                        <span class="${isBlank ? 'italic text-slate-500' : 'font-medium'}">${displayLabel}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function updateCosCccButtonLabel() {
+            const labelEl = document.getElementById("cos-filter-charge-ccc-label");
+            if (!labelEl) return;
+            const allCccs = cosModalState.availableCccs || [];
+            if (allCccs.length === 0) {
+                labelEl.innerText = "No CCC available";
+                return;
+            }
+
+            if (cosModalState.allCccsSelected || (cosModalState.selectedCccs && cosModalState.selectedCccs.size === allCccs.length)) {
+                labelEl.innerText = "All Charge CCC";
+            } else if (!cosModalState.selectedCccs || cosModalState.selectedCccs.size === 0) {
+                labelEl.innerText = "None selected";
+            } else if (cosModalState.selectedCccs.size === 1) {
+                const item = [...cosModalState.selectedCccs][0];
+                labelEl.innerText = item === '__BLANK__' ? '(Blank)' : item;
+            } else if (cosModalState.selectedCccs.size === 2) {
+                const items = [...cosModalState.selectedCccs].map(i => i === '__BLANK__' ? '(Blank)' : i);
+                labelEl.innerText = items.join(', ');
+            } else {
+                labelEl.innerText = `${cosModalState.selectedCccs.size} selected`;
+            }
+        }
+
+        function handleCosCccCheckboxChange(cb) {
+            const val = cb.value;
+            const allCccs = cosModalState.availableCccs || [];
+
+            if (cosModalState.allCccsSelected) {
+                cosModalState.selectedCccs = new Set(allCccs);
+            }
+
+            if (cb.checked) {
+                cosModalState.selectedCccs.add(val);
+            } else {
+                cosModalState.selectedCccs.delete(val);
+            }
+
+            cosModalState.allCccsSelected = (cosModalState.selectedCccs.size === allCccs.length);
+
+            updateCosCccButtonLabel();
+            cosModalState.hasUserModifiedSelection = false;
+            updateCosControlModalUI(false);
+        }
+
+        function selectAllCosCcc(select) {
+            const allCccs = cosModalState.availableCccs || [];
+            if (select) {
+                cosModalState.selectedCccs = new Set(allCccs);
+                cosModalState.allCccsSelected = true;
+            } else {
+                cosModalState.selectedCccs = new Set();
+                cosModalState.allCccsSelected = false;
+            }
+
+            const container = document.getElementById("cos-filter-charge-ccc-options");
+            if (container && typeof container.querySelectorAll === 'function') {
+                const cbs = container.querySelectorAll('input[type="checkbox"]');
+                for (let i = 0; i < cbs.length; i++) {
+                    cbs[i].checked = select;
+                }
+            }
+
+            updateCosCccButtonLabel();
+            cosModalState.hasUserModifiedSelection = false;
+            updateCosControlModalUI(false);
+        }
+
+        function renderCosIssuedByOptions(issuedBys) {
+            const select = document.getElementById("cos-filter-issued-by");
+            if (!select) return;
+            const currentVal = cosModalState.selectedIssuedBy || '';
+
+            let html = `<option value="">All Issued By</option>`;
+            if (issuedBys && issuedBys.length > 0) {
+                issuedBys.forEach(ib => {
+                    const isBlank = (ib === '__BLANK__');
+                    const displayLabel = isBlank ? '(Blank)' : escapeHtml(ib);
+                    const isSelected = (currentVal === ib);
+                    html += `<option value="${escapeHtml(ib)}" ${isSelected ? 'selected' : ''}>${displayLabel}</option>`;
+                });
+            }
+            select.innerHTML = html;
+            if (select.value !== currentVal) {
+                select.value = currentVal;
+            }
+        }
+
+        function handleCosIssuedByChange(val) {
+            cosModalState.selectedIssuedBy = val || '';
+            cosModalState.hasUserModifiedSelection = false;
+            updateCosControlModalUI(false);
+        }
+
+        function refreshCosFilterOptions(periodRecords) {
+            const cccSet = new Set();
+            let hasBlankCcc = false;
+            const ibSet = new Set();
+            let hasBlankIb = false;
+
+            periodRecords.forEach(item => {
+                const ccc = getRecordChargeCcc(item);
+                if (ccc) cccSet.add(ccc);
+                else hasBlankCcc = true;
+
+                const ib = getRecordIssuedBy(item);
+                if (ib) ibSet.add(ib);
+                else hasBlankIb = true;
+            });
+
+            const cccs = Array.from(cccSet).sort((a, b) => a.localeCompare(b));
+            if (hasBlankCcc) cccs.push('__BLANK__');
+
+            const issuedBys = Array.from(ibSet).sort((a, b) => a.localeCompare(b));
+            if (hasBlankIb) issuedBys.push('__BLANK__');
+
+            cosModalState.availableCccs = cccs;
+            cosModalState.availableIssuedBys = issuedBys;
+
+            if (cosModalState.allCccsSelected || !cosModalState.selectedCccs || cosModalState.selectedCccs.size === 0) {
+                cosModalState.selectedCccs = new Set(cccs);
+                cosModalState.allCccsSelected = true;
+            } else {
+                const retained = new Set([...cosModalState.selectedCccs].filter(c => cccs.includes(c)));
+                if (retained.size === 0) {
+                    cosModalState.selectedCccs = new Set(cccs);
+                    cosModalState.allCccsSelected = true;
+                } else {
+                    cosModalState.selectedCccs = retained;
+                    cosModalState.allCccsSelected = (retained.size === cccs.length);
+                }
+            }
+
+            if (cosModalState.selectedIssuedBy && !issuedBys.includes(cosModalState.selectedIssuedBy)) {
+                cosModalState.selectedIssuedBy = '';
+            }
+
+            renderCosCccOptions(cccs);
+            updateCosCccButtonLabel();
+            renderCosIssuedByOptions(issuedBys);
+        }
 
         function initCosModalDates(forceReset = false) {
             if (forceReset || !cosModalState.fromDate || !cosModalState.toDate) {
@@ -5958,7 +7288,7 @@
         function openCosControlModal() {
             initCosModalDates();
             cosModalState.hasUserModifiedSelection = false;
-            updateCosControlModalUI();
+            updateCosControlModalUI(true);
             if (!cachedEngineeringTeamProductLineRows && getDataverseWebApi()) {
                 fetchEngineeringTeamProductLineRows().catch(() => {});
             }
@@ -5971,6 +7301,7 @@
         }
 
         function closeCosControlModal() {
+            closeCosCccDropdown();
             const modal = document.getElementById("cosControlModal");
             if (modal) {
                 modal.classList.add("hidden");
@@ -5979,7 +7310,7 @@
             }
         }
 
-        function updateCosControlModalUI() {
+        function updateCosControlModalUI(shouldUpdateFilterOptions = true) {
             initCosModalDates();
 
             const fileYm = cosModalState.month || (cosModalState.fromDate ? cosModalState.fromDate.slice(0, 7) : currentYearMonth());
@@ -5995,11 +7326,40 @@
             const from = cosModalState.fromDate;
             const to = cosModalState.toDate;
 
-            const matchedRecords = allRecords.filter(item => {
+            // 1. All records in selected period (date range)
+            const periodRecords = allRecords.filter(item => {
                 const recDate = getRecordDateNormalized(item);
                 if (!recDate) return false;
                 if (from && recDate < from) return false;
                 if (to && recDate > to) return false;
+                return true;
+            });
+
+            // 2. Options in dropdowns are derived from the selected period
+            const periodKey = `${from}__${to}`;
+            if (shouldUpdateFilterOptions || cosModalState.lastPeriodKey !== periodKey) {
+                cosModalState.lastPeriodKey = periodKey;
+                refreshCosFilterOptions(periodRecords);
+            }
+
+            // 3. Filter period records by Charge CCC and Issued By
+            const matchedRecords = periodRecords.filter(item => {
+                if (!cosModalState.allCccsSelected) {
+                    const ccc = getRecordChargeCcc(item);
+                    const cccKey = ccc === '' ? '__BLANK__' : ccc;
+                    if (!cosModalState.selectedCccs || !cosModalState.selectedCccs.has(cccKey)) {
+                        return false;
+                    }
+                }
+
+                if (cosModalState.selectedIssuedBy) {
+                    const ib = getRecordIssuedBy(item);
+                    const ibKey = ib === '' ? '__BLANK__' : ib;
+                    if (ibKey !== cosModalState.selectedIssuedBy) {
+                        return false;
+                    }
+                }
+
                 return true;
             });
 
@@ -6260,6 +7620,16 @@
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
+                const histModal = document.getElementById("historyModal");
+                if (histModal && !histModal.classList.contains("hidden")) {
+                    closeHistoryModal();
+                    return;
+                }
+                const cccMenu = document.getElementById("cos-filter-charge-ccc-menu");
+                if (cccMenu && !cccMenu.classList.contains("hidden")) {
+                    closeCosCccDropdown();
+                    return;
+                }
                 const cosModal = document.getElementById("cosControlModal");
                 if (cosModal && !cosModal.classList.contains("hidden")) {
                     closeCosControlModal();
@@ -6293,7 +7663,9 @@
         function saveExcelColumnPreferences() {
             const container = document.getElementById('excelColumnCheckboxContainer');
             const checkboxes = /** @type {NodeListOf<HTMLInputElement>}*/ (container.querySelectorAll('input[type="checkbox"]'));
-            excelVisbleColumns.Title.visible = true;
+            if (!adminMode) {
+                excelVisbleColumns.Title.visible = true;
+            }
 
             let visibleDataCount = 0;
             checkboxes.forEach((checkBox) => {
@@ -6304,7 +7676,7 @@
                 }
             });
 
-            if (visibleDataCount === 0) {
+            if (!adminMode && visibleDataCount === 0) {
                 showToast("At least one data column must remain visible.", "warning");
                 return;
             }
@@ -6313,8 +7685,7 @@
                 const key = /** @type {IColumnKey} */ (checkBox.dataset.key);
                 const col = excelVisbleColumns[key];
                 if (col) {
-                    //col.visible = checkBox.checked;
-                    col.visible = col.locked ? true : checkBox.checked;
+                    col.visible = (!adminMode && col.locked) ? true : checkBox.checked;
                 }
             });
             COLUMN_CONFIG.forEach(col => {
@@ -6368,10 +7739,10 @@
             container.innerHTML = COLUMN_CONFIG
                 .filter(col => !col.hidden)
                 .map(col => {
-                    const isLocked = col.locked || excelVisbleColumns[col.key]?.locked;
+                    const isLocked = !adminMode && (col.locked || excelVisbleColumns[col.key]?.locked);
                     const isDisabled = isLocked ? 'disabled' : '';
                     const isChecked = excelVisbleColumns[col.key]?.visible ? 'checked' : '';
-                    const lockedTag = isLocked ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
+                    const lockedTag = (col.locked || excelVisbleColumns[col.key]?.locked) ? ' <span class="text-[11px] text-[var(--muted)] font-normal">(Always Visible)</span>' : '';
 
                     return `
                         <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--line)] bg-[#FFFFFF] hover:bg-[#FBF6EF] cursor-pointer ui-transition ${isLocked ? 'opacity-70 cursor-not-allowed bg-gray-50' : ''}">
@@ -6791,6 +8162,7 @@
 
                 // Resolve Option A: parse sub-number and clean base Record ID from admin_title / admin_recordidno
                 const rawDvTitle = item.admin_title || '';
+                masterRecord.admin_title = rawDvTitle;
                 const subMatch = rawDvTitle.match(/-(Sub\d+)$/i);
                 if (subMatch && !masterRecord.SubNumber) {
                     masterRecord.SubNumber = subMatch[1];
@@ -6842,6 +8214,26 @@
         }
 
         function loadMockData() {
+            if (!state.auditLogs || state.auditLogs.length === 0) {
+                state.auditLogs = [
+                    {
+                        admin_caserecordid: "REQ-2026-001",
+                        admin_modifyfield: "PR Amount",
+                        admin_existingvalue: "1000000",
+                        admin_newvalue: "1250000",
+                        admin_modifyby: "Lee, Mandy MY",
+                        admin_whenmodify: "2026-10-09T14:20:00Z",
+                    },
+                    {
+                        admin_caserecordid: "REQ-2026-001",
+                        admin_modifyfield: "PR No.",
+                        admin_existingvalue: "6306000",
+                        admin_newvalue: "6306168",
+                        admin_modifyby: "Lee, Mandy MY",
+                        admin_whenmodify: "2026-10-09T14:15:00Z",
+                    }
+                ];
+            }
             state.allData = [
                 {
                     Id: "1",
@@ -7002,7 +8394,7 @@
 
         async function initApp() {
             const savedAdmin = getSavedProcessAdmin();
-            if (!savedAdmin) {
+            if (!savedAdmin && !adminMode) {
                 renderEmptyAdminState();
                 return;
             }
@@ -7346,18 +8738,18 @@
 
         // Requirement 4: Updated PR Save Logic
         function handlePRButtonClick() {
-            if (state.currentRecord && (state.currentRecord.ProcessStatus === 'Complete' || state.currentRecord.ProcessStatus === 'Cancelled')) 
+            if (!adminMode && state.currentRecord && (state.currentRecord.ProcessStatus === 'Complete' || state.currentRecord.ProcessStatus === 'Cancelled')) 
             return;
 
             const prInput = document.getElementById('edit-prno');
             const editBtn = document.getElementById('btn-edit-prno');
 
             if (state.isPREditing) {
-                if (!validatePRNoField()) {
+                if (!adminMode && !validatePRNoField()) {
                     showToast("PR No. must contain exactly 7 digits.", "error");
                     return;
                 }
-                if (!validateRequiredFieldsForStage('PR No. Ready')) {
+                if (!adminMode && !validateRequiredFieldsForStage('PR No. Ready')) {
                     return;
                 }
 
@@ -7367,12 +8759,13 @@
                 state.isPREditing = false;
                 state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
                 
-
-                prInput.disabled = true;
-                prInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-                editBtn.innerText = "Edit PR";
-                editBtn.classList.remove("bg-[var(--orange)]", "border-transparent")
-                editBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                if (!adminMode) {
+                    prInput.disabled = true;
+                    prInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    editBtn.innerText = "Edit PR";
+                    editBtn.classList.remove("bg-[var(--orange)]", "border-transparent");
+                    editBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                }
 
                 showToast("PR Number saved successfully.", "success");
                 handleFormInputChange();
@@ -7381,7 +8774,7 @@
                 prInput.disabled = false;
                 prInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
                 editBtn.innerText = "Save PR";
-                editBtn.classList.add("bg-[var(--orange)]", "border-transparent")
+                editBtn.classList.add("bg-[var(--orange)]", "border-transparent");
                 editBtn.classList.remove("bg-white", "border-[#B8B8BD]");
                 prInput.focus();
             }
@@ -7389,30 +8782,30 @@
 
         // Requirement 8: Updated PO Save Logic
         function handlePOButtonClick() {
-            
-            if (state.currentRecord && state.currentRecord.ProcessStatus === 'Cancelled') return;
+            if (!adminMode && state.currentRecord && state.currentRecord.ProcessStatus === 'Cancelled') return;
 
             const poInput = document.getElementById('edit-pono');
             const editBtn = document.getElementById('btn-edit-pono');
 
             if (state.isPOEditing) {
-                if (!validatePONoField()) {
+                if (!adminMode && !validatePONoField()) {
                     showToast("PO No. must be 2 uppercase letters followed by 7 digits.", "error");
                     return;
                 }
                 
-                if (!validateRequiredFieldsForStage('PO No. Ready')) return;
-
+                if (!adminMode && !validateRequiredFieldsForStage('PO No. Ready')) return;
 
                 const enteredPO = poInput.value.trim();
                 state.currentRecord.PONo = enteredPO;
                 state.isPOEditing = false;
 
-                poInput.disabled = true;
-                poInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-                editBtn.innerText = "Edit PO";
-                editBtn.classList.remove("bg-[var(--orange)]", "border-transparent")
-                editBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                if (!adminMode) {
+                    poInput.disabled = true;
+                    poInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    editBtn.innerText = "Edit PO";
+                    editBtn.classList.remove("bg-[var(--orange)]", "border-transparent");
+                    editBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                }
                 
                 state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
                 updateTrackerVisual();
@@ -7428,7 +8821,7 @@
                 poInput.disabled = false;
                 poInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
                 editBtn.innerText = "Save PO";
-                editBtn.classList.add("bg-[var(--orange)]", "border-transparent")
+                editBtn.classList.add("bg-[var(--orange)]", "border-transparent");
                 editBtn.classList.remove("bg-white", "border-[#B8B8BD]");
                 poInput.focus();
             }
@@ -7438,10 +8831,10 @@
         // Requirement 5: Added UM Verified Handler Function
         /** @returns {boolean} */
         function verifyUM() {
-            if (!validateRequiredFieldsForStage("UM Verified")) {
+            if (!adminMode && !validateRequiredFieldsForStage("UM Verified")) {
                 return false;
             }
-            if (!state.currentRecord.PRNo) {
+            if (!adminMode && !state.currentRecord.PRNo) {
                 showToast("Please save PR No. first.", "warning");
                 return false;
             }
@@ -7484,7 +8877,7 @@
                     checkbox.checked = false;
                 }
             } else {
-                if (state.currentRecord.PRRequestApproved) {
+                if (!adminMode && state.currentRecord.PRRequestApproved) {
                     showToast(
                         "Cannot un-verify: PR Request has already been approved.",
                         "warning",
@@ -7636,10 +9029,10 @@
             /** @type {HTMLButtonElement} */
             const btnPrApproved = document.getElementById("edit-pr-approved");
 
-            if (approverDetail.Approver) {
+            if (approverDetail.Approver || adminMode) {
                 prApprovalTitle?.setAttribute(
                     "data-approval",
-                    `(${approverDetail.Approver})`,
+                    `(${approverDetail.Approver || "Admin Override"})`,
                 );
                 prApprovalSection?.removeAttribute("data-disabled");
                 prApprovalSection?.classList.remove("opacity-50", "cursor-not-allowed");
@@ -7657,8 +9050,39 @@
                 }
             }
 
+            updateMDApprovalUI(approverDetail.Approver);
+
             handleFormInputChange();
             return approverDetail;
+        }
+
+        function updateMDApprovalUI(approverLevel) {
+            const isMD = String(approverLevel || "").toUpperCase() === "MD";
+            const btnSendPrApproval = document.getElementById("btn-send-pr-approval");
+            const prApprovalWarning = document.getElementById("pr-approval-send-warning");
+            const mdFieldsContainer = document.getElementById("pr-md-approval-fields");
+            const mdRoleInfo = document.getElementById("pr-approval-info-md");
+
+            if (isMD) {
+                btnSendPrApproval?.classList.add("hidden");
+                prApprovalWarning?.classList.add("hidden");
+                mdFieldsContainer?.classList.remove("hidden");
+                if (mdRoleInfo) mdRoleInfo.classList.add("hidden");
+
+                const mdDateEl = /** @type {HTMLInputElement} */ (document.getElementById("edit-md-approve-date"));
+                if (mdDateEl && !mdDateEl.value) {
+                    const today = new Date();
+                    mdDateEl.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                }
+                const mdNameEl = /** @type {HTMLSelectElement} */ (document.getElementById("edit-md-name"));
+                if (mdNameEl && !mdNameEl.value) {
+                    mdNameEl.value = "Coming Soon";
+                }
+            } else {
+                btnSendPrApproval?.classList.remove("hidden");
+                prApprovalWarning?.classList.remove("hidden");
+                mdFieldsContainer?.classList.add("hidden");
+            }
         }
 
         function handlePOAmount() {
@@ -7706,7 +9130,7 @@
                 }
                 return true;
             } else {
-                if (state.currentRecord?.PONo) {
+                if (!adminMode && state.currentRecord?.PONo) {
                     showToast(
                         "Cannot remove approval after PO No. has been created.",
                         "warning"
@@ -7752,11 +9176,11 @@
         }
 
         function approvePRRequest() {
-            if (!validateRequiredFieldsForStage('LIS System Approved')) {
+            if (!adminMode && !validateRequiredFieldsForStage('LIS System Approved')) {
                 return false;
             }
 
-            if (!state.currentRecord.UMVerified) {
+            if (!adminMode && !state.currentRecord.UMVerified) {
                 showToast(
                     "Please complete UM Verification first.",
                     "warning"
@@ -7803,7 +9227,7 @@
         // }
 
         function handlePOApprovedClick() {
-            if (!validateRequiredFieldsForStage('Complete')) {
+            if (!adminMode && !validateRequiredFieldsForStage('Complete')) {
                return;
             }
             if (!state.currentRecord) return;
@@ -7816,13 +9240,15 @@
         }
 
         function handleMarkCompleteClick(){
-            if (!validateRequiredFieldsForStage('Complete')) {
+            if (!adminMode && !validateRequiredFieldsForStage('Complete')) {
                 return;
             }
             if (!state.currentRecord) return;
-            const confirmedComplete = confirm("Marking the record as Complete will lock All Fields except Remarks.\nAre you sure you want to mark this record as complete?")
-            if (!confirmedComplete) {
-                return;
+            if (!adminMode) {
+                const confirmedComplete = confirm("Marking the record as Complete will lock All Fields except Remarks.\nAre you sure you want to mark this record as complete?");
+                if (!confirmedComplete) {
+                    return;
+                }
             }
             state.currentRecord.ProcessStatus = "Complete";
             state.currentRecord.ProcessStatus = evaluateWorkflowState(state.currentRecord);
@@ -7838,11 +9264,40 @@
             saveRecord();
         }
 
+        function updateUrgentCaseUI() {
+            const urgentCheckbox = /** @type {HTMLInputElement|null} */ (document.getElementById('edit-urgent-flag'));
+            const card = document.getElementById('umVerificationCard');
+            if (!card) return;
+            const isUrgent = urgentCheckbox ? urgentCheckbox.checked : Boolean(state.currentRecord?.UrgentFlag);
+            if (isUrgent) {
+                card.classList.add('is-urgent', 'border-red-600', 'border-[2.5px]');
+                card.classList.remove('border-[#E5E5EA]', 'border');
+                card.style.borderColor = 'var(--red)';
+                card.style.borderWidth = '2.5px';
+            } else {
+                card.classList.remove('is-urgent', 'border-red-600', 'border-[2.5px]');
+                card.classList.add('border-[#E5E5EA]', 'border');
+                card.style.borderColor = '';
+                card.style.borderWidth = '';
+            }
+        }
+
+        function handleUrgentFlagChange() {
+            const urgentCheckbox = /** @type {HTMLInputElement|null} */ (document.getElementById('edit-urgent-flag'));
+            if (state.currentRecord && urgentCheckbox) {
+                state.currentRecord.UrgentFlag = urgentCheckbox.checked;
+            }
+            updateUrgentCaseUI();
+            handleFormInputChange();
+        }
+
         function handleFormInputChange() {
+            updateUrgentCaseUI();
             updateTrackerVisual();
         }
 
         function updateTrackerVisual() {
+            updateUrgentCaseUI();
             const curRecord = state.currentRecord;
             if (!curRecord) return;
 
@@ -7881,7 +9336,7 @@
             const sendApprovalButton = document.getElementById('btn-send-approval');
             if (sendApprovalButton) {
                 const buttonDisabledStyle = ["bg-gray-400", "cursor-not-allowed", "opacity-50"];
-                if (curRecord.UMVerified) {
+                if (curRecord.UMVerified && !adminMode) {
                     sendApprovalButton.classList.add(...buttonDisabledStyle);
                 } else {
                     sendApprovalButton.classList.remove(...buttonDisabledStyle);
@@ -7893,7 +9348,7 @@
 
             if (prApprovedContainer) {
                 prApprovedContainer.style.display =
-                    (statusIndexMap[curRecord.ProcessStatus] || 0) >= statusIndexMap['LIS System Approved']
+                    adminMode || (statusIndexMap[curRecord.ProcessStatus] || 0) >= statusIndexMap['LIS System Approved']
                     // curRecord.ProcessStatus === 'LIS System Approved'
                         ? ''
                         : 'none';
@@ -8058,6 +9513,7 @@
         ]));
 
         function applyPermanentlyDisabledFields() {
+            if (adminMode) return;
             PERMANENTLY_DISABLED_FIELD_IDS.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -8079,11 +9535,17 @@
             const saveBtn = document.getElementById('btn-save');
             const cancelBtn = document.getElementById('btn-cancel-record');
             const container = document.getElementById('editModalTabContent');
+            if (!container) return;
 
             const controls = container.querySelectorAll('input, select, textarea, button');
             
             const disabledStyle = ["cursor-not-allowed", "opacity-50"];
             controls.forEach(control => {
+                if (adminMode) {
+                    control.disabled = false;
+                    control.classList.remove("bg-gray-100", ...disabledStyle);
+                    return;
+                }
                 const isPermanentlyDisabled = PERMANENTLY_DISABLED_FIELD_IDS.has(control.id) && 
                         !(control.id === 'edit-pair-account-code' && control.tagName === 'SELECT') &&
                         !(control.id === 'edit-pair-charge-ccc' && control.tagName === 'SELECT');
@@ -8106,7 +9568,7 @@
             });
             if (completeBtn) {
                 completeBtn.classList.remove("bg-gray-100");
-                if (currentStatus === "PO No. Ready"){
+                if (adminMode || currentStatus === "PO No. Ready"){
                     completeBtn.disabled = false;
                     completeBtn.classList.remove(...disabledStyle);
                 }
@@ -8118,9 +9580,11 @@
 
             if (duplicateBtn) {
                 if (
-                    currentStatus === "Complete" 
-                    || currentStatus === "Cancelled"
-                    || state.currentRecord?.SubNumber
+                    !adminMode && (
+                        currentStatus === "Complete" 
+                        || currentStatus === "Cancelled"
+                        || state.currentRecord?.SubNumber
+                    )
                 ) {
                     duplicateBtn.disabled = true;
                     duplicateBtn.classList.add(...disabledStyle);
@@ -8134,6 +9598,7 @@
                 cancelBtn.innerText = "Request Cancel";
                 cancelBtn.className = "ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold bg-[var(--red)] text-white hover:bg-red-700 border-[1.5px] border-transparent";
                 cancelBtn.disabled = false;
+                cancelBtn.classList.remove("cursor-not-allowed", "opacity-50");
             }
 
             if (saveBtn) {
@@ -8143,8 +9608,13 @@
             
             if (currentStatus === 'Complete') {
                 if (cancelBtn) {
-                    cancelBtn.classList.add("cursor-not-allowed", "opacity-50");
-                    cancelBtn.disabled = true;
+                    if (!adminMode) {
+                        cancelBtn.classList.add("cursor-not-allowed", "opacity-50");
+                        cancelBtn.disabled = true;
+                    } else {
+                        cancelBtn.classList.remove("cursor-not-allowed", "opacity-50");
+                        cancelBtn.disabled = false;
+                    }
                 }
                 if (saveBtn) {
                     saveBtn.disabled = false;
@@ -8158,10 +9628,16 @@
                     cancelBtn.innerText = "Re-open";
                     cancelBtn.className = "ui-transition pressable min-h-[40px] px-4 py-2 rounded-lg text-[13.5px] font-bold bg-amber-600 text-white hover:bg-amber-700 border-[1.5px] border-transparent";
                     cancelBtn.disabled = false;
+                    cancelBtn.classList.remove("cursor-not-allowed", "opacity-50");
                 }
                 if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.classList.add(...disabledStyle);
+                    if (!adminMode) {
+                        saveBtn.disabled = true;
+                        saveBtn.classList.add(...disabledStyle);
+                    } else {
+                        saveBtn.disabled = false;
+                        saveBtn.classList.remove(...disabledStyle);
+                    }
                 }
                 return;
             }
@@ -8192,26 +9668,62 @@
                 PRAmount: item.PRAmount != null ? item.PRAmount : null,
                 PONo: item.PONo != null ? item.PONo : '',
                 POAmount: item.POAmount != null ? item.POAmount : null,
+                Remarks: item.Remarks != null ? item.Remarks : '',
                 Title: item.Title || item.RecordIdNo || item.Id || '',
+                admin_title: getRecordAdminTitle(item),
             };
             document.getElementById("edit-id").value = item.Id;
-            state.isPREditing = false;
             const prInput = document.getElementById('edit-prno');
             const prEditBtn = document.getElementById('btn-edit-prno');
-            prInput.disabled = true;
-            prInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-            prEditBtn.innerText = "Edit PR";
-            prEditBtn.classList.remove("bg-[var(--orange)]", "border-transparent")
-            prEditBtn.classList.add("bg-white", "border-[#B8B8BD]");
+            if (adminMode) {
+                state.isPREditing = true;
+                if (prInput) {
+                    prInput.disabled = false;
+                    prInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                }
+                if (prEditBtn) {
+                    prEditBtn.innerText = "Save PR";
+                    prEditBtn.classList.add("bg-[var(--orange)]", "border-transparent");
+                    prEditBtn.classList.remove("bg-white", "border-[#B8B8BD]");
+                }
+            } else {
+                state.isPREditing = false;
+                if (prInput) {
+                    prInput.disabled = true;
+                    prInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                }
+                if (prEditBtn) {
+                    prEditBtn.innerText = "Edit PR";
+                    prEditBtn.classList.remove("bg-[var(--orange)]", "border-transparent");
+                    prEditBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                }
+            }
 
-            state.isPOEditing = false;
             const poInput = document.getElementById('edit-pono');
             const poEditBtn = document.getElementById('btn-edit-pono');
-            poInput.disabled = true;
-            poInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-            poEditBtn.innerText = "Edit PO";
-            poEditBtn.classList.remove("bg-[var(--orange)]", "border-transparent")
-            poEditBtn.classList.add("bg-white", "border-[#B8B8BD]");
+            if (adminMode) {
+                state.isPOEditing = true;
+                if (poInput) {
+                    poInput.disabled = false;
+                    poInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                }
+                if (poEditBtn) {
+                    poEditBtn.innerText = "Save PO";
+                    poEditBtn.classList.add("bg-[var(--orange)]", "border-transparent");
+                    poEditBtn.classList.remove("bg-white", "border-[#B8B8BD]");
+                }
+            } else {
+                state.isPOEditing = false;
+                if (poInput) {
+                    poInput.disabled = true;
+                    poInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                }
+                if (poEditBtn) {
+                    poEditBtn.innerText = "Edit PO";
+                    poEditBtn.classList.remove("bg-[var(--orange)]", "border-transparent");
+                    poEditBtn.classList.add("bg-white", "border-[#B8B8BD]");
+                }
+            }
 
 
             Object.entries(FIELD_ID_TO_RECORD_KEY).forEach(([fieldId, recordKey]) => {
@@ -8230,6 +9742,25 @@
                     }
                     if (!val && (fieldId === 'edit-pr-remark' || fieldId === 'edit-pr-remarks') && item.Remarks) {
                         val = String(item.Remarks);
+                    }
+                    if (fieldId === 'edit-md-name') {
+                        const mdNameVal = val || item.admin_mdapprovalname || 'Coming Soon';
+                        if (el.tagName === 'SELECT' && mdNameVal && el.options && ![...el.options].some(o => o.value === mdNameVal)) {
+                            const opt = document.createElement('option');
+                            opt.value = mdNameVal;
+                            opt.textContent = mdNameVal;
+                            el.appendChild(opt);
+                        }
+                        el.value = mdNameVal;
+                        return;
+                    }
+                    if (fieldId === 'edit-md-approve-date') {
+                        const rawDate = val || item.admin_mdapproveddatetime || '';
+                        const formatted = formatDateForInput(rawDate);
+                        const today = new Date();
+                        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                        el.value = formatted || todayStr;
+                        return;
                     }
                     if (el.tagName === 'SELECT' && val && el.options && ![...el.options].some(o => o.value === val)) {
                         const opt = document.createElement('option');
@@ -8277,6 +9808,9 @@
             updateQuotationExpiryDisplay();
             updateTrackerVisual();
             updatePRApprovalRolesUI(item);
+            const evalHkd = (String(item.Currency || '').toUpperCase() === 'USD' ? (parseFloat(item.PRAmount) || 0) * 7.9 : (parseFloat(item.PRAmount) || 0));
+            const approverLevel = getDualApprovers(item.BTBType, evalHkd)?.Approver;
+            updateMDApprovalUI(approverLevel);
             clearRequiredFieldErrors();
             resetProductTypePairUI(item);
             applyPermanentlyDisabledFields();
@@ -8285,6 +9819,7 @@
             runProductTypePair(item.WorksOrderCode || '');
 
             renderSubRecordsTab();
+            prefillLastRemarkInput(item);
 
             const modal = document.getElementById('editModal');
             modal.classList.remove('hidden');
@@ -8342,8 +9877,10 @@
             state.currentRecord = null;
             resetProductTypePairUI(null);
             renderSubRecordsTab();
+            closeHistoryModal();
+            updateUrgentCaseUI();
             syncBodyScrollLock();
-                        
+
             const param = new URLSearchParams(location.search);
             param.delete("record");
             pushQueryStr(param)
@@ -8395,9 +9932,9 @@
             const isValidInteger = /^\d+$/.test(rawVal);
             const qty = parseInt(rawVal, 10);
 
-            if (!isValidInteger || isNaN(qty) || qty < 1 || qty > 10) {
+            if (!isValidInteger || isNaN(qty) || qty < 1 || (!adminMode && qty > 10)) {
                 if (error) {
-                    error.textContent = 'Please enter a whole number between 1 and 10.';
+                    error.textContent = adminMode ? 'Please enter a valid whole number (minimum 1).' : 'Please enter a whole number between 1 and 10.';
                     error.classList.remove('hidden');
                 }
                 if (input) {
@@ -8495,6 +10032,7 @@
                 cloned.RecordIdNo = source.RecordIdNo || source.Title;
                 cloned.admin_recordidno = source.admin_recordidno || source.RecordIdNo || source.Title;
                 cloned.SubNumber = subNumberStr;
+                cloned.admin_title = `${cloned.RecordIdNo}-${subNumberStr}`;
                 cloned.ParentRecordId = String(parentId);
                 cloned.IsSubRecord = true;
                 cloned.IsParentRecord = false;
@@ -8564,16 +10102,13 @@
             if (!bar) return;
             bar.innerHTML = '';
             bar.classList.add('hidden');
-            if (bar.parentElement) {
-                bar.parentElement.classList.add('hidden');
-            }
             return;
         }
 
         function persistCurrentRecord(closeAfter, skipStageValidation = false) {
             if (!state.currentRecord) return false;
 
-            if (!skipStageValidation) {
+            if (!skipStageValidation && !adminMode) {
                 const currentStage = document.getElementById('edit-processstatus').value || state.currentRecord.ProcessStatus;
                 if (!validateRequiredFieldsForStage(currentStage)) return false;
             }
@@ -8601,6 +10136,7 @@
             Object.entries(FIELD_ID_TO_RECORD_KEY).forEach(([fieldId, recordKey]) => {
                 const el = /** @type {HTMLInputElement} */(document.getElementById(fieldId));
                 if (!el) return;
+                if (el.tagName === 'SPAN' || el.tagName === 'A' || el.tagName === 'P') return;
                 if (CHECKBOX_FIELD_IDS.has(fieldId)) {
                     item[recordKey] = el.checked;
                 } else {
@@ -8627,6 +10163,28 @@
                     }
                 }
             });
+
+            // Persist MD approval name and date to both record property and raw column names
+            const mdNameEl = /** @type {HTMLSelectElement} */ (document.getElementById('edit-md-name'));
+            if (mdNameEl) {
+                const mdNameVal = mdNameEl.value || '';
+                item.MDApprovalName = mdNameVal;
+                item.admin_mdapprovalname = mdNameVal;
+                if (state.currentRecord) {
+                    state.currentRecord.MDApprovalName = mdNameVal;
+                    state.currentRecord.admin_mdapprovalname = mdNameVal;
+                }
+            }
+            const mdDateEl = /** @type {HTMLInputElement} */ (document.getElementById('edit-md-approve-date'));
+            if (mdDateEl) {
+                const mdDateVal = mdDateEl.value || '';
+                item.MDApprovedDateTime = mdDateVal;
+                item.admin_mdapproveddatetime = mdDateVal;
+                if (state.currentRecord) {
+                    state.currentRecord.MDApprovedDateTime = mdDateVal;
+                    state.currentRecord.admin_mdapproveddatetime = mdDateVal;
+                }
+            }
             item.ProcessStatus = state.currentRecord.ProcessStatus
             item.ProcessStatus = evaluateWorkflowState(item);
 
@@ -8639,6 +10197,25 @@
                     state.originalRecordSnapshot.PONo = item.PONo != null ? item.PONo : '';
                     state.originalRecordSnapshot.POAmount = item.POAmount != null ? item.POAmount : null;
                     persistAuditLogsToDataverse(auditEntries);
+                }
+
+                // Check Remark change and record audit log entry if updated
+                const oldRemark = String(state.originalRecordSnapshot.Remarks != null ? state.originalRecordSnapshot.Remarks : '').trim();
+                const newRemark = String(item.Remarks != null ? item.Remarks : '').trim();
+                if (newRemark && oldRemark !== newRemark) {
+                    const processAdmin = getSavedProcessAdmin() || "";
+                    const caseRecordId = getRecordAdminTitle(item) || getRecordAdminTitle(state.originalRecordSnapshot) || "";
+                    const nowIso = new Date().toISOString();
+                    const remarkAuditEntry = {
+                        admin_modifyfield: "Remark",
+                        admin_existingvalue: "", // User requirement: no need fill the existing value column
+                        admin_newvalue: newRemark,
+                        admin_modifyby: processAdmin,
+                        admin_whenmodify: nowIso,
+                        admin_caserecordid: caseRecordId,
+                    };
+                    persistAuditLogsToDataverse([remarkAuditEntry]);
+                    state.originalRecordSnapshot.Remarks = newRemark;
                 }
             }
 
@@ -8853,6 +10430,12 @@
                     if (record.DeliveryNote !== undefined) payload.admin_deliverynote = record.DeliveryNote || null;
                     if (record.ReceiptNum !== undefined) payload.admin_receiptnum = record.ReceiptNum || null;
                     if (record.POCurrency !== undefined) payload.admin_pocurrency = record.POCurrency || null;
+                    if (record.admin_mdapprovalname !== undefined || record.MDApprovalName !== undefined) {
+                        payload.admin_mdapprovalname = record.admin_mdapprovalname || record.MDApprovalName || null;
+                    }
+                    if (record.admin_mdapproveddatetime !== undefined || record.MDApprovedDateTime !== undefined) {
+                        payload.admin_mdapproveddatetime = record.admin_mdapproveddatetime || record.MDApprovedDateTime || null;
+                    }
 
                     // 8. Booleans / Flags
                     if (record.UrgentFlag !== undefined) {
@@ -9005,8 +10588,15 @@
             }
         }
 
-        function saveRecord() {
-            persistCurrentRecord(true, true);
+        var isSavingRecord = false;
+        async function saveRecord() {
+            if (isSavingRecord) return;
+            isSavingRecord = true;
+            try {
+                await persistCurrentRecord(true, true);
+            } finally {
+                setTimeout(() => { isSavingRecord = false; }, 600);
+            }
         }
 
         function handleCancelOrReopenClick() {
@@ -9194,6 +10784,9 @@
             "pr-approval-md-name": "MDApprovalName",
             "pr-approval-md-date": "MDApprovedDateTime",
 
+            'edit-md-name': 'MDApprovalName',
+            'edit-md-approve-date': 'MDApprovedDateTime',
+
             // ============
             // PO Info.
             // ============
@@ -9338,6 +10931,7 @@
 
         function validateRequiredFieldsForStage(stage) {
             clearRequiredFieldErrors();
+            if (adminMode) return true;
 
             /** @type {typeof STAGE_REQUIRED_FIELDS[WorkflowStage][number][]}*/
             const missingFields = [];
@@ -9469,6 +11063,39 @@
                 }
             });
         }
+async function sendPRApprovalRequest() {
+    const record = state.currentRecord;
+    if (!record || typeof record.Title !== "string" || !record.Title.trim()) {
+        showToast("A record title is required to send an approval request.", "warning");
+        return;
+    }
+
+    const button = document.getElementById("btn-send-pr-approval");
+    if (button.disabled || !confirm("Send PR approval request?")) return;
+
+    button.disabled = true;
+    try {
+        const response = await fetch(
+            "https://d1u4t2v5sfu1y7.cloudfront.net/webhook-test/6659f137-78a5-49ac-88b3-9c6882cb80d0",
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ Title: record.Title })
+            }
+        );
+        if (response.ok) {
+            showToast("PR approval request submitted.", "success");
+        } else {
+            showToast("PR approval request failed.", "error");
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Unable to contact approval service.", "error");
+    } finally {
+        button.disabled = false;
+    }
+}
+
 function sendApprovalRequest() {
 
     if (!state.currentRecord) {
@@ -9512,7 +11139,7 @@ async function triggerApprovalFlow() {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    recordId: record.RecordIdNo,
+                    recordId: record.Title,
                     skipPRApproval: needApproval? null : "Y",
                 })
             }

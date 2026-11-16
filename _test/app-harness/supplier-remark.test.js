@@ -6,6 +6,12 @@ const assert = require('assert');
 const { load } = require('./app.js');
 const app = load();
 
+{
+  const fields = { btbType: { value: 'BTB' }, uid: { value: 'UID-1' }, customerAddress: { value: 'Address' } };
+  const contact = { key: 'New Sales', name: 'New Sales', phone: '12345' };
+  assert.strictEqual(app.interpolateRemark('{Sales Name}|{Sales Contact Number}|{BTB Type}|{UID #}|{Customer Address}|{Issued by Email address}', fields, contact, 'Admin', { email: 'admin@example.com' }), 'New Sales|12345|Back-to-Back|UID-1|Address|admin@example.com');
+}
+
 let passed = 0;
 const failures = [];
 
@@ -184,6 +190,8 @@ function eq(label, actual, expected) {
     const html = renderToStaticMarkup(React.createElement(reactApp.LisRemarkPage, lisRemarkProps));
     ok('LisRemarkPage renders successfully', typeof html === 'string' && html.length > 0);
     ok('Case Type label is present', html.includes('Case Type :'));
+    ok('Dev Case Type is a labelled native select with lookup options',
+      /<select[^>]*aria-label="Case Type"[^>]*>[\s\S]*?<option value=""[^>]*>— Select Case Type —<\/option>[\s\S]*?<option value="C716"/.test(html));
     ok('Dropdown trigger for Case Type is rendered on dev side',
       html.includes('— Select Case Type —') || html.includes('C716'));
     ok('Remark fields for auto-match hint is displayed',

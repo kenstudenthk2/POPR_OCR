@@ -30,6 +30,7 @@ const APP_PATH = path.join(__dirname, '..', '..', 'PR Assistant App.html');
 // Handed out on `globalThis.__app`. Functions are here for convenience only --
 // they would land on the global anyway; the `const`s are the ones that must be.
 const EXPORTS = [
+  'excelCopyValues', 'excelAssignPosition', 'excelMasterPatch', 'EXCEL_MASTER_COLUMNS',
   // the monthly COS control file (Master Records, dev side)
   'COS_CONTROL_COLUMNS', 'COS_CONTROL_DEFAULT_ROWS', 'COS_CONTROL_MAX_ROWS',
   'cosCellText', 'cosControlRowValues', 'cosControlRowsFrom', 'cosControlRowsFor', 'cosRecdMonth',
@@ -100,7 +101,7 @@ const EXPORTS = [
   'cleanRichTextToPlainText',
   'buildBtbRemark', 'BTB_ADMIN_NAMES', 'BTB_ADMINS', 'adminIssuedBy', 'BTB_SALES_CONTACTS',
   'FEATURES', 'DATAVERSE_SCHEMAS', 'SCHEMA', 'mapPayload', 'buildLisStartPayload', 'btbTypeOf',
-  'localIsoDay', 'localIsoTomorrow', 'expiryDayText',
+  'localIsoDay', 'localIsoTomorrow', 'formatHongKongDate', 'expiryDayText', 'createProcessAdminRows',
   'NAV_ITEMS_ALL', 'NAV_ITEMS', 'navReachable',
   'findExistingLisRecordId',
   'dataverseIsActive', 'dataverseCellValue', 'lisCellValue', 'atqExcelCellValue', 'dataverseVerifyNotice', 'verifyValueTone',
@@ -172,7 +173,7 @@ const cached = {};
 // the block is the slow part and it holds no state worth resetting.
 function load(opts) {
   const real = !!(opts && opts.react);
-  const slot = real ? 'react' : 'stub';
+  const slot = (real ? 'react' : 'stub') + (opts?.side || '');
   if (cached[slot]) return cached[slot];
   const code = Babel.transform(appSource(), {
     presets: [['react', { runtime: 'classic' }]],
@@ -200,6 +201,7 @@ function load(opts) {
     DocparseEngine: undefined, XLSX: undefined,
   };
   sandbox.globalThis = sandbox;
+  if (opts?.side) sandbox.location = { pathname: '', search: `?side=${opts.side}` };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox, { filename: 'app-src.js' });
